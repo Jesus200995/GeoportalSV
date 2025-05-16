@@ -8,12 +8,17 @@ import OSM from 'ol/source/OSM';
 import TileWMS from 'ol/source/TileWMS';
 import { fromLonLat } from 'ol/proj';
 import { watchEffect } from 'vue';
+import MeasurementTool from './map-tools/MeasurementTool.vue';
 
 // Estado reactivo
 const sidebarOpen = ref(true);
 const map = ref(null);
 const loading = ref(true); // Para mostrar animación de carga
 const activeTab = ref('principal'); // Para controlar pestañas de grupos de capas
+const activeToolPanel = ref(''); // layers, measure, draw, search
+const layerOpacity = ref({}); // Para almacenar opacidad de capas
+const searchQuery = ref('');
+const searchResults = ref([]);
 
 // Capas organizadas en grupos
 const layerGroups = ref({
@@ -108,6 +113,49 @@ const toggleLayerVisibility = (layer) => {
   }
 };
 
+// Función para cambiar opacidad de capa
+const updateLayerOpacity = (layer, opacity) => {
+  if (map.value) {
+    const mapLayers = map.value.getLayers().getArray();
+    const olLayer = mapLayers.find(l => l.get('name') === layer.name);
+    if (olLayer) {
+      olLayer.setOpacity(opacity);
+      layerOpacity.value[layer.id] = opacity;
+    }
+  }
+};
+
+// Función para mover capa arriba/abajo
+const moveLayer = (layer, direction) => {
+  if (map.value) {
+    const mapLayers = map.value.getLayers().getArray();
+    const index = mapLayers.findIndex(l => l.get('name') === layer.name);
+    if (index !== -1) {
+      const newIndex = direction === 'up' ? index + 1 : index - 1;
+      if (newIndex >= 0 && newIndex < mapLayers.length) {
+        const layerToMove = mapLayers[index];
+        mapLayers.splice(index, 1);
+        mapLayers.splice(newIndex, 0, layerToMove);
+        map.value.render();
+      }
+    }
+  }
+};
+
+// Función para búsqueda
+const searchFeatures = async () => {
+  if (!searchQuery.value) return;
+  
+  // Implementar búsqueda WFS aquí
+  try {
+    const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrandodatos:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
+    const data = await response.json();
+    searchResults.value = data.features;
+  } catch (error) {
+    console.error('Error en la búsqueda:', error);
+  }
+};
+
 // Inicializar mapa cuando el componente se monte
 onMounted(() => {
   // Simular tiempo de carga para mostrar la animación
@@ -188,6 +236,17 @@ const zoomOut = () => {
       duration: 250
     });
   }
+};
+
+// Función para obtener el icono de cada herramienta
+const getToolIcon = (tool) => {
+  const icons = {
+    layers: '📑',  // Capas
+    measure: '📏', // Medición
+    draw: '✏️',    // Dibujo
+    search: '🔍'   // Búsqueda
+  };
+  return icons[tool] || '❔';
 };
 </script>
 
@@ -338,6 +397,63 @@ const zoomOut = () => {
       </div>
     </aside>
     
+    <!-- Panel de herramientas -->
+    <div class="absolute top-20 right-4 z-20 bg-white rounded-lg shadow-lg">
+      <div class="tool-buttons flex flex-col space-y-2 p-2">
+        <button 
+          v-for="tool in ['layers', 'measure', 'draw', 'search']" 
+          :key="tool"
+          @click="activeToolPanel = activeToolPanel === tool ? '' : tool"
+          :class="['tool-btn', { 'active': activeToolPanel === tool }]"
+          class="p-2 rounded-lg hover:bg-green-50 transition-colors text-xl"
+        >
+          {{ getToolIcon(tool) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel lateral de herramientas -->
+    <div 
+      v-if="activeToolPanel"
+      class="absolute top-20 right-16 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-300"
+    >
+      <!-- Contenido según herramienta activa -->
+      <div v-if="activeToolPanel === 'measure'">
+        <MeasurementTool :map="map" />
+      </div>
+      
+      <!-- Panel de búsqueda -->
+      <div v-if="activeToolPanel === 'search'" class="p-4">
+        <div class="flex space-x-2">
+          <input 
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar lugares..."
+            class="flex-1 px-3 py-2 border rounded-lg"
+            @keyup.enter="searchFeatures"
+          />
+          <button 
+            @click="searchFeatures"
+            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          >
+            🔍
+          </button>
+        </div>
+        
+        <!-- Resultados de búsqueda -->
+        <div v-if="searchResults.length" class="mt-4 max-h-96 overflow-y-auto">
+          <div 
+            v-for="result in searchResults" 
+            :key="result.id"
+            class="p-2 hover:bg-green-50 cursor-pointer rounded-lg"
+            @click="zoomToFeature(result)"
+          >
+            {{ result.properties.nombre_territorio }}
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Controles del mapa -->
     <div class="absolute right-4 bottom-20 flex flex-col space-y-2 z-10 animate-slide-in-right">
       <button @click="zoomIn" class="p-3 bg-white rounded-full shadow-md text-green-700 hover:bg-green-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -351,7 +467,7 @@ const zoomOut = () => {
         </svg>
       </button>
     </div>
-    
+
     <!-- Atribución en la parte inferior -->
     <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
       <p>© 2023 SembrandoDatos - Geoportal de visualización territorial</p>
@@ -360,70 +476,17 @@ const zoomOut = () => {
 </template>
 
 <style scoped>
-/* Estilos del toggle switch personalizado */
-.toggle-label {
-  transition: background-color 0.3s ease;
+/* ...existing styles... */
+
+.tool-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.toggle-label.active {
-  background-color: #10B981; /* Color verde esmeralda */
-}
-
-.toggle-label:before {
-  content: '';
-  display: block;
-  width: 1.25rem;
-  height: 1.25rem;
-  background-color: white;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  position: absolute;
-  top: 0.125rem;
-  left: 0.125rem;
-  transition: all 0.3s ease;
-}
-
-input:checked + .toggle-label:before {
-  left: 1.625rem;
-}
-
-/* Animaciones personalizadas */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.5s ease forwards;
-}
-
-/* Añadir estilos para la transición del logotipo */
-img {
-  transition: transform 0.3s ease;
-}
-
-img:hover {
-  transform: scale(1.05);
+.tool-btn.active {
+  @apply bg-green-500 text-white;
 }
 </style>
