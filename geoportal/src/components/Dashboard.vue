@@ -208,9 +208,16 @@ const zoomOut = () => {
     <!-- Header flotante con título -->
     <header class="absolute top-0 left-0 right-0 bg-white bg-opacity-95 shadow-md z-10 transition-all duration-300">
       <div class="container mx-auto px-4 py-2 sm:py-3 flex justify-between items-center">
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
-          Geoportal SembrandoDatos
-        </h1>
+        <div class="flex items-center space-x-3">
+          <img 
+            src="@/components/images/logotipo.png" 
+            alt="Logotipo SembrandoDatos" 
+            class="h-10 sm:h-12 w-auto object-contain"
+          />
+          <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
+            Geoportal SembrandoDatos
+          </h1>
+        </div>
         <button @click="toggleSidebar" 
                 class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -409,5 +416,14 @@ input:checked + .toggle-label:before {
 
 .animate-slide-in-right {
   animation: slideInRight 0.5s ease forwards;
+}
+
+/* Añadir estilos para la transición del logotipo */
+img {
+  transition: transform 0.3s ease;
+}
+
+img:hover {
+  transform: scale(1.05);
 }
 </style>
