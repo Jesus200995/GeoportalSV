@@ -156,11 +156,18 @@ const searchFeatures = async () => {
   }
 };
 
-// Función para guardar el estado del mapa
-const saveMapState = () => {
+const emit = defineEmits(['save-success']);
+
+// Función mejorada para guardar mapa
+const saveMapState = async () => {
+  if (!newMapName.value.trim()) {
+    alert('Por favor ingrese un nombre para el mapa');
+    return;
+  }
+
   const mapState = {
     id: Date.now(),
-    name: 'Nuevo mapa',  // Permitir al usuario personalizar
+    name: newMapName.value.trim(),
     lastModified: new Date().toLocaleString(),
     center: map.value.getView().getCenter(),
     zoom: map.value.getView().getZoom(),
@@ -171,13 +178,27 @@ const saveMapState = () => {
     }))
   };
 
-  // Obtener mapas existentes
-  let savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
-  savedMaps.push(mapState);
-  localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+  // Verificar si existe un mapa con el mismo nombre
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
+  const existingMap = savedMaps.find(m => m.name === mapState.name);
 
-  // Mostrar notificación
-  alert('Mapa guardado exitosamente');
+  if (existingMap) {
+    if (!confirm('Ya existe un mapa con ese nombre. ¿Deseas sobrescribirlo?')) {
+      return;
+    }
+    // Actualizar mapa existente
+    const index = savedMaps.findIndex(m => m.name === mapState.name);
+    savedMaps[index] = mapState;
+  } else {
+    // Agregar nuevo mapa
+    savedMaps.push(mapState);
+  }
+
+  // Guardar en localStorage
+  localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+  emit('save-success');
+  showSaveDialog.value = false;
+  newMapName.value = '';
 };
 
 // Botón para guardar en la interfaz
@@ -546,6 +567,15 @@ const getToolIcon = (tool) => {
         </div>
       </div>
     </div>
+
+    <!-- Botón para volver al inicio -->
+    <button 
+      @click="$router.push('/')"
+      class="absolute top-20 left-4 mt-2 bg-white text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors shadow-md flex items-center space-x-2"
+    >
+      <span>🏠</span>
+      <span>Inicio</span>
+    </button>
   </div>
 </template>
 

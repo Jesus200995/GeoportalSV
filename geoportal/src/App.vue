@@ -21,10 +21,18 @@ body, html {
 
 #app {
   height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  width: 100%;
+  overflow-x: hidden;
   position: relative;
   margin: 0;
   padding: 0;
+}
+
+/* Eliminar grid en App.vue para permitir que el contenido ocupe todo el ancho */
+@media (min-width: 1024px) {
+  #app {
+    display: block;
+    padding: 0;
+  }
 }
 </style>
