@@ -156,6 +156,45 @@ const searchFeatures = async () => {
   }
 };
 
+// Función para guardar el estado del mapa
+const saveMapState = () => {
+  const mapState = {
+    id: Date.now(),
+    name: 'Nuevo mapa',  // Permitir al usuario personalizar
+    lastModified: new Date().toLocaleString(),
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      ...layer,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+
+  // Obtener mapas existentes
+  let savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
+  savedMaps.push(mapState);
+  localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+
+  // Mostrar notificación
+  alert('Mapa guardado exitosamente');
+};
+
+// Botón para guardar en la interfaz
+const showSaveDialog = ref(false);
+const newMapName = ref('');
+
+const saveMap = () => {
+  if (!newMapName.value.trim()) {
+    alert('Por favor ingrese un nombre para el mapa');
+    return;
+  }
+  
+  saveMapState();
+  showSaveDialog.value = false;
+  newMapName.value = '';
+};
+
 // Inicializar mapa cuando el componente se monte
 onMounted(() => {
   // Simular tiempo de carga para mostrar la animación
@@ -471,6 +510,41 @@ const getToolIcon = (tool) => {
     <!-- Atribución en la parte inferior -->
     <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
       <p>© 2023 SembrandoDatos - Geoportal de visualización territorial</p>
+    </div>
+
+    <!-- Agregar botón de guardar en la barra de herramientas -->
+    <button 
+      @click="showSaveDialog = true"
+      class="absolute top-20 right-4 mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors shadow-md"
+    >
+      💾 Guardar Mapa
+    </button>
+
+    <!-- Modal para guardar mapa -->
+    <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-96">
+        <h3 class="text-lg font-semibold text-green-800 mb-4">Guardar Mapa</h3>
+        <input 
+          v-model="newMapName"
+          type="text"
+          placeholder="Nombre del mapa"
+          class="w-full px-3 py-2 border rounded-lg mb-4"
+        />
+        <div class="flex justify-end space-x-3">
+          <button 
+            @click="showSaveDialog = false"
+            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            @click="saveMap"
+            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
