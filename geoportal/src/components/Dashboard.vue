@@ -308,6 +308,15 @@ const getToolIcon = (tool) => {
   };
   return icons[tool] || '❔';
 };
+
+const goToHome = () => {
+  const shouldSave = confirm('¿Deseas guardar los cambios antes de salir?');
+  if (shouldSave) {
+    showSaveDialog.value = true;
+  } else {
+    window.$router.push('/');
+  }
+};
 </script>
 
 <template>
@@ -324,9 +333,10 @@ const getToolIcon = (tool) => {
     <!-- Mapa a pantalla completa -->
     <div ref="mapElement" class="absolute inset-0 z-0"></div>
     
-    <!-- Header flotante con título -->
+    <!-- Header flotante con título y botones de acción -->
     <header class="absolute top-0 left-0 right-0 bg-white bg-opacity-95 shadow-md z-10 transition-all duration-300">
       <div class="container mx-auto px-4 py-2 sm:py-3 flex justify-between items-center">
+        <!-- Logo y título -->
         <div class="flex items-center space-x-3">
           <img 
             src="@/components/images/logotipo.png" 
@@ -337,12 +347,35 @@ const getToolIcon = (tool) => {
             Geoportal SembrandoDatos
           </h1>
         </div>
-        <button @click="toggleSidebar" 
-                class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+
+        <!-- Botones de acción -->
+        <div class="flex items-center space-x-4">
+          <!-- Botón de inicio -->
+          <button 
+            @click="goToHome"
+            class="px-4 py-2 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <span>🏠</span>
+            <span class="hidden sm:inline">Inicio</span>
+          </button>
+
+          <!-- Botón de guardar -->
+          <button 
+            @click="showSaveDialog = true"
+            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <span>💾</span>
+            <span class="hidden sm:inline">Guardar</span>
+          </button>
+
+          <!-- Botón del menú -->
+          <button @click="toggleSidebar" 
+                  class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
     
@@ -533,14 +566,6 @@ const getToolIcon = (tool) => {
       <p>© 2023 SembrandoDatos - Geoportal de visualización territorial</p>
     </div>
 
-    <!-- Agregar botón de guardar en la barra de herramientas -->
-    <button 
-      @click="showSaveDialog = true"
-      class="absolute top-20 right-4 mt-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors shadow-md"
-    >
-      💾 Guardar Mapa
-    </button>
-
     <!-- Modal para guardar mapa -->
     <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 w-96">
@@ -567,21 +592,13 @@ const getToolIcon = (tool) => {
         </div>
       </div>
     </div>
-
-    <!-- Botón para volver al inicio -->
-    <button 
-      @click="$router.push('/')"
-      class="absolute top-20 left-4 mt-2 bg-white text-green-700 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors shadow-md flex items-center space-x-2"
-    >
-      <span>🏠</span>
-      <span>Inicio</span>
-    </button>
   </div>
 </template>
 
 <style scoped>
 /* ...existing styles... */
 
+/* Corregir los selectores que usan @apply */
 .tool-btn {
   width: 40px;
   height: 40px;
@@ -591,6 +608,61 @@ const getToolIcon = (tool) => {
 }
 
 .tool-btn.active {
-  @apply bg-green-500 text-white;
+  background-color: #10B981;
+  color: white;
+}
+
+/* Mejorar estilos de botones de acción */
+button {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Animación suave para los botones */
+.flex.items-center.space-x-4 button {
+  position: relative;
+  overflow: hidden;
+}
+
+.flex.items-center.space-x-4 button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s;
+  pointer-events: none;
+}
+
+.flex.items-center.space-x-4 button:hover::after {
+  transform: translate(-50%, -50%) scale(2);
+}
+
+/* Estilos para tooltips de medición */
+:global(.ol-tooltip) {
+  position: relative;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: bold;
+}
+
+:global(.ol-tooltip-measure) {
+  opacity: 1;
+  font-weight: bold;
+}
+
+:global(.ol-tooltip-static) {
+  background-color: rgba(0, 128, 0, 0.7);
 }
 </style>
