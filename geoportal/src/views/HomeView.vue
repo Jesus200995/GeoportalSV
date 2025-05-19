@@ -468,84 +468,99 @@ const handleRenameMap = (map) => {
 
         <!-- Grid de mapas responsiva -->
         <div class="max-w-[95%] xl:max-w-[90%] mx-auto">
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-            <!-- Tarjeta de nuevo mapa -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <!-- Tarjeta de nuevo mapa (reducida) -->
             <div 
               @click="showWelcome = false"
-              class="group bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg 
-                     hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
-                     overflow-hidden h-full"
+              class="group bg-gradient-to-br from-white to-green-50 rounded-xl shadow-md 
+                     hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 
+                     overflow-hidden h-48 relative"
             >
-              <div class="relative p-6">
+              <div class="relative p-4 h-full flex flex-col justify-between">
                 <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
-                            rounded-xl overflow-hidden flex items-center justify-center">
-                  <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/30 
+                            rounded-lg overflow-hidden flex items-center justify-center flex-1">
+                  <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-green-500/20 
                               group-hover:scale-110 transition-transform duration-500"></div>
                   <div class="relative z-10 transform group-hover:scale-105 transition-all duration-300">
-                    <svg class="w-16 h-16 text-green-600 group-hover:text-green-500 transition-colors" 
+                    <svg class="w-10 h-10 text-green-600 group-hover:text-green-500 transition-colors" 
                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                             d="M12 4v16m8-8H4"/>
                     </svg>
                   </div>
-                  <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 
-                              transition-opacity duration-300"></div>
                 </div>
-                <div class="mt-6 text-center">
-                  <h3 class="text-lg font-bold text-green-800 group-hover:text-green-600 
-                             transition-colors">Crear Nuevo Mapa</h3>
-                  <p class="text-sm text-green-600/75 mt-2 group-hover:text-green-500 
-                            transition-colors">Iniciar nueva visualización</p>
+                <div class="mt-2 text-center">
+                  <h3 class="text-sm font-medium text-green-800 group-hover:text-green-600 
+                             transition-colors">Nuevo Mapa</h3>
                 </div>
-                <!-- Indicador de acción -->
-                <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r 
+                <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r 
                             from-green-500 to-emerald-500 transform scale-x-0 group-hover:scale-x-100 
                             transition-transform duration-500 origin-left"></div>
               </div>
             </div>
 
-            <!-- Mapas filtrados -->
+            <!-- Mapas filtrados con transición -->
             <TransitionGroup name="map-card" tag="div" class="contents">
               <div v-for="map in filteredMaps" 
                    :key="map.id"
-                   class="bg-white rounded-2xl shadow-lg overflow-hidden group 
-                          hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-                <div class="relative">
-                  <div class="h-32 bg-green-50 flex items-center justify-center">
-                    <img 
-                      :src="map.thumbnail || '/src/components/images/vizual2.png'"
-                      :alt="map.name"
-                      class="w-full h-full object-cover"
-                      @error="$event.target.src = '/src/components/images/vizual2.png'"
-                    >
-                  </div>
-                  <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
-                    <button 
-                      @click="openMap(map)"
-                      class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors text-sm"
-                      title="Abrir mapa"
-                    >
-                      🗺️ Abrir
-                    </button>
-                    <button 
-                      @click="renameMap(map)"
-                      class="bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 transition-colors"
-                      title="Renombrar mapa"
-                    >
-                      ✏️
-                    </button>
-                    <button 
-                      @click="confirmDelete(map)"
-                      class="bg-red-500 text-white p-1 rounded-md hover:bg-red-600 transition-colors"
-                      title="Eliminar mapa"
-                    >
-                      🗑️
-                    </button>
+                   class="bg-white rounded-xl shadow-md overflow-hidden group 
+                          hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 h-48"
+              >
+                <div class="relative h-32">
+                  <img 
+                    :src="map.thumbnail || '/src/components/images/vizual2.png'"
+                    :alt="map.name"
+                    class="w-full h-full object-cover"
+                    @error="$event.target.src = '/src/components/images/vizual2.png'"
+                  >
+                  <!-- Overlay con botones mejorados -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent 
+                              opacity-0 group-hover:opacity-100 transition-all duration-300 
+                              flex items-center justify-center">
+                    <div class="flex items-center space-x-2 transform translate-y-4 
+                                group-hover:translate-y-0 transition-transform duration-300">
+                      <button 
+                        @click="openMap(map)"
+                        class="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 
+                               transform hover:scale-105 transition-all duration-200 
+                               shadow-lg hover:shadow-green-500/25"
+                        title="Abrir mapa"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                      </button>
+                      <button 
+                        @click="renameMap(map)"
+                        class="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+                               transform hover:scale-105 transition-all duration-200 
+                               shadow-lg hover:shadow-blue-500/25"
+                        title="Renombrar mapa"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button 
+                        @click="confirmDelete(map)"
+                        class="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 
+                               transform hover:scale-105 transition-all duration-200 
+                               shadow-lg hover:shadow-red-500/25"
+                        title="Eliminar mapa"
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div class="p-3">
-                  <h3 class="text-base font-semibold text-green-800 mb-1">{{ map.name }}</h3>
-                  <p class="text-xs text-gray-600">Última modificación: {{ map.lastModified }}</p>
+                <div class="p-2">
+                  <h3 class="text-sm font-medium text-gray-800 truncate">{{ map.name }}</h3>
+                  <p class="text-xs text-gray-500 mt-1">{{ map.lastModified }}</p>
                 </div>
               </div>
             </TransitionGroup>
@@ -803,140 +818,42 @@ button {
 button::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.5s;
-  pointer-events: none;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: translate(-100%, -100%) rotate(45deg);
+  transition: all 0.3s ease-out;
 }
 
 button:hover::after {
-  transform: translate(-50%, -50%) scale(2);
+  transform: translate(100%, 100%) rotate(45deg);
 }
 
-button:active {
-  transform: scale(0.98);
+/* Animación suave para los íconos de los botones */
+button svg {
+  transition: transform 0.2s ease;
 }
 
-/* Estilo para botón deshabilitado */
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+button:hover svg {
+  transform: scale(1.1);
 }
 
-/* Agregar estilos para el modal de éxito */
-.modal-success-enter-active,
-.modal-success-leave-active {
-  transition: all 0.3s ease;
-}
-
-.modal-success-enter-from,
-.modal-success-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-/* Agregar z-index más alto para el modal de éxito */
-.z-[60] {
-  z-index: 60;
-}
-
-/* Agregar animación de rebote lento */
-.animate-bounce-slow {
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(-5%);
-    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-  }
-  50% {
-    transform: translateY(0);
-    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-  }
-}
-
-/* Animaciones para las tarjetas */
-.map-card-move {
-  transition: all 0.5s ease;
-}
-
+/* Mejoras para las tarjetas y botones */
 .map-card-enter-active,
 .map-card-leave-active {
-  transition: all 0.5s ease;
+  transition: all 0.4s ease-out;
 }
 
 .map-card-enter-from,
 .map-card-leave-to {
   opacity: 0;
-  transform: translateY(30px);
-}
-
-/* Mejorar inputs y selects */
-select, input {
-  @apply transition-all duration-200;
-}
-
-select:hover, input:hover {
-  @apply bg-gray-100;
-}
-
-/* Animaciones para la tarjeta de nuevo mapa */
-.group:hover .bg-gradient-to-br {
-  background-size: 200% 200%;
-  animation: gradient 3s ease infinite;
-}
-
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Animación suave para el icono */
-.group:hover svg {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-/* Agregar estilos responsivos */
-@media (max-width: 640px) {
-  .grid {
-    gap: 1rem;
-  }
-}
-
-/* Ajustar el espaciado en dispositivos más pequeños */
-@media (max-width: 480px) {
-  .p-6 {
-    padding: 1rem;
-  }
-  
-  .gap-6 {
-    gap: 0.75rem;
-  }
-}
-
-/* Asegurar que las tarjetas mantengan su aspecto */
-.aspect-video {
-  aspect-ratio: 16 / 9;
+  transform: translateY(20px);
 }
 </style>
