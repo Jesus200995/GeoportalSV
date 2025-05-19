@@ -169,6 +169,7 @@ const saveMapState = async () => {
     id: Date.now(),
     name: newMapName.value.trim(),
     lastModified: new Date().toLocaleString(),
+    thumbnail: '@/components/images/vizual2.png', // Usar vizual2.png por defecto
     center: map.value.getView().getCenter(),
     zoom: map.value.getView().getZoom(),
     layers: getAllLayers().map(layer => ({
@@ -177,25 +178,12 @@ const saveMapState = async () => {
       opacity: layerOpacity.value[layer.id] || 1
     }))
   };
-
-  // Verificar si existe un mapa con el mismo nombre
-  const savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
-  const existingMap = savedMaps.find(m => m.name === mapState.name);
-
-  if (existingMap) {
-    if (!confirm('Ya existe un mapa con ese nombre. ¿Deseas sobrescribirlo?')) {
-      return;
-    }
-    // Actualizar mapa existente
-    const index = savedMaps.findIndex(m => m.name === mapState.name);
-    savedMaps[index] = mapState;
-  } else {
-    // Agregar nuevo mapa
-    savedMaps.push(mapState);
-  }
-
+  
   // Guardar en localStorage
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
+  savedMaps.push(mapState);
   localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+  
   emit('save-success');
   showSaveDialog.value = false;
   newMapName.value = '';
@@ -211,7 +199,27 @@ const saveMap = () => {
     return;
   }
   
-  saveMapState();
+  // Crear captura de pantalla del mapa (o usar imagen predeterminada)
+  const mapState = {
+    id: Date.now(),
+    name: newMapName.value.trim(),
+    lastModified: new Date().toLocaleString(),
+    thumbnail: '@/components/images/vizual2.png', // Usar vizual2.png por defecto
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      ...layer,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+  
+  // Guardar en localStorage
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
+  savedMaps.push(mapState);
+  localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+  
+  emit('save-success');
   showSaveDialog.value = false;
   newMapName.value = '';
 };

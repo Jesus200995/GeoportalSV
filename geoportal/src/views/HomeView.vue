@@ -151,10 +151,64 @@ const changeBackgroundImage = () => {
   currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
 };
 
-// Iniciar el carrusel cuando el componente se monta
+// Cargar mapas guardados al iniciar
 onMounted(() => {
   loadSavedMaps();
   // Cambiar imagen cada 5 segundos
+  setInterval(changeBackgroundImage, 5000);
+});
+
+// Actualizar los thumbnails de los mapas existentes
+const updateExistingMapThumbnails = () => {
+  const maps = JSON.parse(localStorage.getItem('savedMaps') || '[]');
+  const updatedMaps = maps.map(map => ({
+    ...map,
+    thumbnail: '/src/components/images/vizual2.png' // Ruta absoluta
+  }));
+  localStorage.setItem('savedMaps', JSON.stringify(updatedMaps));
+  savedMaps.value = updatedMaps;
+};
+
+// Modificar la función saveMapState
+const saveMapState = async () => {
+  if (!newMapName.value.trim()) {
+    alert('Por favor ingrese un nombre para el mapa');
+    return;
+  }
+
+  const mapState = {
+    id: Date.now(),
+    name: newMapName.value.trim(),
+    lastModified: new Date().toLocaleString(),
+    thumbnail: '/src/components/images/vizual2.png', // Ruta absoluta
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      ...layer,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+
+  // Guardar el estado del mapa en el almacenamiento local
+  const maps = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  maps.push(mapState);
+  localStorage.setItem('savedMaps', JSON.stringify(maps));
+
+  // Mostrar notificación de éxito
+  showNotification('Mapa guardado correctamente');
+
+  // Reiniciar el nombre del nuevo mapa
+  newMapName.value = '';
+
+  // Cerrar el mapa actual y mostrar la página de inicio
+  showWelcome.value = true;
+};
+
+// Iniciar el carrusel cuando el componente se monta y actualizar thumbnails
+onMounted(() => {
+  loadSavedMaps();
+  updateExistingMapThumbnails(); // Asegurar que se actualicen los thumbnails
   setInterval(changeBackgroundImage, 5000);
 });
 </script>
@@ -206,21 +260,27 @@ onMounted(() => {
         <!-- Grid de mapas guardados -->
         <div class="max-w-6xl mx-auto">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Tarjeta para nuevo mapa -->
+            <!-- Tarjeta para nuevo mapa - SIN imagen de vizual2.png -->
             <div 
               @click="showWelcome = false"
-              class="bg-white rounded-lg shadow-md p-4 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              class="bg-white rounded-lg shadow-md overflow-hidden group hover:shadow-lg transition-all duration-300"
             >
-              <div class="bg-green-50 rounded-lg p-6 mb-3 flex items-center justify-center">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
+              <div class="relative">
+                <div class="h-32 bg-green-50 flex items-center justify-center">
+                  <img 
+                    src="@/components/images/vizual.png" 
+                    alt="Nuevo mapa" 
+                    class="w-full h-full object-cover"
+                  >
+                </div>
               </div>
-              <h3 class="text-base font-semibold text-green-800 mb-1">Nuevo Mapa</h3>
-              <p class="text-sm text-green-600">Crear una nueva visualización</p>
+              <div class="p-3">
+                <h3 class="text-base font-semibold text-green-800 mb-1">Nuevo Mapa</h3>
+                <p class="text-sm text-green-600">Crear una nueva visualización</p>
+              </div>
             </div>
 
-            <!-- Mapas guardados -->
+            <!-- Mapas guardados con ruta corregida -->
             <div 
               v-for="map in savedMaps" 
               :key="map.id"
@@ -229,9 +289,10 @@ onMounted(() => {
               <div class="relative">
                 <div class="h-32 bg-green-50 flex items-center justify-center">
                   <img 
-                    :src="map.thumbnail || '/default-map.png'" 
-                    :alt="map.name" 
+                    :src="map.thumbnail || '/src/components/images/vizual2.png'"
+                    :alt="map.name"
                     class="w-full h-full object-cover"
+                    @error="$event.target.src = '/src/components/images/vizual2.png'"
                   >
                 </div>
                 <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
@@ -276,10 +337,14 @@ onMounted(() => {
 
     <!-- Modal de confirmación genérico -->
     <Transition name="modal">
-      <div v-if="confirmationModal.show" 
-           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[55]">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all"
-             :class="{ 'scale-100 opacity-100': confirmationModal.show, 'scale-95 opacity-0': !confirmationModal.show }">
+      <div 
+        v-if="confirmationModal.show" 
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[55]"
+      >
+        <div 
+          class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all"
+          :class="{ 'scale-100 opacity-100': confirmationModal.show, 'scale-95 opacity-0': !confirmationModal.show }"
+        >
           <div class="p-6">
             <div class="text-center">
               <!-- Icono según tipo -->
@@ -323,8 +388,10 @@ onMounted(() => {
 
     <!-- Modal de éxito -->
     <Transition name="modal">
-      <div v-if="successModal.show" 
-           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+      <div 
+        v-if="successModal.show" 
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]"
+      >
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all animate-fade-in">
           <div class="p-6">
             <div class="text-center">
@@ -348,8 +415,10 @@ onMounted(() => {
 
     <!-- Modal de edición de nombre -->
     <Transition name="modal">
-      <div v-if="editModal.show" 
-           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div 
+        v-if="editModal.show"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      >
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
           <div class="p-6">
             <div class="text-center">
