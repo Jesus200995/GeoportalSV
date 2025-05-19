@@ -42,8 +42,8 @@ const login = () => {
       localStorage.setItem('authenticated', 'true');
       localStorage.setItem('user', JSON.stringify({ username: username.value }));
       
-      // Redirigir al usuario a la página principal
-      router.push('/');
+      // Redirigir al usuario a la pantalla de carga en lugar de ir directo a la página principal
+      router.push('/loading');
     } else {
       error.value = 'Usuario o contraseña incorrectos';
       loading.value = false;
