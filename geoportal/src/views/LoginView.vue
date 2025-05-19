@@ -13,6 +13,22 @@ const showPassword = ref(false);
 const fadeIn = ref(false);
 const slideUp = ref(false);
 
+// Array de imágenes de cultivos y plantaciones
+const backgroundImages = [
+  'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=1974&auto=format&fit=crop', // Semillas brotando
+  'https://images.unsplash.com/photo-1464226184884-fa280b87c399?q=80&w=1974&auto=format&fit=crop', // Plantando
+  'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?q=80&w=1974&auto=format&fit=crop', // Campos cultivados
+  'https://images.unsplash.com/photo-1518977676601-b53f82aba655?q=80&w=1974&auto=format&fit=crop'  // Cultivos
+];
+
+// Estado para el índice de la imagen actual
+const currentImageIndex = ref(0);
+
+// Función para cambiar la imagen de fondo
+const changeBackgroundImage = () => {
+  currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
+};
+
 // Función para iniciar sesión
 const login = () => {
   // Resetear mensaje de error
@@ -50,6 +66,12 @@ onMounted(() => {
   setTimeout(() => {
     slideUp.value = true;
   }, 300);
+  
+  // Iniciar carrusel de imágenes de fondo
+  const interval = setInterval(changeBackgroundImage, 5000);
+  
+  // Limpiar intervalo cuando se desmonte el componente
+  return () => clearInterval(interval);
 });
 </script>
 
@@ -61,43 +83,45 @@ onMounted(() => {
       <!-- Overlay con gradiente -->
       <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/70 to-emerald-700/70 z-10"></div>
       
-      <!-- Imagen decorativa -->
-      <img 
-        src="https://images.unsplash.com/photo-1497250681960-ef046c08a56e?q=80&w=1974&auto=format&fit=crop"
-        alt="Plantas y naturaleza" 
-        class="absolute inset-0 w-full h-full object-cover"
-      />
+      <!-- Contenedor de imágenes de carrusel -->
+      <div class="absolute inset-0 m-0 p-0">
+        <template v-for="(image, index) in backgroundImages" :key="index">
+          <div
+            class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
+            :style="{
+              backgroundImage: `url('${image}')`,
+              opacity: currentImageIndex === index ? 1 : 0,
+              transform: 'scale(1.05)'
+            }"
+          ></div>
+        </template>
+      </div>
+      
+      <!-- Contenido sobre la imagen -->
+      <div class="relative z-20 h-full flex flex-col justify-center items-center p-8 text-center"
+           :class="{ 'slide-up': slideUp }">
+        <h2 class="text-white text-2xl md:text-4xl font-bold mb-4 font-serif">
+          Geoportal Sembrando Datos
+        </h2>
+        <p class="text-white text-lg mb-6 max-w-md">
+          Plataforma para visualización y análisis de datos territoriales
+        </p>
+      </div>
     </div>
     
     <!-- Panel de inicio de sesión (derecha en desktop, arriba en móvil) -->
     <div class="w-full md:w-1/2 bg-white flex flex-col justify-center items-center p-8 md:p-16 relative"
          :class="{ 'fade-in': fadeIn }">
-      <!-- Logo mejorado con branding profesional -->
-      <div class="absolute top-12 right-12 logo-container">
-        <div class="logo-effect-wrapper">
-          <img 
-            src="@/components/images/logotipo.png" 
-            alt="Logotipo Sembrando Datos" 
-            class="h-16 md:h-20 w-auto object-contain logo-animation"
-          />
-          <div class="logo-glow"></div>
-        </div>
-        <div class="logo-reflection"></div>
+      <!-- Logo centrado sin animación -->
+      <div class="w-full flex justify-center mb-12">
+        <img 
+          src="@/components/images/logotipo.png" 
+          alt="Logotipo Sembrando Datos" 
+          class="h-20 md:h-24 w-auto object-contain"
+        />
       </div>
       
-      <!-- Título y descripción en la parte derecha -->
-      <div class="w-full flex flex-col justify-start text-right absolute top-12 right-36 md:right-40 z-10" :class="{ 'slide-up': slideUp }">
-        <div class="max-w-[200px] ml-auto">
-          <h2 class="text-emerald-800 text-lg md:text-xl font-bold font-serif">
-            Geoportal Sembrando Datos
-          </h2>
-          <p class="text-emerald-600/80 text-xs md:text-sm">
-            Plataforma para visualización y análisis de datos territoriales
-          </p>
-        </div>
-      </div>
-      
-      <div class="w-full max-w-md mt-24">
+      <div class="w-full max-w-md">
         <!-- Encabezado -->
         <div class="text-center mb-10">
           <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3"
@@ -307,129 +331,31 @@ onMounted(() => {
   }
 }
 
-/* Mejorar posicionamiento y animación del logo */
-.logo-container {
-  position: relative;
-  z-index: 20;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-  margin-right: 0.5rem;
+/* Mejorar la transición de imágenes de fondo */
+.bg-cover {
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1.5s ease-in-out, transform 10s ease-in-out;
 }
 
-.logo-effect-wrapper {
-  position: relative;
-  overflow: visible;
-}
-
-.logo-animation {
-  animation: logo-float 4s ease-in-out infinite alternate;
-  transform-origin: center center;
-  position: relative;
-  z-index: 2;
-}
-
-@keyframes logo-float {
+/* Añadir efecto de zoom lento para las imágenes de fondo */
+@keyframes slow-zoom {
   0% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-6px) rotate(1deg);
+    transform: scale(1);
   }
   100% {
-    transform: translateY(0px) rotate(-1deg);
+    transform: scale(1.1);
   }
 }
 
-/* Efecto de resplandor alrededor del logo */
-.logo-glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(
-    circle,
-    rgba(16, 185, 129, 0.2) 0%,
-    rgba(16, 185, 129, 0.1) 40%,
-    transparent 70%
-  );
-  filter: blur(10px);
-  z-index: 1;
-  border-radius: 50%;
-  animation: pulse 3s ease-in-out infinite alternate;
+.bg-cover {
+  animation: slow-zoom 20s infinite alternate;
 }
 
-@keyframes pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0.3;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1.2);
-    opacity: 0.6;
-  }
-}
-
-/* Efecto de reflejo sutil bajo el logo */
-.logo-reflection {
-  position: absolute;
-  bottom: -16px;
-  left: 50%;
-  transform: translateX(-50%) scaleY(0.2) scaleX(0.8);
-  width: 60%;
-  height: 20px;
-  background: radial-gradient(
-    ellipse,
-    rgba(16, 185, 129, 0.2) 0%,
-    transparent 80%
-  );
-  filter: blur(4px);
-  z-index: 1;
-  opacity: 0.5;
-  animation: reflection 4s ease-in-out infinite alternate;
-}
-
-@keyframes reflection {
-  0% {
-    transform: translateX(-50%) scaleY(0.1) scaleX(0.6);
-    opacity: 0.3;
-  }
-  100% {
-    transform: translateX(-50%) scaleY(0.2) scaleX(0.9);
-    opacity: 0.6;
-  }
-}
-
-/* Mejorar la alineación del texto descriptivo */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .logo-container {
-    top: 8px;
-    right: 8px;
-  }
-  
-  .logo-animation {
-    height: 14px !important;
-  }
-  
-  .w-full.flex.flex-col.justify-start.text-right {
-    top: 8px;
-    right: 28px;
-  }
-  
-  .w-full.flex.flex-col.justify-start.text-right .max-w-\[200px\] {
-    max-width: 160px;
-  }
-  
-  .w-full.flex.flex-col.justify-start.text-right h2 {
-    font-size: 0.9rem;
-  }
-  
-  .w-full.flex.flex-col.justify-start.text-right p {
-    font-size: 0.7rem;
-  }
-  
   .w-full.max-w-md {
-    margin-top: 4rem;
+    margin-top: 1rem;
   }
 }
 </style>
