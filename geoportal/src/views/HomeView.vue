@@ -67,8 +67,25 @@ const renameMap = (map) => {
   }
 };
 
+// Agregar estado para el carrusel
+const backgroundImages = [
+  'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1920&auto=format&fit=crop', // Bosque verde
+  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop', // Campo de cultivo
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1920&auto=format&fit=crop'  // Bosque con luz
+];
+
+const currentImageIndex = ref(0);
+
+// Función para cambiar la imagen
+const changeBackgroundImage = () => {
+  currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
+};
+
+// Iniciar el carrusel cuando el componente se monta
 onMounted(() => {
   loadSavedMaps();
+  // Cambiar imagen cada 5 segundos
+  setInterval(changeBackgroundImage, 5000);
 });
 </script>
 
@@ -76,21 +93,35 @@ onMounted(() => {
   <main class="min-h-screen w-full bg-gradient-to-br from-green-50 to-teal-50">
     <!-- Página de bienvenida -->
     <div v-if="showWelcome" class="min-h-screen w-full flex flex-col py-8">
-      <!-- Header con logo y título -->
-      <header class="relative py-8 bg-green-800/10 backdrop-blur-sm">
+      <!-- Header con carrusel de imágenes -->
+      <header class="relative py-16 overflow-hidden">
+        <!-- Carrusel de imágenes de fondo -->
+        <div class="absolute inset-0">
+          <template v-for="(image, index) in backgroundImages" :key="index">
+            <div
+              class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
+              :style="{
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)), url('${image}')`,
+                opacity: currentImageIndex === index ? 1 : 0
+              }"
+            ></div>
+          </template>
+        </div>
+
+        <!-- Contenido del header -->
         <div class="container mx-auto px-4 text-center relative z-10">
           <!-- Contenedor del logo y título -->
           <div class="flex flex-col items-center justify-center space-y-4">
             <img 
               src="@/components/images/logotipo.png" 
               alt="Logotipo SembrandoDatos" 
-              class="h-20 md:h-24 w-auto object-contain animate-fade-in"
+              class="h-20 md:h-24 w-auto object-contain animate-fade-in drop-shadow-lg"
             />
             <div>
-              <h1 class="text-2xl md:text-4xl font-serif font-bold text-green-800 mb-2 animate-fade-in">
+              <h1 class="text-2xl md:text-4xl font-serif font-bold text-white mb-2 animate-fade-in drop-shadow-lg">
                 Geoportal SembrandoDatos
               </h1>
-              <p class="text-base md:text-lg text-green-600 max-w-xl mx-auto">
+              <p class="text-base md:text-lg text-gray-100 max-w-xl mx-auto drop-shadow">
                 Visualización y análisis territorial
               </p>
             </div>
@@ -196,5 +227,27 @@ img {
 
 img:hover {
   transform: scale(1.05);
+}
+
+/* Añadir estilo para mejorar la transición de la imagen de fondo */
+header {
+  min-height: 280px;
+  transition: all 0.3s ease;
+  background-attachment: fixed;
+}
+
+/* Mejorar legibilidad del texto sobre la imagen */
+.drop-shadow-lg {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+/* Añadir estilos para el carrusel */
+.bg-cover {
+  background-size: cover;
+}
+
+/* Mejorar animación de las imágenes */
+.transition-opacity {
+  transition: opacity 1s ease-in-out;
 }
 </style>
