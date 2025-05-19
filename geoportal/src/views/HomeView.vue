@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import Dashboard from '../components/Dashboard.vue';
 import ToastNotification from '../components/notifications/ToastNotification.vue';
 
 const showWelcome = ref(true);
 const savedMaps = ref([]);
+const searchMapQuery = ref('');
 
 // Cargar mapas guardados
 const loadSavedMaps = () => {
@@ -137,6 +138,19 @@ const executeRename = () => {
   }
 };
 
+// Agregar estado para búsqueda
+// Función para filtrar mapas
+const filteredMaps = computed(() => {
+  const query = searchMapQuery.value.toLowerCase().trim();
+  if (!query) return savedMaps.value;
+  
+  return savedMaps.value.filter(map => {
+    const nameMatch = map.name.toLowerCase().includes(query);
+    const dateMatch = map.lastModified.toLowerCase().includes(query);
+    return nameMatch || dateMatch;
+  });
+});
+
 // Agregar estados para el carrusel
 const backgroundImages = [
   'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1920&auto=format&fit=crop', // Bosque verde
@@ -257,71 +271,121 @@ onMounted(() => {
 
       <!-- Contenido principal centrado -->
       <div class="flex-1 container mx-auto px-4 py-8">
-        <!-- Grid de mapas guardados -->
+        <!-- Barra de búsqueda mejorada -->
+        <div class="max-w-6xl mx-auto mb-6">
+          <div class="relative">
+            <input
+              v-model="searchMapQuery"
+              type="text"
+              placeholder="Buscar mapas guardados..."
+              class="w-full px-4 py-3 pl-12 bg-white rounded-xl shadow-sm border border-gray-200 
+                     focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+            />
+            <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+              🔍
+            </span>
+            <!-- Indicador de resultados -->
+            <span v-if="searchMapQuery" 
+                  class="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+              {{ filteredMaps.length }} resultado(s)
+            </span>
+          </div>
+        </div>
+
+        <!-- Grid de mapas con transiciones -->
         <div class="max-w-6xl mx-auto">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Tarjeta para nuevo mapa - SIN imagen de vizual2.png -->
+            <!-- Tarjeta de nuevo mapa siempre visible -->
             <div 
               @click="showWelcome = false"
-              class="bg-white rounded-lg shadow-md overflow-hidden group hover:shadow-lg transition-all duration-300"
+              class="bg-gradient-to-br from-white to-green-50 rounded-xl shadow-lg overflow-hidden 
+                     group hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
             >
-              <div class="relative">
-                <div class="h-32 bg-green-50 flex items-center justify-center">
+              <div class="relative p-4">
+                <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
+                          rounded-lg flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">
                   <img 
                     src="@/components/images/vizual.png" 
                     alt="Nuevo mapa" 
-                    class="w-full h-full object-cover"
+                    class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                   >
+                  <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 
+                              transition-all duration-300 flex items-center justify-center">
+                    <span class="text-4xl transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                      ➕
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div class="p-3">
-                <h3 class="text-base font-semibold text-green-800 mb-1">Nuevo Mapa</h3>
-                <p class="text-sm text-green-600">Crear una nueva visualización</p>
+                <div class="p-4 text-center">
+                  <h3 class="text-lg font-bold text-green-800 mb-2">Nuevo Mapa</h3>
+                  <p class="text-sm text-green-600 opacity-75">Crear una nueva visualización</p>
+                </div>
               </div>
             </div>
 
-            <!-- Mapas guardados con ruta corregida -->
-            <div 
-              v-for="map in savedMaps" 
-              :key="map.id"
-              class="bg-white rounded-lg shadow-md overflow-hidden group hover:shadow-lg transition-all duration-300"
+            <!-- Mapas filtrados con transición -->
+            <TransitionGroup
+              name="map-card"
+              tag="div"
+              class="contents"
             >
-              <div class="relative">
-                <div class="h-32 bg-green-50 flex items-center justify-center">
-                  <img 
-                    :src="map.thumbnail || '/src/components/images/vizual2.png'"
-                    :alt="map.name"
-                    class="w-full h-full object-cover"
-                    @error="$event.target.src = '/src/components/images/vizual2.png'"
-                  >
-                </div>
-                <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
-                  <button 
-                    @click="openMap(map)"
-                    class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors text-sm"
-                    title="Abrir mapa"
-                  >
-                    🗺️ Abrir
-                  </button>
-                  <button 
-                    @click="renameMap(map)"
-                    class="bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 transition-colors"
-                    title="Renombrar mapa"
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    @click="confirmDelete(map)"
-                    class="bg-red-500 text-white p-1 rounded-md hover:bg-red-600 transition-colors"
-                    title="Eliminar mapa"
-                  >
-                    🗑️
-                  </button>
+              <div 
+                v-for="map in filteredMaps" 
+                :key="map.id"
+                class="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl 
+                       transform hover:-translate-y-1 transition-all duration-300"
+              >
+                <div class="relative">
+                  <div class="aspect-video bg-green-50 flex items-center justify-center overflow-hidden">
+                    <img 
+                      :src="map.thumbnail || '/src/components/images/vizual2.png'"
+                      :alt="map.name"
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      @error="$event.target.src = '/src/components/images/vizual2.png'"
+                    >
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 
+                                transition-all duration-300 flex items-center justify-center opacity-0 
+                                group-hover:opacity-100 space-x-3">
+                      <button 
+                        @click.stop="openMap(map)"
+                        class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 
+                               transition-colors transform hover:scale-105"
+                        title="Abrir mapa"
+                      >
+                        🗺️ Abrir
+                      </button>
+                      <button 
+                        @click.stop="renameMap(map)"
+                        class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 
+                               transition-colors transform hover:scale-105"
+                        title="Renombrar mapa"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        @click.stop="confirmDelete(map)"
+                        class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 
+                               transition-colors transform hover:scale-105"
+                        title="Eliminar mapa"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <h3 class="text-lg font-semibold text-green-800 mb-2 truncate">{{ map.name }}</h3>
+                    <p class="text-xs text-gray-500">Última modificación: {{ map.lastModified }}</p>
+                  </div>
                 </div>
               </div>
-              <div class="p-3">
-                <h3 class="text-base font-semibold text-green-800 mb-1">{{ map.name }}</h3>
-                <p class="text-xs text-gray-600">Última modificación: {{ map.lastModified }}</p>
+            </TransitionGroup>
+
+            <!-- Mensaje cuando no hay resultados mejorado -->
+            <div v-if="searchMapQuery && filteredMaps.length === 0" 
+                 class="col-span-full p-8 text-center">
+              <div class="bg-gray-50 rounded-xl p-6 animate-fade-in">
+                <p class="text-gray-500 mb-2">No se encontraron mapas que coincidan con "{{ searchMapQuery }}"</p>
+                <p class="text-sm text-gray-400">Intenta con otro término de búsqueda</p>
               </div>
             </div>
           </div>
@@ -620,5 +684,72 @@ button:disabled {
     transform: translateY(0);
     animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
   }
+}
+
+/* Agregar efecto hover suave para las tarjetas */
+.aspect-video {
+  aspect-ratio: 16 / 9;
+}
+
+/* Mejorar animación del botón de nuevo mapa */
+.group:hover .scale-0 {
+  transition-delay: 0.1s;
+}
+
+/* Mejorar sombras de las tarjetas */
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+              0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.hover\:shadow-xl:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Mejorar transición de la barra de búsqueda */
+input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* Animaciones para las tarjetas de mapas */
+.map-card-move {
+  transition: transform 0.5s ease;
+}
+
+.map-card-enter-active,
+.map-card-leave-active {
+  transition: all 0.5s ease;
+}
+
+.map-card-enter-from,
+.map-card-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.map-card-leave-active {
+  position: absolute;
+}
+
+/* Mejorar la transición de la barra de búsqueda */
+input {
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  transform: scale(1.01);
+}
+
+/* Animación para el contador de resultados */
+span {
+  transition: all 0.3s ease;
+}
+
+/* Optimizar rendimiento de animaciones */
+* {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 </style>
