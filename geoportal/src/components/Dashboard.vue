@@ -340,11 +340,11 @@ const goToHome = () => {
         <div class="flex items-center space-x-3">
           <img 
             src="@/components/images/logotipo.png" 
-            alt="Logotipo SembrandoDatos" 
+            alt="Logotipo Sembrando Datos" 
             class="h-10 sm:h-12 w-auto object-contain"
           />
           <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
-            Geoportal SembrandoDatos
+            Geoportal Sembrando Datos
           </h1>
         </div>
 
@@ -563,7 +563,7 @@ const goToHome = () => {
 
     <!-- Atribución en la parte inferior -->
     <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
-      <p>© 2023 SembrandoDatos - Geoportal de visualización territorial</p>
+      <p>© 2023 Sembrando Datos - Geoportal de visualización territorial</p>
     </div>
 
     <!-- Modal para guardar mapa -->

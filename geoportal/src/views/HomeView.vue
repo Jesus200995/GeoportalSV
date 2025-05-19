@@ -184,7 +184,7 @@ onMounted(() => {
           <div class="flex flex-col items-center justify-center space-y-4">
             <img 
               src="@/components/images/logotipo.png" 
-              alt="Logotipo SembrandoDatos" 
+              alt="Logotipo Sembrando Datos" 
               class="h-20 md:h-24 w-auto object-contain animate-fade-in drop-shadow-lg"
             />
             <div>
