@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import Dashboard from '../components/Dashboard.vue';
 import ToastNotification from '../components/notifications/ToastNotification.vue';
+import UserProfile from '../components/UserProfile.vue';
 
 const showWelcome = ref(true);
 const savedMaps = ref([]);
@@ -378,6 +379,11 @@ const handleRenameMap = (map) => {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Agregar UserProfile en la esquina superior derecha -->
+        <div class="absolute top-4 right-4 z-30">
+          <UserProfile />
         </div>
       </header>
 

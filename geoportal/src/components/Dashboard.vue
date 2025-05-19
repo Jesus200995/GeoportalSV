@@ -10,6 +10,7 @@ import TileWMS from 'ol/source/TileWMS';
 import { fromLonLat } from 'ol/proj';
 import { watchEffect } from 'vue';
 import MeasurementTool from './map-tools/MeasurementTool.vue';
+import UserProfile from './UserProfile.vue';
 
 // Estado reactivo
 const sidebarOpen = ref(true);
@@ -149,6 +150,7 @@ const searchFeatures = async () => {
   
   // Implementar búsqueda WFS aquí
   try {
+    const geoserverUrl = 'http://localhost:8089/geoserver'; // Definir explícitamente
     const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrandodatos:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
     const data = await response.json();
     searchResults.value = data.features;
@@ -170,7 +172,7 @@ const saveMapState = async () => {
     id: Date.now(),
     name: newMapName.value.trim(),
     lastModified: new Date().toLocaleString(),
-    thumbnail: '@/components/images/vizual2.png', // Usar vizual2.png por defecto
+    thumbnail: '/src/components/images/vizual2.png', // Usar ruta absoluta
     center: map.value.getView().getCenter(),
     zoom: map.value.getView().getZoom(),
     layers: getAllLayers().map(layer => ({
@@ -205,7 +207,7 @@ const saveMap = () => {
     id: Date.now(),
     name: newMapName.value.trim(),
     lastModified: new Date().toLocaleString(),
-    thumbnail: '@/components/images/vizual2.png', // Usar vizual2.png por defecto
+    thumbnail: '/src/components/images/vizual2.png', // Usar ruta absoluta
     center: map.value.getView().getCenter(),
     zoom: map.value.getView().getZoom(),
     layers: getAllLayers().map(layer => ({
@@ -223,6 +225,14 @@ const saveMap = () => {
   emit('save-success');
   showSaveDialog.value = false;
   newMapName.value = '';
+};
+
+// Función para hacer zoom a un resultado de búsqueda
+const zoomToFeature = (feature) => {
+  if (feature && feature.geometry && map.value) {
+    // Lógica para hacer zoom a la geometría
+    console.log("Zoom a característica", feature);
+  }
 };
 
 // Inicializar mapa cuando el componente se monte
@@ -335,6 +345,23 @@ const confirmExit = () => {
   // Usar window.location.href directamente como solución infalible
   window.location.href = '/';
 };
+
+// Agregar función de cierre de sesión
+const logout = () => {
+  // Mostrar modal de confirmación
+  logoutModal.value = true;
+};
+
+// Estado para modal de cierre de sesión
+const logoutModal = ref(false);
+
+// Función para confirmar cierre de sesión
+const confirmLogout = () => {
+  localStorage.removeItem('authenticated');
+  localStorage.removeItem('user');
+  logoutModal.value = false;
+  router.push('/login');
+};
 </script>
 
 <template>
@@ -367,29 +394,34 @@ const confirmExit = () => {
         </div>
 
         <!-- Botones de acción -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
+          <!-- Componente de perfil de usuario -->
+          <UserProfile />
+          
           <!-- Botón de inicio -->
           <button 
             @click="handleGoHome"
-            class="px-4 py-2 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="px-3 py-1.5 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <span>🏠</span>
-            <span class="hidden sm:inline">Inicio</span>
+            <span class="hidden sm:inline text-sm">Inicio</span>
           </button>
 
           <!-- Botón de guardar -->
           <button 
             @click="showSaveDialog = true"
-            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <span>💾</span>
-            <span class="hidden sm:inline">Guardar</span>
+            <span class="hidden sm:inline text-sm">Guardar</span>
           </button>
-
+          
           <!-- Botón del menú -->
-          <button @click="toggleSidebar" 
-                  class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button 
+            @click="toggleSidebar" 
+            class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -656,12 +688,49 @@ const confirmExit = () => {
         </div>
       </div>
     </Transition>
+
+    <!-- Modal de cierre de sesión -->
+    <Transition name="modal-fade">
+      <div v-if="logoutModal" 
+           class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+           @click.self="logoutModal = false">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
+                    scale-100 opacity-100 shadow-xl">
+          <div class="text-center">
+            <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
+              <span class="text-5xl">🚪</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+              Cerrar sesión
+            </h3>
+            <p class="text-gray-600 mb-8">
+              ¿Estás seguro de que deseas cerrar sesión? Los cambios no guardados se perderán.
+            </p>
+            <div class="flex space-x-3 justify-center">
+              <button 
+                @click="logoutModal = false"
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
+                       rounded-lg transition-colors duration-300"
+              >
+                Cancelar
+              </button>
+              <button 
+                @click="confirmLogout"
+                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white 
+                       rounded-lg transition-colors duration-300 flex items-center space-x-2"
+              >
+                <span>Cerrar sesión</span>
+                <span class="text-xl">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-/* ...existing styles... */
-
 /* Corregir los selectores que usan @apply */
 .tool-btn {
   width: 40px;
@@ -732,8 +801,15 @@ button:active {
 
 /* Estilos para botones de herramientas */
 .tool-btn {
-  @apply w-12 h-12 rounded-xl flex items-center justify-center text-gray-600 
-         hover:text-green-600 transition-all duration-300 transform hover:scale-105;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4B5563;
+  transition: all 0.3s ease;
+  transform: scale(1);
   animation: slideIn 0.5s ease-out forwards;
   animation-delay: var(--delay);
   opacity: 0;
@@ -750,13 +826,23 @@ button:active {
   }
 }
 
+.tool-btn:hover {
+  color: #059669;
+  transform: scale(1.05);
+}
+
 .tool-btn.active {
-  @apply bg-green-500 text-white;
+  background-color: #10B981;
+  color: white;
   transform: scale(1.05);
 }
 
 .tool-background {
-  @apply absolute inset-0 bg-green-100 opacity-0 transition-all duration-300;
+  position: absolute;
+  inset: 0;
+  background-color: #D1FAE5;
+  opacity: 0;
+  transition: all 0.3s ease;
   transform: scale(0);
   border-radius: inherit;
 }
@@ -767,85 +853,35 @@ button:active {
 }
 
 .tool-label {
-  @apply absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded-md
-         opacity-0 translate-x-2 pointer-events-none transition-all duration-300;
+  position: absolute;
+  left: 100%;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #1F2937;
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  opacity: 0;
+  transform: translateX(0.5rem);
+  pointer-events: none;
+  transition: all 0.3s ease;
   white-space: nowrap;
 }
 
 .tool-btn:hover .tool-label {
-  @apply opacity-100 translate-x-0;
+  opacity: 1;
+  transform: translateX(0);
 }
 
-/* Estilos para switches */
-.switch-label {
-  @apply block w-12 h-6 rounded-full cursor-pointer
-         bg-gray-200 transition-all duration-300;
-}
-
-.switch-label::after {
-  content: '';
-  @apply absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm
-         transition-all duration-300;
-}
-
-.peer:checked + .switch-label {
-  @apply bg-green-500;
-}
-
-.peer:checked + .switch-label::after {
-  @apply transform translate-x-6 bg-white;
-}
-
-.peer:focus + .switch-label {
-  @apply ring-2 ring-green-500 ring-offset-2;
-}
-
-/* Estilos para slider de opacidad */
-.layer-opacity-slider {
-  @apply w-24 h-2 rounded-lg appearance-none bg-gray-200;
-}
-
-.layer-opacity-slider::-webkit-slider-thumb {
-  @apply appearance-none w-4 h-4 rounded-full bg-green-500 cursor-pointer
-         transition-all duration-300 hover:scale-110;
-}
-
-/* Estilos para botones de control de capa */
-.layer-control-btn {
-  @apply w-6 h-6 rounded-lg flex items-center justify-center text-xs
-         bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-600
-         transition-all duration-300 transform hover:scale-110;
-}
-
-.layer-control-btn.up:hover {
-  @apply -translate-y-0.5;
-}
-
-.layer-control-btn.down:hover {
-  @apply translate-y-0.5;
-}
-
-/* Animación para elementos de capa */
-.layer-item {
-  animation: fadeIn 0.5s ease-out forwards;
-  opacity: 0;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Estilos mejorados para switches */
+/* Estilos para los switches */
 .toggle-label {
-  @apply relative block w-12 h-6 rounded-full cursor-pointer
-         transition-colors duration-300;
+  position: relative;
+  display: block;
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
   background-color: #D1D5DB;
 }
 
@@ -855,12 +891,19 @@ input:checked + .toggle-label {
 
 .toggle-label::after {
   content: '';
-  @apply absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow
-         transition-transform duration-300 ease-in-out;
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  background-color: white;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-in-out;
 }
 
 input:checked + .toggle-label::after {
-  @apply transform translate-x-6;
+  transform: translateX(1.5rem);
 }
 
 /* Animaciones para el modal */
@@ -878,5 +921,37 @@ input:checked + .toggle-label::after {
 .modal-fade-leave-to .bg-white {
   transform: scale(0.9);
   opacity: 0;
+}
+
+/* Animación para elementos deslizados desde la derecha */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
+
+/* Animación de fade-in para elementos */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
 }
 </style>
