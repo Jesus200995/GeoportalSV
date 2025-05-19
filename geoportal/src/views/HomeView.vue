@@ -45,29 +45,99 @@ const showNotification = (message, type = 'success') => {
   }, 3000);
 };
 
+// Estado para modales
+const deleteModal = ref({
+  show: false,
+  map: null
+});
+
+const editModal = ref({
+  show: false,
+  map: null,
+  newName: ''
+});
+
+// Agregar estados para modales de confirmación
+const confirmationModal = ref({
+  show: false,
+  title: '',
+  message: '',
+  onConfirm: null,
+  type: 'info' // info, warning, danger
+});
+
+// Agregar estado para modal de confirmación de acción completada
+const successModal = ref({
+  show: false,
+  title: '',
+  message: '',
+  type: 'success'
+});
+
 // Función para eliminar mapa con confirmación
 const confirmDelete = (map) => {
-  if (confirm('¿Estás seguro de que deseas eliminar este mapa?')) {
-    deleteMap(map.id);
-    showNotification('Mapa eliminado correctamente');
-  }
+  confirmationModal.value = {
+    show: true,
+    title: 'Eliminar Mapa',
+    message: `¿Estás seguro de que deseas eliminar el mapa "${map.name}"?`,
+    type: 'danger',
+    onConfirm: () => {
+      deleteMap(map.id);
+      confirmationModal.value.show = false;
+      
+      // Mostrar modal de éxito después de eliminar
+      successModal.value = {
+        show: true,
+        title: 'Mapa Eliminado',
+        message: 'El mapa ha sido eliminado correctamente',
+        type: 'success'
+      };
+      
+      // Ocultar modal de éxito después de 2 segundos
+      setTimeout(() => {
+        successModal.value.show = false;
+      }, 2000);
+    }
+  };
 };
 
 // Función para renombrar mapa
 const renameMap = (map) => {
-  const newName = prompt('Ingrese el nuevo nombre para el mapa:', map.name);
-  if (newName && newName.trim()) {
+  editModal.value = {
+    show: true,
+    map,
+    newName: map.name
+  };
+};
+
+// Modificar la función executeRename
+const executeRename = () => {
+  const { map, newName } = editModal.value;
+  if (map && newName && newName.trim()) {
     const maps = savedMaps.value;
     const mapIndex = maps.findIndex(m => m.id === map.id);
     if (mapIndex !== -1) {
       maps[mapIndex].name = newName.trim();
       localStorage.setItem('savedMaps', JSON.stringify(maps));
-      showNotification('Mapa renombrado correctamente');
+      editModal.value = { show: false, map: null, newName: '' };
+      
+      // Mostrar modal de éxito
+      successModal.value = {
+        show: true,
+        title: 'Mapa Renombrado',
+        message: 'El nombre del mapa ha sido actualizado correctamente',
+        type: 'success'
+      };
+      
+      // Ocultar modal de éxito después de 2 segundos
+      setTimeout(() => {
+        successModal.value.show = false;
+      }, 2000);
     }
   }
 };
 
-// Agregar estado para el carrusel
+// Agregar estados para el carrusel
 const backgroundImages = [
   'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1920&auto=format&fit=crop', // Bosque verde
   'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop', // Campo de cultivo
@@ -201,6 +271,117 @@ onMounted(() => {
 
     <!-- Componente de notificaciones -->
     <ToastNotification v-bind="notification" />
+
+    <!-- Modal de confirmación genérico -->
+    <Transition name="modal">
+      <div v-if="confirmationModal.show" 
+           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[55]">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all"
+             :class="{ 'scale-100 opacity-100': confirmationModal.show, 'scale-95 opacity-0': !confirmationModal.show }">
+          <div class="p-6">
+            <div class="text-center">
+              <!-- Icono según tipo -->
+              <span class="text-5xl mb-4 inline-block animate-bounce-slow">
+                {{ confirmationModal.type === 'danger' ? '⚠️' : 
+                   confirmationModal.type === 'warning' ? '⚡' : 'ℹ️' }}
+              </span>
+              
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                {{ confirmationModal.title }}
+              </h3>
+              
+              <p class="text-gray-600 mb-6">
+                {{ confirmationModal.message }}
+              </p>
+            </div>
+            
+            <div class="flex justify-center space-x-3">
+              <button 
+                @click="confirmationModal.show = false"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                @click="confirmationModal.onConfirm"
+                :class="{
+                  'bg-red-500 hover:bg-red-600': confirmationModal.type === 'danger',
+                  'bg-yellow-500 hover:bg-yellow-600': confirmationModal.type === 'warning',
+                  'bg-green-500 hover:bg-green-600': confirmationModal.type === 'info'
+                }"
+                class="px-4 py-2 text-white rounded-lg transition-colors"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Modal de éxito -->
+    <Transition name="modal">
+      <div v-if="successModal.show" 
+           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all animate-fade-in">
+          <div class="p-6">
+            <div class="text-center">
+              <!-- Icono de éxito -->
+              <span class="text-5xl mb-4 inline-block animate-bounce-slow">
+                {{ successModal.type === 'success' ? '✅' : '❌' }}
+              </span>
+              
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                {{ successModal.title }}
+              </h3>
+              
+              <p class="text-gray-600">
+                {{ successModal.message }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Modal de edición de nombre -->
+    <Transition name="modal">
+      <div v-if="editModal.show" 
+           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+          <div class="p-6">
+            <div class="text-center">
+              <span class="text-5xl mb-4 inline-block">✏️</span>
+              <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                Renombrar mapa
+              </h3>
+              <input 
+                v-model="editModal.newName"
+                type="text"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="Nuevo nombre del mapa"
+                @keyup.enter="executeRename"
+              />
+            </div>
+            <div class="mt-6 flex justify-center space-x-3">
+              <button 
+                @click="editModal.show = false"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                @click="executeRename"
+                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                :disabled="!editModal.newName.trim()"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </main>
 </template>
 
@@ -249,5 +430,96 @@ header {
 /* Mejorar animación de las imágenes */
 .transition-opacity {
   transition: opacity 1s ease-in-out;
+}
+
+/* Estilos para los modales */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.modal-enter-to,
+.modal-leave-from {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Animaciones para el modal de confirmación */
+.transform {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+/* Mejorar la apariencia de los botones del modal */
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s;
+  pointer-events: none;
+}
+
+button:hover::after {
+  transform: translate(-50%, -50%) scale(2);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Estilo para botón deshabilitado */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Agregar estilos para el modal de éxito */
+.modal-success-enter-active,
+.modal-success-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-success-enter-from,
+.modal-success-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Agregar z-index más alto para el modal de éxito */
+.z-[60] {
+  z-index: 60;
+}
+
+/* Agregar animación de rebote lento */
+.animate-bounce-slow {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
 }
 </style>
