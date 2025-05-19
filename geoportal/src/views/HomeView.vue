@@ -342,7 +342,6 @@ const handleRenameMap = (map) => {
 
 <template>
   <main class="min-h-screen w-full bg-gradient-to-br from-green-50 to-teal-50">
-    <!-- Página de bienvenida -->
     <div v-if="showWelcome" class="min-h-screen w-full flex flex-col">
       <!-- Header con carrusel de imágenes -->
       <header class="relative overflow-hidden h-48 sm:h-56 w-full">
@@ -382,190 +381,186 @@ const handleRenameMap = (map) => {
         </div>
       </header>
 
-      <!-- Contenido principal centrado -->
-      <div class="flex-1 container mx-auto px-4 py-8">
-        <!-- Mover el panel de filtros arriba -->
-        <div class="container mx-auto px-4 py-4">
-          <div class="max-w-6xl mx-auto">
-            <!-- Panel de búsqueda y filtros mejorado -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Buscador mejorado -->
-                <div class="md:col-span-1">
-                  <div class="relative">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" 
+      <!-- Contenedor principal modificado -->
+      <div class="flex-1 w-full px-4 py-6">
+        <!-- Panel de búsqueda y filtros mejorado -->
+        <div class="max-w-[95%] xl:max-w-[90%] mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Buscador mejorado -->
+            <div class="sm:col-span-1 lg:col-span-1">
+              <div class="relative">
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" 
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                  v-model="filters.search"
+                  type="text"
+                  placeholder="Buscar por nombre..."
+                  class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                         focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            <!-- Filtros modificados -->
+            <div class="sm:col-span-1 lg:col-span-1">
+              <select
+                v-model="filters.date"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                       focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="all">Todas las fechas</option>
+                <option value="today">Creados hoy</option>
+                <option value="week">Última semana</option>
+                <option value="month">Último mes</option>
+                <option value="older">Más antiguos</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-1 lg:col-span-1">
+              <select
+                v-model="filters.sortBy"
+                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                       focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              >
+                <option value="recent">Más recientes primero</option>
+                <option value="oldest">Más antiguos primero</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Filtros activos y contador modificado -->
+          <div v-if="filters.search || filters.date !== 'all'"
+               class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <span class="text-sm text-gray-500 w-full sm:w-auto mb-2 sm:mb-0">
+              {{ filteredMaps.length }} resultado{{ filteredMaps.length !== 1 ? 's' : '' }}
+            </span>
+            
+            <div class="flex-1 flex flex-wrap gap-2">
+              <div v-if="filters.search"
+                   class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                <span>Búsqueda: "{{ filters.search }}"</span>
+                <button @click="filters.search = ''"
+                        class="ml-2 hover:text-green-600">×</button>
+              </div>
+              <div v-if="filters.date !== 'all'"
+                   class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                <span>{{ 
+                  filters.date === 'today' ? 'Creados hoy' :
+                  filters.date === 'week' ? 'Última semana' :
+                  filters.date === 'month' ? 'Último mes' : 'Más antiguos'
+                }}</span>
+                <button @click="filters.date = 'all'"
+                        class="ml-2 hover:text-green-600">×</button>
+              </div>
+            </div>
+
+            <button v-if="filters.search || filters.date !== 'all'"
+                    @click="resetFilters"
+                    class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 
+                           hover:bg-gray-100 rounded-full transition-colors">
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de mapas responsiva -->
+        <div class="max-w-[95%] xl:max-w-[90%] mx-auto">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            <!-- Tarjeta de nuevo mapa -->
+            <div 
+              @click="showWelcome = false"
+              class="group bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg 
+                     hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
+                     overflow-hidden h-full"
+            >
+              <div class="relative p-6">
+                <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
+                            rounded-xl overflow-hidden flex items-center justify-center">
+                  <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/30 
+                              group-hover:scale-110 transition-transform duration-500"></div>
+                  <div class="relative z-10 transform group-hover:scale-105 transition-all duration-300">
+                    <svg class="w-16 h-16 text-green-600 group-hover:text-green-500 transition-colors" 
                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            d="M12 4v16m8-8H4"/>
                     </svg>
-                    <input
-                      v-model="filters.search"
-                      type="text"
-                      placeholder="Buscar por nombre..."
-                      class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
-                             focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                    />
                   </div>
+                  <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 
+                              transition-opacity duration-300"></div>
                 </div>
-
-                <!-- Filtro por fecha mejorado -->
-                <div class="md:col-span-1">
-                  <select
-                    v-model="filters.date"
-                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
-                           focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="all">Todas las fechas</option>
-                    <option value="today">Creados hoy</option>
-                    <option value="week">Última semana</option>
-                    <option value="month">Último mes</option>
-                    <option value="older">Más antiguos</option>
-                  </select>
+                <div class="mt-6 text-center">
+                  <h3 class="text-lg font-bold text-green-800 group-hover:text-green-600 
+                             transition-colors">Crear Nuevo Mapa</h3>
+                  <p class="text-sm text-green-600/75 mt-2 group-hover:text-green-500 
+                            transition-colors">Iniciar nueva visualización</p>
                 </div>
-
-                <!-- Ordenar por -->
-                <div class="md:col-span-1">
-                  <select
-                    v-model="filters.sortBy"
-                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
-                           focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="recent">Más recientes primero</option>
-                    <option value="oldest">Más antiguos primero</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Filtros activos y conteo de resultados -->
-              <div v-if="filters.search || filters.date !== 'all'"
-                   class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                <span class="text-sm text-gray-500">
-                  {{ filteredMaps.length }} resultado{{ filteredMaps.length !== 1 ? 's' : '' }} encontrado{{ filteredMaps.length !== 1 ? 's' : '' }}
-                </span>
-                
-                <div class="flex-1 flex flex-wrap gap-2">
-                  <div v-if="filters.search"
-                       class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    <span>Búsqueda: "{{ filters.search }}"</span>
-                    <button @click="filters.search = ''"
-                            class="ml-2 hover:text-green-600">×</button>
-                  </div>
-                  <div v-if="filters.date !== 'all'"
-                       class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    <span>{{ 
-                      filters.date === 'today' ? 'Creados hoy' :
-                      filters.date === 'week' ? 'Última semana' :
-                      filters.date === 'month' ? 'Último mes' : 'Más antiguos'
-                    }}</span>
-                    <button @click="filters.date = 'all'"
-                            class="ml-2 hover:text-green-600">×</button>
-                  </div>
-                </div>
-
-                <button v-if="filters.search || filters.date !== 'all'"
-                        @click="resetFilters"
-                        class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 
-                               hover:bg-gray-100 rounded-full transition-colors">
-                  Limpiar filtros
-                </button>
+                <!-- Indicador de acción -->
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r 
+                            from-green-500 to-emerald-500 transform scale-x-0 group-hover:scale-x-100 
+                            transition-transform duration-500 origin-left"></div>
               </div>
             </div>
 
-            <!-- Grid de mapas -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              <!-- Reemplazar la tarjeta de nuevo mapa con este diseño mejorado -->
-              <div 
-                @click="showWelcome = false"
-                class="group bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg 
-                       hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
-                       overflow-hidden"
-              >
-                <div class="relative p-6">
-                  <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
-                              rounded-xl overflow-hidden flex items-center justify-center">
-                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/30 
-                                group-hover:scale-110 transition-transform duration-500"></div>
-                    <div class="relative z-10 transform group-hover:scale-105 transition-all duration-300">
-                      <svg class="w-16 h-16 text-green-600 group-hover:text-green-500 transition-colors" 
-                           fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M12 4v16m8-8H4"/>
-                      </svg>
-                    </div>
-                    <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 
-                                transition-opacity duration-300"></div>
+            <!-- Mapas filtrados -->
+            <TransitionGroup name="map-card" tag="div" class="contents">
+              <div v-for="map in filteredMaps" 
+                   :key="map.id"
+                   class="bg-white rounded-2xl shadow-lg overflow-hidden group 
+                          hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                <div class="relative">
+                  <div class="h-32 bg-green-50 flex items-center justify-center">
+                    <img 
+                      :src="map.thumbnail || '/src/components/images/vizual2.png'"
+                      :alt="map.name"
+                      class="w-full h-full object-cover"
+                      @error="$event.target.src = '/src/components/images/vizual2.png'"
+                    >
                   </div>
-                  <div class="mt-6 text-center">
-                    <h3 class="text-lg font-bold text-green-800 group-hover:text-green-600 
-                               transition-colors">Crear Nuevo Mapa</h3>
-                    <p class="text-sm text-green-600/75 mt-2 group-hover:text-green-500 
-                              transition-colors">Iniciar nueva visualización</p>
-                  </div>
-                  <!-- Indicador de acción -->
-                  <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r 
-                              from-green-500 to-emerald-500 transform scale-x-0 group-hover:scale-x-100 
-                              transition-transform duration-500 origin-left"></div>
-                </div>
-              </div>
-
-              <!-- Mapas filtrados con transición -->
-              <TransitionGroup name="map-card" tag="div" class="contents">
-                <div v-for="map in filteredMaps" 
-                     :key="map.id"
-                     class="bg-white rounded-2xl shadow-lg overflow-hidden group 
-                            hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-                  <div class="relative">
-                    <div class="h-32 bg-green-50 flex items-center justify-center">
-                      <img 
-                        :src="map.thumbnail || '/src/components/images/vizual2.png'"
-                        :alt="map.name"
-                        class="w-full h-full object-cover"
-                        @error="$event.target.src = '/src/components/images/vizual2.png'"
-                      >
-                    </div>
-                    <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
-                      <button 
-                        @click="openMap(map)"
-                        class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors text-sm"
-                        title="Abrir mapa"
-                      >
-                        🗺️ Abrir
-                      </button>
-                      <button 
-                        @click="renameMap(map)"
-                        class="bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 transition-colors"
-                        title="Renombrar mapa"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        @click="confirmDelete(map)"
-                        class="bg-red-500 text-white p-1 rounded-md hover:bg-red-600 transition-colors"
-                        title="Eliminar mapa"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-                  <div class="p-3">
-                    <h3 class="text-base font-semibold text-green-800 mb-1">{{ map.name }}</h3>
-                    <p class="text-xs text-gray-600">Última modificación: {{ map.lastModified }}</p>
+                  <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
+                    <button 
+                      @click="openMap(map)"
+                      class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors text-sm"
+                      title="Abrir mapa"
+                    >
+                      🗺️ Abrir
+                    </button>
+                    <button 
+                      @click="renameMap(map)"
+                      class="bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 transition-colors"
+                      title="Renombrar mapa"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      @click="confirmDelete(map)"
+                      class="bg-red-500 text-white p-1 rounded-md hover:bg-red-600 transition-colors"
+                      title="Eliminar mapa"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </div>
-              </TransitionGroup>
-            </div>
-
-            <!-- Mensaje sin resultados -->
-            <div v-if="filteredMaps.length === 0" 
-                 class="text-center py-12">
-              <div class="bg-gray-50 rounded-2xl p-8 inline-block">
-                <p class="text-gray-500 mb-2">No se encontraron mapas que coincidan con tu búsqueda</p>
-                <button @click="resetFilters"
-                        class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg 
-                               hover:bg-green-600 transition-colors">
-                  Limpiar filtros
-                </button>
+                <div class="p-3">
+                  <h3 class="text-base font-semibold text-green-800 mb-1">{{ map.name }}</h3>
+                  <p class="text-xs text-gray-600">Última modificación: {{ map.lastModified }}</p>
+                </div>
               </div>
+            </TransitionGroup>
+          </div>
+
+          <!-- Mensaje sin resultados centrado -->
+          <div v-if="filteredMaps.length === 0" 
+               class="text-center py-12 w-full">
+            <div class="bg-gray-50 rounded-2xl p-8 inline-block max-w-md mx-auto">
+              <p class="text-gray-500 mb-2">No se encontraron mapas que coincidan con tu búsqueda</p>
+              <button @click="resetFilters"
+                      class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg 
+                             hover:bg-green-600 transition-colors">
+                Limpiar filtros
+              </button>
             </div>
           </div>
         </div>
@@ -920,5 +915,28 @@ select:hover, input:hover {
   50% {
     transform: scale(1.05);
   }
+}
+
+/* Agregar estilos responsivos */
+@media (max-width: 640px) {
+  .grid {
+    gap: 1rem;
+  }
+}
+
+/* Ajustar el espaciado en dispositivos más pequeños */
+@media (max-width: 480px) {
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  .gap-6 {
+    gap: 0.75rem;
+  }
+}
+
+/* Asegurar que las tarjetas mantengan su aspecto */
+.aspect-video {
+  aspect-ratio: 16 / 9;
 }
 </style>
