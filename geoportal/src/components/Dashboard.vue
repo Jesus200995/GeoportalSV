@@ -317,13 +317,17 @@ const getToolIcon = (tool) => {
   return icons[tool] || '❔';
 };
 
-const goToHome = () => {
-  const shouldSave = confirm('¿Deseas guardar los cambios antes de salir?');
-  if (shouldSave) {
-    showSaveDialog.value = true;
-  } else {
-    window.$router.push('/');
-  }
+// Agregar estado para modal de confirmación de salida
+const showExitModal = ref(false);
+
+// Función mejorada para ir al inicio
+const handleGoHome = () => {
+  showExitModal.value = true;
+};
+
+const confirmExit = () => {
+  showExitModal.value = false;
+  window.$router.push('/');
 };
 </script>
 
@@ -360,7 +364,7 @@ const goToHome = () => {
         <div class="flex items-center space-x-4">
           <!-- Botón de inicio -->
           <button 
-            @click="goToHome"
+            @click="handleGoHome"
             class="px-4 py-2 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center space-x-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <span>🏠</span>
@@ -498,17 +502,24 @@ const goToHome = () => {
       </div>
     </aside>
     
-    <!-- Panel de herramientas -->
-    <div class="absolute top-20 right-4 z-20 bg-white rounded-lg shadow-lg">
-      <div class="tool-buttons flex flex-col space-y-2 p-2">
+    <!-- Panel de herramientas mejorado -->
+    <div class="absolute top-20 right-4 z-20">
+      <div class="tool-buttons flex flex-col space-y-2 p-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg">
         <button 
-          v-for="tool in ['layers', 'measure', 'draw', 'search']" 
+          v-for="(tool, index) in ['layers', 'measure', 'draw', 'search']" 
           :key="tool"
           @click="activeToolPanel = activeToolPanel === tool ? '' : tool"
-          :class="['tool-btn', { 'active': activeToolPanel === tool }]"
-          class="p-2 rounded-lg hover:bg-green-50 transition-colors text-xl"
+          :class="[
+            'tool-btn relative overflow-hidden',
+            { 'active': activeToolPanel === tool }
+          ]"
+          :style="{
+            '--delay': `${index * 0.1}s`
+          }"
         >
-          {{ getToolIcon(tool) }}
+          <span class="relative z-10">{{ getToolIcon(tool) }}</span>
+          <span class="tool-label">{{ tool }}</span>
+          <div class="tool-background"></div>
         </button>
       </div>
     </div>
@@ -600,6 +611,44 @@ const goToHome = () => {
         </div>
       </div>
     </div>
+
+    <!-- Modal elegante para confirmar salida -->
+    <Transition name="modal-fade">
+      <div v-if="showExitModal" 
+           class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+           @click.self="showExitModal = false">
+        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
+                    scale-100 opacity-100 shadow-xl">
+          <div class="text-center">
+            <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
+              <span class="text-5xl">🏠</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+              ¿Volver al inicio?
+            </h3>
+            <p class="text-gray-600 mb-8">
+              ¿Estás seguro de que deseas salir del mapa actual? Los cambios no guardados se perderán.
+            </p>
+            <div class="flex space-x-3 justify-center">
+              <button 
+                @click="showExitModal = false"
+                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
+                       rounded-lg transition-colors duration-300"
+              >
+                Cancelar
+              </button>
+              <button 
+                @click="confirmExit"
+                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
+                       rounded-lg transition-colors duration-300"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -672,5 +721,155 @@ button:active {
 
 :global(.ol-tooltip-static) {
   background-color: rgba(0, 128, 0, 0.7);
+}
+
+/* Estilos para botones de herramientas */
+.tool-btn {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center text-gray-600 
+         hover:text-green-600 transition-all duration-300 transform hover:scale-105;
+  animation: slideIn 0.5s ease-out forwards;
+  animation-delay: var(--delay);
+  opacity: 0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.tool-btn.active {
+  @apply bg-green-500 text-white;
+  transform: scale(1.05);
+}
+
+.tool-background {
+  @apply absolute inset-0 bg-green-100 opacity-0 transition-all duration-300;
+  transform: scale(0);
+  border-radius: inherit;
+}
+
+.tool-btn:hover .tool-background {
+  transform: scale(1);
+  opacity: 0.2;
+}
+
+.tool-label {
+  @apply absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded-md
+         opacity-0 translate-x-2 pointer-events-none transition-all duration-300;
+  white-space: nowrap;
+}
+
+.tool-btn:hover .tool-label {
+  @apply opacity-100 translate-x-0;
+}
+
+/* Estilos para switches */
+.switch-label {
+  @apply block w-12 h-6 rounded-full cursor-pointer
+         bg-gray-200 transition-all duration-300;
+}
+
+.switch-label::after {
+  content: '';
+  @apply absolute left-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm
+         transition-all duration-300;
+}
+
+.peer:checked + .switch-label {
+  @apply bg-green-500;
+}
+
+.peer:checked + .switch-label::after {
+  @apply transform translate-x-6 bg-white;
+}
+
+.peer:focus + .switch-label {
+  @apply ring-2 ring-green-500 ring-offset-2;
+}
+
+/* Estilos para slider de opacidad */
+.layer-opacity-slider {
+  @apply w-24 h-2 rounded-lg appearance-none bg-gray-200;
+}
+
+.layer-opacity-slider::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 rounded-full bg-green-500 cursor-pointer
+         transition-all duration-300 hover:scale-110;
+}
+
+/* Estilos para botones de control de capa */
+.layer-control-btn {
+  @apply w-6 h-6 rounded-lg flex items-center justify-center text-xs
+         bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-600
+         transition-all duration-300 transform hover:scale-110;
+}
+
+.layer-control-btn.up:hover {
+  @apply -translate-y-0.5;
+}
+
+.layer-control-btn.down:hover {
+  @apply translate-y-0.5;
+}
+
+/* Animación para elementos de capa */
+.layer-item {
+  animation: fadeIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos mejorados para switches */
+.toggle-label {
+  @apply relative block w-12 h-6 rounded-full cursor-pointer
+         transition-colors duration-300;
+  background-color: #D1D5DB;
+}
+
+input:checked + .toggle-label {
+  background-color: #10B981;
+}
+
+.toggle-label::after {
+  content: '';
+  @apply absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow
+         transition-transform duration-300 ease-in-out;
+}
+
+input:checked + .toggle-label::after {
+  @apply transform translate-x-6;
+}
+
+/* Animaciones para el modal */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .bg-white,
+.modal-fade-leave-to .bg-white {
+  transform: scale(0.9);
+  opacity: 0;
 }
 </style>
