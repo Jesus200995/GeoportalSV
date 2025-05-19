@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router'; 
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -325,9 +326,14 @@ const handleGoHome = () => {
   showExitModal.value = true;
 };
 
+// Agregar el router correctamente
+const router = useRouter();
+
+// Modificar la función confirmExit para garantizar navegación
 const confirmExit = () => {
   showExitModal.value = false;
-  window.$router.push('/');
+  // Usar window.location.href directamente como solución infalible
+  window.location.href = '/';
 };
 </script>
 
@@ -640,9 +646,10 @@ const confirmExit = () => {
               <button 
                 @click="confirmExit"
                 class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
-                       rounded-lg transition-colors duration-300"
+                       rounded-lg transition-colors duration-300 flex items-center space-x-2"
               >
-                Confirmar
+                <span>Volver al inicio</span>
+                <span class="text-xl">→</span>
               </button>
             </div>
           </div>

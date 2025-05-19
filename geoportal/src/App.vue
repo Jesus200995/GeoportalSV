@@ -33,6 +33,14 @@ body, html {
   #app {
     display: block;
     padding: 0;
+    width: 100vw;
+    max-width: 100%;
   }
+}
+
+/* Asegurar que RouterView ocupe todo el ancho disponible */
+#app > * {
+  width: 100%;
+  max-width: 100vw;
 }
 </style>

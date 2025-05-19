@@ -381,10 +381,10 @@ const handleRenameMap = (map) => {
         </div>
       </header>
 
-      <!-- Contenedor principal modificado -->
+      <!-- Contenedor principal modificado - asegurar que use todo el ancho -->
       <div class="flex-1 w-full px-4 py-6">
-        <!-- Panel de búsqueda y filtros mejorado -->
-        <div class="max-w-[95%] xl:max-w-[90%] mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
+        <!-- Panel de búsqueda y filtros mejorado - usar ancho completo -->
+        <div class="w-full max-w-[98%] xl:max-w-[95%] mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- Buscador mejorado -->
             <div class="sm:col-span-1 lg:col-span-1">
@@ -466,8 +466,8 @@ const handleRenameMap = (map) => {
           </div>
         </div>
 
-        <!-- Grid de mapas responsiva -->
-        <div class="max-w-[95%] xl:max-w-[90%] mx-auto">
+        <!-- Grid de mapas responsiva - usar ancho completo -->
+        <div class="w-full max-w-[98%] xl:max-w-[95%] mx-auto">
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             <!-- Tarjeta de nuevo mapa (reducida) -->
             <div 
@@ -855,5 +855,16 @@ button:hover svg {
 .map-card-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+/* Añadir estilos para asegurar que ocupe todo el espacio disponible */
+main {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.w-full {
+  width: 100%;
 }
 </style>

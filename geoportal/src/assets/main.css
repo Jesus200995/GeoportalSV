@@ -89,14 +89,15 @@ a,
 
 @media (min-width: 1024px) {
   body {
-    display: flex;
-    place-items: center;
+    display: block; /* Cambiado de flex a block */
+    width: 100%;
   }
 
   #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    display: block; /* Eliminar el grid */
+    width: 100%;
+    padding: 0;
+    max-width: 100vw;
   }
 }
 
