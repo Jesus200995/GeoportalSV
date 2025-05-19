@@ -5,7 +5,6 @@ import ToastNotification from '../components/notifications/ToastNotification.vue
 
 const showWelcome = ref(true);
 const savedMaps = ref([]);
-const searchMapQuery = ref('');
 
 // Cargar mapas guardados
 const loadSavedMaps = () => {
@@ -138,19 +137,6 @@ const executeRename = () => {
   }
 };
 
-// Agregar estado para búsqueda
-// Función para filtrar mapas
-const filteredMaps = computed(() => {
-  const query = searchMapQuery.value.toLowerCase().trim();
-  if (!query) return savedMaps.value;
-  
-  return savedMaps.value.filter(map => {
-    const nameMatch = map.name.toLowerCase().includes(query);
-    const dateMatch = map.lastModified.toLowerCase().includes(query);
-    return nameMatch || dateMatch;
-  });
-});
-
 // Agregar estados para el carrusel
 const backgroundImages = [
   'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1920&auto=format&fit=crop', // Bosque verde
@@ -225,6 +211,133 @@ onMounted(() => {
   updateExistingMapThumbnails(); // Asegurar que se actualicen los thumbnails
   setInterval(changeBackgroundImage, 5000);
 });
+
+// Estados para filtros y búsqueda
+const filters = ref({
+  search: '',
+  date: 'all',
+  sortBy: 'recent',
+  category: 'all'
+});
+
+// Mejorar la función getTimeAgo para un cálculo más preciso
+const getTimeAgo = (dateStr) => {
+  const date = new Date(dateStr);
+  const now = new Date();
+  
+  // Resetear las horas para comparar solo fechas
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mapDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  const diffTime = today - mapDate;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'today';
+  if (diffDays <= 7) return 'week';
+  if (diffDays <= 30) return 'month';
+  return 'older';
+};
+
+// Modificar el computed filteredMaps para mejor filtrado
+const filteredMaps = computed(() => {
+  let result = [...savedMaps.value];
+  
+  // Filtrar por fecha primero
+  if (filters.value.date !== 'all') {
+    result = result.filter(map => {
+      const timeAgo = getTimeAgo(map.lastModified);
+      return filters.value.date === timeAgo;
+    });
+  }
+  
+  // Luego filtrar por búsqueda
+  if (filters.value.search.trim()) {
+    const searchTerm = filters.value.search.toLowerCase().trim();
+    result = result.filter(map => 
+      map.name.toLowerCase().includes(searchTerm) ||
+      map.lastModified.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  // Ordenar resultados
+  result.sort((a, b) => {
+    const dateA = new Date(a.lastModified);
+    const dateB = new Date(b.lastModified);
+    return filters.value.sortBy === 'recent' ? dateB - dateA : dateA - dateB;
+  });
+
+  return result;
+});
+
+const resetFilters = () => {
+  filters.value = {
+    search: '',
+    date: 'all',
+    sortBy: 'recent',
+    category: 'all'
+  };
+};
+
+// Cerrar el modal de éxito al hacer clic
+const closeSuccessModal = () => {
+  successModal.value.show = false;
+};
+
+// Cerrar el modal de confirmación al hacer clic fuera del área del modal
+const closeConfirmationModal = (event) => {
+  const modal = event.target.closest('.modal');
+  if (!modal) {
+    confirmationModal.value.show = false;
+  }
+};
+
+// Cerrar el modal de edición al hacer clic fuera del área del modal
+const closeEditModal = (event) => {
+  const modal = event.target.closest('.modal');
+  if (!modal) {
+    editModal.value.show = false;
+  }
+};
+
+// Cerrar el mapa actual y mostrar la página de inicio
+const closeMap = () => {
+  showWelcome.value = true;
+  // Aquí puedes agregar cualquier otra lógica para cerrar el mapa
+};
+
+// Lógica para el botón de guardar mapa
+const handleSaveMap = async () => {
+  // Aquí va la lógica para guardar el mapa
+  // Por ejemplo, llamar a la función saveMapState()
+  await saveMapState();
+  
+  // Mostrar notificación de éxito
+  showNotification('Mapa guardado correctamente');
+  
+  // Cerrar el mapa actual y mostrar la página de inicio
+  closeMap();
+};
+
+// Lógica para el botón de abrir mapa
+const handleOpenMap = (map) => {
+  // Aquí va la lógica para abrir el mapa
+  // Por ejemplo, cargar el mapa en el componente del mapa
+  openMap(map);
+};
+
+// Lógica para el botón de eliminar mapa
+const handleDeleteMap = (map) => {
+  // Aquí va la lógica para eliminar el mapa
+  // Por ejemplo, llamar a la función confirmDelete()
+  confirmDelete(map);
+};
+
+// Lógica para el botón de renombrar mapa
+const handleRenameMap = (map) => {
+  // Aquí va la lógica para renombrar el mapa
+  // Por ejemplo, abrir el modal de edición con el mapa seleccionado
+  renameMap(map);
+};
 </script>
 
 <template>
@@ -271,121 +384,187 @@ onMounted(() => {
 
       <!-- Contenido principal centrado -->
       <div class="flex-1 container mx-auto px-4 py-8">
-        <!-- Barra de búsqueda mejorada -->
-        <div class="max-w-6xl mx-auto mb-6">
-          <div class="relative">
-            <input
-              v-model="searchMapQuery"
-              type="text"
-              placeholder="Buscar mapas guardados..."
-              class="w-full px-4 py-3 pl-12 bg-white rounded-xl shadow-sm border border-gray-200 
-                     focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
-            />
-            <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-              🔍
-            </span>
-            <!-- Indicador de resultados -->
-            <span v-if="searchMapQuery" 
-                  class="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
-              {{ filteredMaps.length }} resultado(s)
-            </span>
-          </div>
-        </div>
-
-        <!-- Grid de mapas con transiciones -->
-        <div class="max-w-6xl mx-auto">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <!-- Tarjeta de nuevo mapa siempre visible -->
-            <div 
-              @click="showWelcome = false"
-              class="bg-gradient-to-br from-white to-green-50 rounded-xl shadow-lg overflow-hidden 
-                     group hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
-            >
-              <div class="relative p-4">
-                <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
-                          rounded-lg flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300">
-                  <img 
-                    src="@/components/images/vizual.png" 
-                    alt="Nuevo mapa" 
-                    class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-                  >
-                  <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 
-                              transition-all duration-300 flex items-center justify-center">
-                    <span class="text-4xl transform scale-0 group-hover:scale-100 transition-transform duration-300">
-                      ➕
-                    </span>
+        <!-- Mover el panel de filtros arriba -->
+        <div class="container mx-auto px-4 py-4">
+          <div class="max-w-6xl mx-auto">
+            <!-- Panel de búsqueda y filtros mejorado -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Buscador mejorado -->
+                <div class="md:col-span-1">
+                  <div class="relative">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" 
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input
+                      v-model="filters.search"
+                      type="text"
+                      placeholder="Buscar por nombre..."
+                      class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                             focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    />
                   </div>
                 </div>
-                <div class="p-4 text-center">
-                  <h3 class="text-lg font-bold text-green-800 mb-2">Nuevo Mapa</h3>
-                  <p class="text-sm text-green-600 opacity-75">Crear una nueva visualización</p>
+
+                <!-- Filtro por fecha mejorado -->
+                <div class="md:col-span-1">
+                  <select
+                    v-model="filters.date"
+                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="all">Todas las fechas</option>
+                    <option value="today">Creados hoy</option>
+                    <option value="week">Última semana</option>
+                    <option value="month">Último mes</option>
+                    <option value="older">Más antiguos</option>
+                  </select>
                 </div>
+
+                <!-- Ordenar por -->
+                <div class="md:col-span-1">
+                  <select
+                    v-model="filters.sortBy"
+                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                           focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="recent">Más recientes primero</option>
+                    <option value="oldest">Más antiguos primero</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Filtros activos y conteo de resultados -->
+              <div v-if="filters.search || filters.date !== 'all'"
+                   class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                <span class="text-sm text-gray-500">
+                  {{ filteredMaps.length }} resultado{{ filteredMaps.length !== 1 ? 's' : '' }} encontrado{{ filteredMaps.length !== 1 ? 's' : '' }}
+                </span>
+                
+                <div class="flex-1 flex flex-wrap gap-2">
+                  <div v-if="filters.search"
+                       class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    <span>Búsqueda: "{{ filters.search }}"</span>
+                    <button @click="filters.search = ''"
+                            class="ml-2 hover:text-green-600">×</button>
+                  </div>
+                  <div v-if="filters.date !== 'all'"
+                       class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    <span>{{ 
+                      filters.date === 'today' ? 'Creados hoy' :
+                      filters.date === 'week' ? 'Última semana' :
+                      filters.date === 'month' ? 'Último mes' : 'Más antiguos'
+                    }}</span>
+                    <button @click="filters.date = 'all'"
+                            class="ml-2 hover:text-green-600">×</button>
+                  </div>
+                </div>
+
+                <button v-if="filters.search || filters.date !== 'all'"
+                        @click="resetFilters"
+                        class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 
+                               hover:bg-gray-100 rounded-full transition-colors">
+                  Limpiar filtros
+                </button>
               </div>
             </div>
 
-            <!-- Mapas filtrados con transición -->
-            <TransitionGroup
-              name="map-card"
-              tag="div"
-              class="contents"
-            >
+            <!-- Grid de mapas -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <!-- Reemplazar la tarjeta de nuevo mapa con este diseño mejorado -->
               <div 
-                v-for="map in filteredMaps" 
-                :key="map.id"
-                class="bg-white rounded-xl shadow-lg overflow-hidden group hover:shadow-xl 
-                       transform hover:-translate-y-1 transition-all duration-300"
+                @click="showWelcome = false"
+                class="group bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg 
+                       hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
+                       overflow-hidden"
               >
-                <div class="relative">
-                  <div class="aspect-video bg-green-50 flex items-center justify-center overflow-hidden">
-                    <img 
-                      :src="map.thumbnail || '/src/components/images/vizual2.png'"
-                      :alt="map.name"
-                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      @error="$event.target.src = '/src/components/images/vizual2.png'"
-                    >
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 
-                                transition-all duration-300 flex items-center justify-center opacity-0 
-                                group-hover:opacity-100 space-x-3">
+                <div class="relative p-6">
+                  <div class="aspect-video bg-gradient-to-br from-green-100 to-emerald-50 
+                              rounded-xl overflow-hidden flex items-center justify-center">
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-green-500/30 
+                                group-hover:scale-110 transition-transform duration-500"></div>
+                    <div class="relative z-10 transform group-hover:scale-105 transition-all duration-300">
+                      <svg class="w-16 h-16 text-green-600 group-hover:text-green-500 transition-colors" 
+                           fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 4v16m8-8H4"/>
+                      </svg>
+                    </div>
+                    <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 
+                                transition-opacity duration-300"></div>
+                  </div>
+                  <div class="mt-6 text-center">
+                    <h3 class="text-lg font-bold text-green-800 group-hover:text-green-600 
+                               transition-colors">Crear Nuevo Mapa</h3>
+                    <p class="text-sm text-green-600/75 mt-2 group-hover:text-green-500 
+                              transition-colors">Iniciar nueva visualización</p>
+                  </div>
+                  <!-- Indicador de acción -->
+                  <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r 
+                              from-green-500 to-emerald-500 transform scale-x-0 group-hover:scale-x-100 
+                              transition-transform duration-500 origin-left"></div>
+                </div>
+              </div>
+
+              <!-- Mapas filtrados con transición -->
+              <TransitionGroup name="map-card" tag="div" class="contents">
+                <div v-for="map in filteredMaps" 
+                     :key="map.id"
+                     class="bg-white rounded-2xl shadow-lg overflow-hidden group 
+                            hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                  <div class="relative">
+                    <div class="h-32 bg-green-50 flex items-center justify-center">
+                      <img 
+                        :src="map.thumbnail || '/src/components/images/vizual2.png'"
+                        :alt="map.name"
+                        class="w-full h-full object-cover"
+                        @error="$event.target.src = '/src/components/images/vizual2.png'"
+                      >
+                    </div>
+                    <div class="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
                       <button 
-                        @click.stop="openMap(map)"
-                        class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 
-                               transition-colors transform hover:scale-105"
+                        @click="openMap(map)"
+                        class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition-colors text-sm"
                         title="Abrir mapa"
                       >
                         🗺️ Abrir
                       </button>
                       <button 
-                        @click.stop="renameMap(map)"
-                        class="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 
-                               transition-colors transform hover:scale-105"
+                        @click="renameMap(map)"
+                        class="bg-blue-500 text-white p-1 rounded-md hover:bg-blue-600 transition-colors"
                         title="Renombrar mapa"
                       >
                         ✏️
                       </button>
                       <button 
-                        @click.stop="confirmDelete(map)"
-                        class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 
-                               transition-colors transform hover:scale-105"
+                        @click="confirmDelete(map)"
+                        class="bg-red-500 text-white p-1 rounded-md hover:bg-red-600 transition-colors"
                         title="Eliminar mapa"
                       >
                         🗑️
                       </button>
                     </div>
                   </div>
-                  <div class="p-4">
-                    <h3 class="text-lg font-semibold text-green-800 mb-2 truncate">{{ map.name }}</h3>
-                    <p class="text-xs text-gray-500">Última modificación: {{ map.lastModified }}</p>
+                  <div class="p-3">
+                    <h3 class="text-base font-semibold text-green-800 mb-1">{{ map.name }}</h3>
+                    <p class="text-xs text-gray-600">Última modificación: {{ map.lastModified }}</p>
                   </div>
                 </div>
-              </div>
-            </TransitionGroup>
+              </TransitionGroup>
+            </div>
 
-            <!-- Mensaje cuando no hay resultados mejorado -->
-            <div v-if="searchMapQuery && filteredMaps.length === 0" 
-                 class="col-span-full p-8 text-center">
-              <div class="bg-gray-50 rounded-xl p-6 animate-fade-in">
-                <p class="text-gray-500 mb-2">No se encontraron mapas que coincidan con "{{ searchMapQuery }}"</p>
-                <p class="text-sm text-gray-400">Intenta con otro término de búsqueda</p>
+            <!-- Mensaje sin resultados -->
+            <div v-if="filteredMaps.length === 0" 
+                 class="text-center py-12">
+              <div class="bg-gray-50 rounded-2xl p-8 inline-block">
+                <p class="text-gray-500 mb-2">No se encontraron mapas que coincidan con tu búsqueda</p>
+                <button @click="resetFilters"
+                        class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg 
+                               hover:bg-green-600 transition-colors">
+                  Limpiar filtros
+                </button>
               </div>
             </div>
           </div>
@@ -686,36 +865,9 @@ button:disabled {
   }
 }
 
-/* Agregar efecto hover suave para las tarjetas */
-.aspect-video {
-  aspect-ratio: 16 / 9;
-}
-
-/* Mejorar animación del botón de nuevo mapa */
-.group:hover .scale-0 {
-  transition-delay: 0.1s;
-}
-
-/* Mejorar sombras de las tarjetas */
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
-              0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.hover\:shadow-xl:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-              0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-/* Mejorar transición de la barra de búsqueda */
-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-/* Animaciones para las tarjetas de mapas */
+/* Animaciones para las tarjetas */
 .map-card-move {
-  transition: transform 0.5s ease;
+  transition: all 0.5s ease;
 }
 
 .map-card-enter-active,
@@ -729,27 +881,44 @@ input:focus {
   transform: translateY(30px);
 }
 
-.map-card-leave-active {
-  position: absolute;
+/* Mejorar inputs y selects */
+select, input {
+  @apply transition-all duration-200;
 }
 
-/* Mejorar la transición de la barra de búsqueda */
-input {
-  transition: all 0.3s ease;
+select:hover, input:hover {
+  @apply bg-gray-100;
 }
 
-input:focus {
-  transform: scale(1.01);
+/* Animaciones para la tarjeta de nuevo mapa */
+.group:hover .bg-gradient-to-br {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
 }
 
-/* Animación para el contador de resultados */
-span {
-  transition: all 0.3s ease;
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-/* Optimizar rendimiento de animaciones */
-* {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+/* Animación suave para el icono */
+.group:hover svg {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 </style>
