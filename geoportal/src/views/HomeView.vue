@@ -162,38 +162,40 @@ onMounted(() => {
 <template>
   <main class="min-h-screen w-full bg-gradient-to-br from-green-50 to-teal-50">
     <!-- Página de bienvenida -->
-    <div v-if="showWelcome" class="min-h-screen w-full flex flex-col py-8">
+    <div v-if="showWelcome" class="min-h-screen w-full flex flex-col">
       <!-- Header con carrusel de imágenes -->
-      <header class="relative py-16 overflow-hidden">
-        <!-- Carrusel de imágenes de fondo -->
-        <div class="absolute inset-0">
+      <header class="relative overflow-hidden h-48 sm:h-56 w-full">
+        <div class="absolute inset-0 m-0 p-0">
           <template v-for="(image, index) in backgroundImages" :key="index">
             <div
               class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
               :style="{
-                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)), url('${image}')`,
-                opacity: currentImageIndex === index ? 1 : 0
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4)), url('${image}')`,
+                opacity: currentImageIndex === index ? 1 : 0,
+                transform: 'scale(1.01)'
               }"
             ></div>
           </template>
         </div>
 
         <!-- Contenido del header -->
-        <div class="container mx-auto px-4 text-center relative z-10">
-          <!-- Contenedor del logo y título -->
-          <div class="flex flex-col items-center justify-center space-y-4">
-            <img 
-              src="@/components/images/logotipo.png" 
-              alt="Logotipo Sembrando Datos" 
-              class="h-20 md:h-24 w-auto object-contain animate-fade-in drop-shadow-lg"
-            />
-            <div>
-              <h1 class="text-2xl md:text-4xl font-serif font-bold text-white mb-2 animate-fade-in drop-shadow-lg">
-                Geoportal Sembrando Datos
-              </h1>
-              <p class="text-base md:text-lg text-gray-100 max-w-xl mx-auto drop-shadow">
-                Visualización y análisis territorial
-              </p>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="text-center">
+            <!-- Contenedor del logo y título -->
+            <div class="flex flex-col items-center space-y-2">
+              <img 
+                src="@/components/images/logotipo.png" 
+                alt="Logotipo Sembrando Datos" 
+                class="h-16 md:h-20 w-auto object-contain animate-fade-in drop-shadow-lg"
+              />
+              <div>
+                <h1 class="text-xl md:text-3xl font-serif font-bold text-white animate-fade-in drop-shadow-lg">
+                  Geoportal Sembrando Datos
+                </h1>
+                <p class="text-sm md:text-base text-gray-100 max-w-xl mx-auto drop-shadow">
+                  Visualización y análisis territorial
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -408,6 +410,34 @@ img {
 
 img:hover {
   transform: scale(1.05);
+}
+
+/* Modificar estilos del header */
+header {
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  background-attachment: unset;
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+/* Asegurar que las imágenes cubran todo el espacio */
+.bg-cover {
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ajustar el contenedor principal */
+.min-h-screen {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* Añadir estilo para mejorar la transición de la imagen de fondo */
