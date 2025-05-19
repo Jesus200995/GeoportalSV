@@ -189,7 +189,7 @@ onMounted(() => {
             />
             <div>
               <h1 class="text-2xl md:text-4xl font-serif font-bold text-white mb-2 animate-fade-in drop-shadow-lg">
-                Geoportal SembrandoDatos
+                Geoportal Sembrando Datos
               </h1>
               <p class="text-base md:text-lg text-gray-100 max-w-xl mx-auto drop-shadow">
                 Visualización y análisis territorial
