@@ -11,6 +11,9 @@ import { fromLonLat } from 'ol/proj';
 import { watchEffect } from 'vue';
 import MeasurementTool from './map-tools/MeasurementTool.vue';
 import UserProfile from './UserProfile.vue';
+import LayersTool from './map-tools/LayersTool.vue';
+import DrawTool from './map-tools/DrawTool.vue';
+import SearchTool from './map-tools/SearchTool.vue';
 
 // Unificar definición de emisiones - combinar 'save-success' y 'logout'
 const emit = defineEmits(['save-success', 'logout']);
@@ -611,89 +614,18 @@ const confirmLogout = () => {
       </div>
       
       <!-- Panel de búsqueda -->
-      <div v-if="activeToolPanel === 'search'" class="p-4">
-        <div class="flex space-x-2">
-          <input 
-            v-model="searchQuery"
-            type="text"
-            placeholder="Buscar lugares..."
-            class="flex-1 px-3 py-2 border rounded-lg"
-            @keyup.enter="searchFeatures"
-          />
-          <button 
-            @click="searchFeatures"
-            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-          </button>
-        </div>
-        
-        <!-- Resultados de búsqueda -->
-        <div v-if="searchResults.length" class="mt-4 max-h-96 overflow-y-auto">
-          <div 
-            v-for="result in searchResults" 
-            :key="result.id"
-            class="p-2 hover:bg-green-50 cursor-pointer rounded-lg"
-            @click="zoomToFeature(result)"
-          >
-            {{ result.properties.nombre_territorio }}
-          </div>
-        </div>
+      <div v-if="activeToolPanel === 'search'">
+        <SearchTool :map="map" />
       </div>
       
       <!-- Panel de dibujo -->
-      <div v-if="activeToolPanel === 'draw'" class="p-4">
-        <div class="text-center py-4">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-green-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
-          </svg>
-          <p class="text-gray-600 text-sm">Herramienta de dibujo próximamente</p>
-        </div>
+      <div v-if="activeToolPanel === 'draw'">
+        <DrawTool :map="map" />
       </div>
       
       <!-- Panel de capas -->
-      <div v-if="activeToolPanel === 'layers'" class="p-4">
-        <h3 class="text-sm font-medium text-gray-700 mb-3">Gestión de capas</h3>
-        
-        <div class="space-y-3 max-h-96 overflow-y-auto">
-          <div v-for="layer in getAllLayers()" :key="layer.id" 
-               class="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    :checked="layer.visible"
-                    @change="toggleLayerVisibility(layer)" 
-                    class="mr-2"
-                  />
-                  <span class="text-sm">{{ layer.name }}</span>
-                </div>
-              </div>
-              
-              <div class="flex items-center space-x-2">
-                <button @click="moveLayer(layer, 'up')" class="text-gray-500 hover:text-green-600">↑</button>
-                <button @click="moveLayer(layer, 'down')" class="text-gray-500 hover:text-green-600">↓</button>
-              </div>
-            </div>
-            
-            <div class="mt-2" v-if="layer.visible">
-              <label :for="`opacity-${layer.id}`" class="text-xs text-gray-500 mb-1 block">Opacidad: {{ Math.round((layerOpacity[layer.id] || 1) * 100) }}%</label>
-              <input 
-                type="range" 
-                :id="`opacity-${layer.id}`"
-                min="0" 
-                max="1" 
-                step="0.1"
-                :value="layerOpacity[layer.id] || 1"
-                @input="updateLayerOpacity(layer, parseFloat($event.target.value))"
-                class="w-full"
-              />
-            </div>
-          </div>
-        </div>
+      <div v-if="activeToolPanel === 'layers'">
+        <LayersTool :map="map" :layers="getAllLayers()" />
       </div>
     </div>
 
