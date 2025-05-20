@@ -339,6 +339,15 @@ const handleRenameMap = (map) => {
   // Por ejemplo, abrir el modal de edición con el mapa seleccionado
   renameMap(map);
 };
+
+// Modificar para incluir el evento 'show-welcome'
+const handleDashboardEvents = (event) => {
+  if (event === 'show-welcome') {
+    showWelcome.value = true;
+  } else if (event === 'save-success') {
+    showNotification('Mapa guardado correctamente');
+  }
+};
 </script>
 
 <template>
@@ -588,8 +597,12 @@ const handleRenameMap = (map) => {
       </div>
     </div>
 
-    <!-- Componente del mapa -->
-    <Dashboard v-else @save-success="showNotification('Mapa guardado correctamente')" />
+    <!-- Componente del mapa con eventos adicionales -->
+    <Dashboard 
+      v-else 
+      @save-success="showNotification('Mapa guardado correctamente')"
+      @show-welcome="showWelcome = true"
+    />
 
     <!-- Componente de notificaciones -->
     <ToastNotification v-bind="notification" />

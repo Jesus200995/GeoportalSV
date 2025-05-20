@@ -143,3 +143,35 @@ a,
 ::-webkit-scrollbar-thumb:hover {
   background: #047857;
 }
+
+/* Animación de transición entre páginas */
+.page-transitioning {
+  animation: page-exit 0.5s forwards;
+}
+
+@keyframes page-exit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* Animación de entrada para nuevas páginas */
+.router-view-enter-active {
+  animation: page-enter 0.5s forwards;
+}
+
+@keyframes page-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

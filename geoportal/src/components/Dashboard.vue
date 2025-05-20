@@ -15,8 +15,8 @@ import LayersTool from './map-tools/LayersTool.vue';
 import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
 
-// Unificar definición de emisiones - combinar 'save-success' y 'logout'
-const emit = defineEmits(['save-success', 'logout']);
+// Unificar definición de emisiones - combinar 'save-success', 'logout' y 'show-welcome'
+const emit = defineEmits(['save-success', 'logout', 'show-welcome']);
 
 // Estado reactivo
 const sidebarOpen = ref(true);
@@ -332,6 +332,46 @@ const toggleToolsPanel = () => {
   showToolsPanel.value = !showToolsPanel.value;
 };
 
+// Agregar router para la navegación
+const router = useRouter();
+
+// Estado para el modal de confirmación de salida
+const showExitModal = ref(false);
+
+// Función para manejar el clic en el botón de inicio
+const handleGoHome = () => {
+  // Verificar si hay cambios no guardados (puedes personalizar esta lógica)
+  const hasUnsavedChanges = false; // Ejemplo: establecer en true si hay cambios sin guardar
+  
+  if (hasUnsavedChanges) {
+    // Mostrar modal de confirmación si hay cambios no guardados
+    showExitModal.value = true;
+  } else {
+    // Navegar directamente a la página de inicio si no hay cambios sin guardar
+    navigateToHome();
+  }
+};
+
+// Función para confirmar la salida y navegar a la página de inicio
+const confirmExit = () => {
+  navigateToHome();
+  showExitModal.value = false;
+};
+
+// Función de navegación a la página de inicio
+const navigateToHome = () => {
+  // Aplicar una animación de transición antes de navegar
+  document.body.classList.add('page-transitioning');
+  
+  // Emitir evento para mostrar la vista de bienvenida
+  emit('show-welcome');
+  
+  // Pequeño retraso para permitir que la animación comience
+  setTimeout(() => {
+    document.body.classList.remove('page-transitioning');
+  }, 500);
+};
+
 // Función para cerrar sesión
 const logout = () => {
   // Mostrar modal de confirmación
@@ -383,13 +423,19 @@ const confirmLogout = () => {
           <!-- Componente de perfil de usuario -->
           <UserProfile />
           
-          <!-- Botón de inicio -->
+          <!-- Botón de inicio rediseñado -->
           <button 
             @click="handleGoHome"
-            class="px-3 py-1.5 bg-white text-green-700 rounded-lg hover:bg-green-50 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="home-button px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0"
+            aria-label="Volver a la página de inicio"
           >
-            <span>🏠</span>
-            <span class="hidden sm:inline text-sm">Inicio</span>
+            <span class="home-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+              </svg>
+            </span>
+            <span class="hidden sm:inline font-medium">Inicio</span>
+            <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
           </button>
 
           <!-- Botón de guardar -->
@@ -592,7 +638,7 @@ const confirmLogout = () => {
       </div>
     </aside>
     
-    <!-- Panel lateral de herramientas - Ahora aparecerá a la izquierda y solo cuando esté en la pestaña extras -->
+    <!-- Panel lateral de herramientas - Ahora aparecerá a la izquierda y solo cuando está en la pestaña extras -->
     <div 
       v-if="activeToolPanel && activeTab === 'extras' && sidebarOpen"
       class="absolute top-20 left-96 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-300 animate-slide-in-right"
@@ -707,7 +753,7 @@ const confirmLogout = () => {
            class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
            @click.self="showExitModal = false">
         <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
-                    scale-100 opacity-100 shadow-xl">
+                    scale-100 opacity-100 shadow-xl animate-modal-in">
           <div class="text-center">
             <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
               <span class="text-5xl">🏠</span>
@@ -716,7 +762,7 @@ const confirmLogout = () => {
               ¿Volver al inicio?
             </h3>
             <p class="text-gray-600 mb-8">
-              ¿Estás seguro de que deseas salir del mapa currente? Los cambios no guardados se perderán.
+              ¿Estás seguro de que deseas salir del mapa actual? Los cambios no guardados se perderán.
             </p>
             <div class="flex space-x-3 justify-center">
               <button 
@@ -729,10 +775,11 @@ const confirmLogout = () => {
               <button 
                 @click="confirmExit"
                 class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
-                       rounded-lg transition-colors duration-300 flex items-center space-x-2"
+                       rounded-lg transition-colors duration-300 flex items-center space-x-2
+                       transform hover:scale-105 active:scale-100"
               >
                 <span>Volver al inicio</span>
-                <span class="text-xl">→</span>
+                <span class="text-xl transition-transform transform group-hover:translate-x-1">→</span>
               </button>
             </div>
           </div>
@@ -1045,5 +1092,76 @@ input:checked + .toggle-label::after {
 
 .toggle-label.active::after {
   transform: translateX(1.5rem);
+}
+
+/* Estilos para el botón de inicio */
+.home-button {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animación del ícono del botón de inicio */
+.home-icon {
+  display: inline-flex;
+  transition: transform 0.3s ease;
+}
+
+.home-button:hover .home-icon {
+  animation: bounce 0.6s ease infinite alternate;
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Efecto de onda al hacer clic */
+.home-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+.home-button:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0) translate(-50%, -50%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(20, 20) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+/* Animación de entrada del modal */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.3s forwards;
 }
 </style>
