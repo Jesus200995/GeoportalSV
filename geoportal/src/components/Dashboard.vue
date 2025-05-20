@@ -735,12 +735,11 @@ const confirmLogout = () => {
         </div>
       </header>
 
-      <!-- Panel lateral de herramientas - Corregir el uso de window.innerWidth -->
+      <!-- Panel lateral de herramientas - Ajustado para estar casi pegado a la barra lateral -->
       <div 
         v-if="activeToolPanel && sidebarOpen"
         class="absolute top-20 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-500 ease-in-out animate-slide-in-right"
-        :style="{ left: sidebarOpen ? 'calc(80px + 1rem)' : '6rem' }"
-        :class="{ 'sm:left-96': sidebarOpen && windowWidth >= 640 }"
+        :style="{ left: sidebarOpen ? (windowWidth >= 640 ? '5px' : '65px') : '0' }"
       >
         <!-- Contenido según herramienta activa -->
         <div v-if="activeToolPanel === 'measure'">
