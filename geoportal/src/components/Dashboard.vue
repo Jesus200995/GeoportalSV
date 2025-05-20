@@ -12,6 +12,9 @@ import { watchEffect } from 'vue';
 import MeasurementTool from './map-tools/MeasurementTool.vue';
 import UserProfile from './UserProfile.vue';
 
+// Unificar definición de emisiones - combinar 'save-success' y 'logout'
+const emit = defineEmits(['save-success', 'logout']);
+
 // Estado reactivo
 const sidebarOpen = ref(true);
 const map = ref(null);
@@ -158,8 +161,6 @@ const searchFeatures = async () => {
     console.error('Error en la búsqueda:', error);
   }
 };
-
-const emit = defineEmits(['save-success']);
 
 // Función mejorada para guardar mapa
 const saveMapState = async () => {
@@ -317,49 +318,41 @@ const zoomOut = () => {
   }
 };
 
-// Función para obtener el icono de cada herramienta
+// Función para obtener el icono de cada herramienta - Reemplazar con iconos SVG modernos
 const getToolIcon = (tool) => {
-  const icons = {
-    layers: '📑',  // Capas
-    measure: '📏', // Medición
-    draw: '✏️',    // Dibujo
-    search: '🔍'   // Búsqueda
-  };
-  return icons[tool] || '❔';
+  // Ya no necesitamos esta función con los nuevos iconos SVG
+  return '';
 };
 
-// Agregar estado para modal de confirmación de salida
-const showExitModal = ref(false);
+// Herramientas para el mapa con etiquetas más descriptivas
+const mapTools = ref([
+  { id: 'layers', name: 'Capas', description: 'Gestionar capas del mapa' },
+  { id: 'measure', name: 'Medir', description: 'Herramientas de medición' },
+  { id: 'draw', name: 'Dibujar', description: 'Dibujar en el mapa' },
+  { id: 'search', name: 'Buscar', description: 'Buscar elementos en el mapa' }
+]);
 
-// Función mejorada para ir al inicio
-const handleGoHome = () => {
-  showExitModal.value = true;
+// Agregar estado para controlar visibilidad del panel de herramientas en móviles
+const showToolsPanel = ref(false);
+
+// Toggle para el panel de herramientas en móviles
+const toggleToolsPanel = () => {
+  showToolsPanel.value = !showToolsPanel.value;
 };
 
-// Agregar el router correctamente
-const router = useRouter();
-
-// Modificar la función confirmExit para garantizar navegación
-const confirmExit = () => {
-  showExitModal.value = false;
-  // Usar window.location.href directamente como solución infalible
-  window.location.href = '/';
-};
-
-// Agregar función de cierre de sesión
+// Función para cerrar sesión
 const logout = () => {
   // Mostrar modal de confirmación
   logoutModal.value = true;
 };
-
-// Estado para modal de cierre de sesión
-const logoutModal = ref(false);
 
 // Función para confirmar cierre de sesión
 const confirmLogout = () => {
   localStorage.removeItem('authenticated');
   localStorage.removeItem('user');
   logoutModal.value = false;
+  // Usar el emit definido arriba en lugar de un nuevo emitLogout
+  emit('logout');
   router.push('/login');
 };
 </script>
@@ -492,6 +485,73 @@ const confirmLogout = () => {
           <div v-if="activeTab === 'extras'" class="space-y-4 animate-fade-in">
             <h2 class="text-lg font-semibold text-green-800 mb-4">Overlays y Extras</h2>
             
+            <!-- Nueva sección de herramientas del mapa -->
+            <div class="border-b border-gray-200 pb-6 mb-6">
+              <h3 class="text-base font-medium text-green-700 mb-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Herramientas del mapa
+              </h3>
+              
+              <!-- Herramientas con iconos SVG modernos -->
+              <div class="grid grid-cols-2 gap-3 mt-4">
+                <button 
+                  v-for="tool in mapTools" 
+                  :key="tool.id"
+                  @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id"
+                  class="tool-button relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300"
+                  :class=" [
+                    activeToolPanel === tool.id 
+                      ? 'bg-green-100 text-green-700 shadow-md ring-2 ring-green-400 ring-opacity-50' 
+                      : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-green-600 shadow-sm hover:shadow'
+                  ]"
+                >
+                  <!-- Capa de efecto hover -->
+                  <span class="absolute inset-0 bg-gradient-to-tr from-green-50 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                  
+                  <!-- Iconos SVG basados en la herramienta -->
+                  <div class="relative z-10 mb-1">
+                    <!-- Icono para capas -->
+                    <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                    </svg>
+                    
+                    <!-- Icono para medición -->
+                    <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    
+                    <!-- Icono para dibujo -->
+                    <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+                    </svg>
+                    
+                    <!-- Icono para búsqueda -->
+                    <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                  </div>
+                  
+                  <!-- Nombre de la herramienta -->
+                  <span class="text-xs font-medium mt-1">{{ tool.name }}</span>
+                  
+                  <!-- Indicador de activo -->
+                  <span v-if="activeToolPanel === tool.id" class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                </button>
+              </div>
+              
+              <!-- Descripción de la herramienta seleccionada -->
+              <div v-if="activeToolPanel" class="mt-3 px-4 py-2 bg-green-50 text-green-800 text-xs rounded-lg">
+                <p class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ mapTools.find(t => t.id === activeToolPanel)?.description }}
+                </p>
+              </div>
+            </div>
+            
             <ul class="space-y-3">
               <li v-for="layer in layerGroups.extras" :key="layer.id" 
                   class="transform transition-all duration-300 hover:translate-x-1">
@@ -540,32 +600,10 @@ const confirmLogout = () => {
       </div>
     </aside>
     
-    <!-- Panel de herramientas mejorado -->
-    <div class="absolute top-20 right-4 z-20">
-      <div class="tool-buttons flex flex-col space-y-2 p-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg">
-        <button 
-          v-for="(tool, index) in ['layers', 'measure', 'draw', 'search']" 
-          :key="tool"
-          @click="activeToolPanel = activeToolPanel === tool ? '' : tool"
-          :class="[
-            'tool-btn relative overflow-hidden',
-            { 'active': activeToolPanel === tool }
-          ]"
-          :style="{
-            '--delay': `${index * 0.1}s`
-          }"
-        >
-          <span class="relative z-10">{{ getToolIcon(tool) }}</span>
-          <span class="tool-label">{{ tool }}</span>
-          <div class="tool-background"></div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Panel lateral de herramientas -->
+    <!-- Panel lateral de herramientas - Ahora aparecerá a la izquierda y solo cuando esté en la pestaña extras -->
     <div 
-      v-if="activeToolPanel"
-      class="absolute top-20 right-16 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-300"
+      v-if="activeToolPanel && activeTab === 'extras' && sidebarOpen"
+      class="absolute top-20 left-96 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-300 animate-slide-in-right"
     >
       <!-- Contenido según herramienta activa -->
       <div v-if="activeToolPanel === 'measure'">
@@ -584,9 +622,11 @@ const confirmLogout = () => {
           />
           <button 
             @click="searchFeatures"
-            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
           >
-            🔍
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
           </button>
         </div>
         
@@ -602,20 +642,110 @@ const confirmLogout = () => {
           </div>
         </div>
       </div>
+      
+      <!-- Panel de dibujo -->
+      <div v-if="activeToolPanel === 'draw'" class="p-4">
+        <div class="text-center py-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-green-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+          </svg>
+          <p class="text-gray-600 text-sm">Herramienta de dibujo próximamente</p>
+        </div>
+      </div>
+      
+      <!-- Panel de capas -->
+      <div v-if="activeToolPanel === 'layers'" class="p-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">Gestión de capas</h3>
+        
+        <div class="space-y-3 max-h-96 overflow-y-auto">
+          <div v-for="layer in getAllLayers()" :key="layer.id" 
+               class="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    :checked="layer.visible"
+                    @change="toggleLayerVisibility(layer)" 
+                    class="mr-2"
+                  />
+                  <span class="text-sm">{{ layer.name }}</span>
+                </div>
+              </div>
+              
+              <div class="flex items-center space-x-2">
+                <button @click="moveLayer(layer, 'up')" class="text-gray-500 hover:text-green-600">↑</button>
+                <button @click="moveLayer(layer, 'down')" class="text-gray-500 hover:text-green-600">↓</button>
+              </div>
+            </div>
+            
+            <div class="mt-2" v-if="layer.visible">
+              <label :for="`opacity-${layer.id}`" class="text-xs text-gray-500 mb-1 block">Opacidad: {{ Math.round((layerOpacity[layer.id] || 1) * 100) }}%</label>
+              <input 
+                type="range" 
+                :id="`opacity-${layer.id}`"
+                min="0" 
+                max="1" 
+                step="0.1"
+                :value="layerOpacity[layer.id] || 1"
+                @input="updateLayerOpacity(layer, parseFloat($event.target.value))"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Controles del mapa -->
-    <div class="absolute right-4 bottom-20 flex flex-col space-y-2 z-10 animate-slide-in-right">
-      <button @click="zoomIn" class="p-3 bg-white rounded-full shadow-md text-green-700 hover:bg-green-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-        </svg>
-      </button>
-      <button @click="zoomOut" class="p-3 bg-white rounded-full shadow-md text-green-700 hover:bg-green-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
-        </svg>
-      </button>
+    <!-- Botón flotante para herramientas en móviles cuando la sidebar está cerrada -->
+    <button 
+      v-if="!sidebarOpen"
+      @click="toggleToolsPanel"
+      class="fixed bottom-24 left-4 z-30 bg-green-500 text-white rounded-full p-3 shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110 md:hidden"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </button>
+    
+    <!-- Panel de herramientas para móviles cuando la barra lateral está cerrada -->
+    <div 
+      v-if="!sidebarOpen && showToolsPanel"
+      class="fixed bottom-36 left-4 z-30 bg-white rounded-lg shadow-lg p-2 animate-slide-in-up md:hidden"
+    >
+      <div class="grid grid-cols-2 gap-2 p-1">
+        <button 
+          v-for="tool in mapTools" 
+          :key="tool.id"
+          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; showToolsPanel = false; sidebarOpen = true; changeTab('extras');"
+          class="p-2 rounded-lg bg-gray-50 flex flex-col items-center justify-center hover:bg-green-50 transition-colors"
+        >
+          <!-- Iconos SVG basados en la herramienta -->
+          <div class="mb-1">
+            <!-- Icono para capas -->
+            <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+            </svg>
+            
+            <!-- Icono para medición -->
+            <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            
+            <!-- Icono para dibujo -->
+            <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+            </svg>
+            
+            <!-- Icono para búsqueda -->
+            <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+          </div>
+          <span class="text-xs">{{ tool.name }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Atribución en la parte inferior -->
@@ -665,7 +795,7 @@ const confirmLogout = () => {
               ¿Volver al inicio?
             </h3>
             <p class="text-gray-600 mb-8">
-              ¿Estás seguro de que deseas salir del mapa actual? Los cambios no guardados se perderán.
+              ¿Estás seguro de que deseas salir del mapa currente? Los cambios no guardados se perderán.
             </p>
             <div class="flex space-x-3 justify-center">
               <button 
@@ -953,5 +1083,37 @@ input:checked + .toggle-label::after {
 
 .animate-fade-in {
   animation: fade-in 0.5s ease-out forwards;
+}
+
+/* Nuevos estilos para los botones de herramientas */
+.tool-button {
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(229, 231, 235, 1);
+}
+
+.tool-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.tool-button:active {
+  transform: translateY(0);
+}
+
+/* Animación para entrada deslizante desde abajo */
+@keyframes slide-in-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out forwards;
 }
 </style>
