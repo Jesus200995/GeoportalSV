@@ -277,6 +277,12 @@ onMounted(() => {
     initializeMap();
     loading.value = false;
   }, 1000);
+  
+  // Añadir el event listener para cambios de tamaño
+  window.addEventListener('resize', updateWindowWidth);
+  
+  // Asegurarnos de tener el ancho correcto al inicio
+  updateWindowWidth();
 });
 
 // Limpiar recursos cuando el componente se desmonte
@@ -285,7 +291,18 @@ onBeforeUnmount(() => {
     map.value.setTarget(undefined);
     map.value = null;
   }
+  
+  // Eliminar el event listener
+  window.removeEventListener('resize', updateWindowWidth);
 });
+
+// Añadir referencia reactiva para el ancho de la ventana
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+// Función para actualizar el ancho de la ventana
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth;
+};
 
 // Agregar funcionalidad de zoom
 const zoomIn = () => {
@@ -391,165 +408,232 @@ const confirmLogout = () => {
 
 <template>
   <!-- Contenedor principal a pantalla completa -->
-  <div class="h-screen w-screen overflow-hidden relative bg-gray-50">
-    <!-- Overlay de carga con animación -->
-    <div v-if="loading" 
-         class="fixed inset-0 bg-white bg-opacity-90 z-50 flex flex-col items-center justify-center transition-opacity duration-500"
-         :class="loading ? 'opacity-100' : 'opacity-0 pointer-events-none'">
-      <div class="w-16 h-16 border-4 border-t-green-500 border-green-200 rounded-full animate-spin mb-4"></div>
-      <p class="text-green-700 font-medium">Cargando geoportal...</p>
-    </div>
-
-    <!-- Mapa a pantalla completa -->
-    <div ref="mapElement" class="absolute inset-0 z-0"></div>
-    
-    <!-- Header flotante con título y botones de acción -->
-    <header class="absolute top-0 left-0 right-0 bg-white bg-opacity-95 shadow-md z-10 transition-all duration-300">
-      <div class="container mx-auto px-4 py-2 sm:py-3 flex justify-between items-center">
-        <!-- Logo y título -->
-        <div class="flex items-center space-x-3">
+  <div class="h-screen w-screen overflow-hidden relative bg-gray-50 flex">
+    <!-- Nueva barra lateral fija -->
+    <aside 
+      class="h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-500 ease-in-out z-20"
+      :class="sidebarOpen ? 'w-80 sm:w-96' : 'w-16'"
+    >
+      <!-- Encabezado de la barra lateral -->
+      <div class="h-14 sm:h-16 flex items-center justify-between px-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+        <div class="flex items-center space-x-3 overflow-hidden">
           <img 
             src="@/components/images/logotipo.png" 
-            alt="Logotipo Sembrando Datos" 
-            class="h-10 sm:h-12 w-auto object-contain"
+            alt="Logo" 
+            class="h-8 w-8 object-contain flex-shrink-0"
           />
-          <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
-            Geoportal Sembrando Datos
-          </h1>
+          <h2 class="font-medium text-green-800 truncate transition-opacity duration-300"
+              :class="sidebarOpen ? 'opacity-100' : 'opacity-0'">
+            Herramientas
+          </h2>
         </div>
-
-        <!-- Botones de acción -->
-        <div class="flex items-center space-x-2 sm:space-x-4">
-          <!-- Componente de perfil de usuario -->
-          <UserProfile />
-          
-          <!-- Botón de inicio rediseñado -->
-          <button 
-            @click="handleGoHome"
-            class="home-button px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0"
-            aria-label="Volver a la página de inicio"
-          >
-            <span class="home-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
-              </svg>
-            </span>
-            <span class="hidden sm:inline font-medium">Inicio</span>
-            <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
-          </button>
-
-          <!-- Botón de guardar -->
-          <button 
-            @click="showSaveDialog = true"
-            class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <span>💾</span>
-            <span class="hidden sm:inline text-sm">Guardar</span>
-          </button>
-          
-          <!-- Botón del menú -->
-          <button 
-            @click="toggleSidebar" 
-            class="p-2 rounded-full hover:bg-green-100 transition-colors duration-200 text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
+        <!-- Botón para colapsar/expandir la barra lateral -->
+        <button 
+          @click="toggleSidebar" 
+          class="p-1.5 rounded-lg hover:bg-green-100 text-green-700 transition-all duration-300 transform"
+          :class="sidebarOpen ? '' : 'rotate-180'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
-    </header>
-    
-    <!-- Barra lateral flotante plegable -->
-    <aside 
-      :class="`absolute top-14 sm:top-16 bottom-0 z-20 transition-all duration-500 ease-in-out 
-              ${sidebarOpen ? 'left-0' : '-left-80 sm:-left-96'}`"
-    >
-      <div class="h-full w-80 sm:w-96 bg-white shadow-lg rounded-r-lg overflow-hidden flex flex-col">
-        <!-- Pestañas de grupos de capas -->
+
+      <!-- Contenido de la barra lateral -->
+      <div class="flex-1 overflow-hidden flex flex-col">
+        <!-- Pestañas de navegación -->
         <div class="flex border-b border-gray-200">
           <button 
             @click="changeTab('principal')" 
-            class="px-4 py-3 text-sm font-medium transition-colors duration-200 flex-1 border-b-2"
+            class="px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 border-b-2 flex items-center justify-center space-x-1"
             :class="activeTab === 'principal' ? 'border-green-500 text-green-700' : 'border-transparent hover:text-green-600 text-gray-600'"
           >
-            Capas Principales
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span v-if="sidebarOpen" class="truncate">Capas Principales</span>
           </button>
           <button 
             @click="changeTab('extras')" 
-            class="px-4 py-3 text-sm font-medium transition-colors duration-200 flex-1 border-b-2"
+            class="px-3 py-3 text-sm font-medium transition-colors duration-200 flex-1 border-b-2 flex items-center justify-center space-x-1"
             :class="activeTab === 'extras' ? 'border-green-500 text-green-700' : 'border-transparent hover:text-green-600 text-gray-600'"
           >
-            Extras
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            <span v-if="sidebarOpen" class="truncate">Extras</span>
           </button>
         </div>
-        
-        <!-- Contenido de pestañas -->
-        <div class="p-4 flex-1 overflow-y-auto">
-          <!-- Lista de capas principales -->
-          <div v-if="activeTab === 'principal'" class="space-y-4 animate-fade-in">
-            <h2 class="text-lg font-semibold text-green-800 mb-4">Capas Principales</h2>
-            
-            <ul class="space-y-3">
-              <li v-for="layer in layerGroups.principal" :key="layer.id" 
-                  class="transform transition-all duration-300 hover:translate-x-1">
-                <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
-                  <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                    <input 
-                      type="checkbox" 
-                      :id="`layer-${layer.id}`" 
-                      :checked="layer.visible"
-                      @change="toggleLayerVisibility(layer)" 
-                      class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                    />
-                    <label 
-                      :for="`layer-${layer.id}`" 
-                      class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
-                      :class="{'active': layer.visible}"
-                    ></label>
+
+        <!-- Contenido según la pestaña activa -->
+        <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-green-500">
+          <transition name="fade" mode="out-in">
+            <!-- Contenido de la pestaña Principal -->
+            <div v-if="activeTab === 'principal' && sidebarOpen" class="p-4 space-y-4 animate-fade-in">
+              <h2 class="text-lg font-semibold text-green-800 flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span>Capas Principales</span>
+              </h2>
+              
+              <ul class="space-y-3">
+                <li v-for="layer in layerGroups.principal" :key="layer.id" 
+                    class="transform transition-all duration-300 hover:translate-x-1">
+                  <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                      <input 
+                        type="checkbox" 
+                        :id="`layer-${layer.id}`" 
+                        :checked="layer.visible"
+                        @change="toggleLayerVisibility(layer)" 
+                        class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                      />
+                      <label 
+                        :for="`layer-${layer.id}`" 
+                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                        :class="{'active': layer.visible}"
+                      ></label>
+                    </div>
+                    <div>
+                      <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
+                        {{ layer.name }}
+                      </label>
+                      <p class="text-xs text-gray-500">{{ layer.description }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
-                      {{ layer.name }}
-                    </label>
-                    <p class="text-xs text-gray-500">{{ layer.description }}</p>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Contenido de la pestaña Extras con iconos solo en modo colapsado -->
+            <div v-else-if="activeTab === 'extras'" class="animate-fade-in">
+              <!-- Contenido detallado cuando la sidebar está expandida -->
+              <div v-if="sidebarOpen" class="p-4 space-y-4">
+                <h2 class="text-lg font-semibold text-green-800 flex items-center space-x-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  <span>Herramientas</span>
+                </h2>
+                
+                <!-- Herramientas del mapa mejoradas -->
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 shadow-sm">
+                  <h3 class="text-base font-medium text-green-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Herramientas del mapa
+                  </h3>
+                  
+                  <!-- Herramientas con iconos y efectos mejorados -->
+                  <div class="grid grid-cols-2 gap-3">
+                    <button 
+                      v-for="tool in mapTools" 
+                      :key="tool.id"
+                      @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id"
+                      class="tool-button relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 overflow-hidden group"
+                      :class=" [
+                        activeToolPanel === tool.id 
+                          ? 'bg-green-100 text-green-700 shadow-md ring-2 ring-green-400 ring-opacity-50' 
+                          : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-green-600 shadow-sm hover:shadow'
+                      ]"
+                    >
+                      <!-- Efecto de onda al hacer clic -->
+                      <span class="absolute inset-0 bg-green-100 opacity-0 group-active:animate-ripple-effect"></span>
+                      
+                      <!-- Gradiente de fondo con efecto hover -->
+                      <span class="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-all duration-500"></span>
+                      
+                      <!-- Iconos SVG para cada herramienta -->
+                      <div class="relative z-10 mb-1 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                        <!-- Icono para capas -->
+                        <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                        </svg>
+                        
+                        <!-- Icono para medición -->
+                        <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        
+                        <!-- Icono para dibujo -->
+                        <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+                        </svg>
+                        
+                        <!-- Icono para búsqueda -->
+                        <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                      </div>
+                      
+                      <!-- Nombre de la herramienta -->
+                      <span class="text-xs font-medium mt-1">{{ tool.name }}</span>
+                      
+                      <!-- Indicador de herramienta activa -->
+                      <span v-if="activeToolPanel === tool.id" class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                    </button>
+                  </div>
+                  
+                  <!-- Descripción de la herramienta seleccionada -->
+                  <div v-if="activeToolPanel" class="mt-3 px-4 py-2 bg-white/80 backdrop-blur-sm text-green-800 text-xs rounded-lg shadow-inner animate-fade-in">
+                    <p class="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {{ mapTools.find(t => t.id === activeToolPanel)?.description }}
+                    </p>
                   </div>
                 </div>
-              </li>
-            </ul>
-          </div>
-          
-          <!-- Lista de capas extras -->
-          <div v-if="activeTab === 'extras'" class="space-y-4 animate-fade-in">
-            <h2 class="text-lg font-semibold text-green-800 mb-4">Overlays y Extras</h2>
-            
-            <!-- Nueva sección de herramientas del mapa -->
-            <div class="border-b border-gray-200 pb-6 mb-6">
-              <h3 class="text-base font-medium text-green-700 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Herramientas del mapa
-              </h3>
-              
-              <!-- Herramientas con iconos SVG modernos -->
-              <div class="grid grid-cols-2 gap-3 mt-4">
-                <button 
-                  v-for="tool in mapTools" 
-                  :key="tool.id"
-                  @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id"
-                  class="tool-button relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300"
-                  :class=" [
-                    activeToolPanel === tool.id 
-                      ? 'bg-green-100 text-green-700 shadow-md ring-2 ring-green-400 ring-opacity-50' 
-                      : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-green-600 shadow-sm hover:shadow'
-                  ]"
-                >
-                  <!-- Capa de efecto hover -->
-                  <span class="absolute inset-0 bg-gradient-to-tr from-green-50 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                  
-                  <!-- Iconos SVG basados en la herramienta -->
-                  <div class="relative z-10 mb-1">
+                
+                <!-- Lista de capas adicionales -->
+                <div class="mt-6">
+                  <h3 class="text-sm font-medium text-gray-700 mb-3">Capas adicionales</h3>
+                  <ul class="space-y-2">
+                    <li v-for="layer in layerGroups.extras" :key="layer.id" 
+                        class="transform transition-all duration-300 hover:translate-x-1">
+                      <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                          <input 
+                            type="checkbox" 
+                            :id="`layer-${layer.id}`" 
+                            :checked="layer.visible"
+                            @change="toggleLayerVisibility(layer)" 
+                            class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                          />
+                          <label 
+                            :for="`layer-${layer.id}`" 
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+                            :class="{'active': layer.visible}"
+                          ></label>
+                        </div>
+                        <div>
+                          <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
+                            {{ layer.name }}
+                          </label>
+                          <p class="text-xs text-gray-500">{{ layer.description }}</p>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Contenido minimalista cuando la sidebar está colapsada -->
+              <div v-else class="py-4">
+                <div class="flex flex-col items-center space-y-8">
+                  <button v-for="tool in mapTools" 
+                          :key="tool.id"
+                          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; sidebarOpen = true;"
+                          class="p-2 rounded-lg hover:bg-green-50 transition-all duration-300 relative group"
+                          :class="{'bg-green-100': activeToolPanel === tool.id}">
+                    <!-- Tooltip para mostrar el nombre de la herramienta -->
+                    <div class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                      {{ tool.name }}
+                      <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
+                    </div>
+
                     <!-- Icono para capas -->
                     <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
@@ -569,155 +653,120 @@ const confirmLogout = () => {
                     <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
-                  </div>
-                  
-                  <!-- Nombre de la herramienta -->
-                  <span class="text-xs font-medium mt-1">{{ tool.name }}</span>
-                  
-                  <!-- Indicador de activo -->
-                  <span v-if="activeToolPanel === tool.id" class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                </button>
-              </div>
-              
-              <!-- Descripción de la herramienta seleccionada -->
-              <div v-if="activeToolPanel" class="mt-3 px-4 py-2 bg-green-50 text-green-800 text-xs rounded-lg">
-                <p class="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {{ mapTools.find(t => t.id === activeToolPanel)?.description }}
-                </p>
+                    
+                    <!-- Indicador de herramienta activa -->
+                    <span v-if="activeToolPanel === tool.id" class="absolute -right-1 top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                  </button>
+                </div>
               </div>
             </div>
-            
-            <ul class="space-y-3">
-              <li v-for="layer in layerGroups.extras" :key="layer.id" 
-                  class="transform transition-all duration-300 hover:translate-x-1">
-                <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
-                  <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                    <input 
-                      type="checkbox" 
-                      :id="`layer-${layer.id}`" 
-                      :checked="layer.visible"
-                      @change="toggleLayerVisibility(layer)" 
-                      class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                    />
-                    <label 
-                      :for="`layer-${layer.id}`" 
-                      class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
-                      :class="{'active': layer.visible}"
-                    ></label>
-                  </div>
-                  <div>
-                    <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
-                      {{ layer.name }}
-                    </label>
-                    <p class="text-xs text-gray-500">{{ layer.description }}</p>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-        
-        <!-- Pie de la barra lateral -->
-        <div class="bg-green-50 p-3 text-xs text-green-700 border-t border-green-100">
-          <p>Seleccione las capas para visualizar en el mapa</p>
+          </transition>
         </div>
       </div>
-      
-      <!-- Pestaña flotante para abrir cuando está cerrado en móviles -->
-      <div 
-        v-if="!sidebarOpen" 
-        class="absolute top-1/2 -translate-y-1/2 -right-10 bg-white rounded-r-lg shadow-lg p-2 cursor-pointer"
-        @click="toggleSidebar"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-        </svg>
+
+      <!-- Pie de la barra lateral -->
+      <div class="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100 flex items-center justify-center">
+        <p v-if="sidebarOpen" class="text-xs text-green-700">Geoportal Sembrando Datos</p>
+        <span v-else class="text-green-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </span>
       </div>
     </aside>
-    
-    <!-- Panel lateral de herramientas - Ahora aparecerá a la izquierda y solo cuando está en la pestaña extras -->
-    <div 
-      v-if="activeToolPanel && activeTab === 'extras' && sidebarOpen"
-      class="absolute top-20 left-96 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-300 animate-slide-in-right"
-    >
-      <!-- Contenido según herramienta activa -->
-      <div v-if="activeToolPanel === 'measure'">
-        <MeasurementTool :map="map" />
-      </div>
-      
-      <!-- Panel de búsqueda -->
-      <div v-if="activeToolPanel === 'search'">
-        <SearchTool :map="map" />
-      </div>
-      
-      <!-- Panel de dibujo -->
-      <div v-if="activeToolPanel === 'draw'">
-        <DrawTool :map="map" />
-      </div>
-      
-      <!-- Panel de capas -->
-      <div v-if="activeToolPanel === 'layers'">
-        <LayersTool :map="map" :layers="getAllLayers()" />
-      </div>
-    </div>
 
-    <!-- Botón flotante para herramientas en móviles cuando la sidebar está cerrada -->
-    <button 
-      v-if="!sidebarOpen"
-      @click="toggleToolsPanel"
-      class="fixed bottom-24 left-4 z-30 bg-green-500 text-white rounded-full p-3 shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110 md:hidden"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    </button>
-    
-    <!-- Panel de herramientas para móviles cuando la barra lateral está cerrada -->
-    <div 
-      v-if="!sidebarOpen && showToolsPanel"
-      class="fixed bottom-36 left-4 z-30 bg-white rounded-lg shadow-lg p-2 animate-slide-in-up md:hidden"
-    >
-      <div class="grid grid-cols-2 gap-2 p-1">
-        <button 
-          v-for="tool in mapTools" 
-          :key="tool.id"
-          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; showToolsPanel = false; sidebarOpen = true; changeTab('extras');"
-          class="p-2 rounded-lg bg-gray-50 flex flex-col items-center justify-center hover:bg-green-50 transition-colors"
-        >
-          <!-- Iconos SVG basados en la herramienta -->
-          <div class="mb-1">
-            <!-- Icono para capas -->
-            <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-            </svg>
-            
-            <!-- Icono para medición -->
-            <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            
-            <!-- Icono para dibujo -->
-            <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
-            </svg>
-            
-            <!-- Icono para búsqueda -->
-            <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
+    <!-- Contenido principal que se ajusta al espacio restante -->
+    <div class="flex-1 relative">
+      <!-- Overlay de carga con animación -->
+      <div v-if="loading" 
+           class="fixed inset-0 bg-white bg-opacity-90 z-50 flex flex-col items-center justify-center transition-opacity duration-500"
+           :class="loading ? 'opacity-100' : 'opacity-0 pointer-events-none'">
+        <div class="w-16 h-16 border-4 border-t-green-500 border-green-200 rounded-full animate-spin mb-4"></div>
+        <p class="text-green-700 font-medium">Cargando geoportal...</p>
+      </div>
+
+      <!-- Mapa a pantalla completa -->
+      <div ref="mapElement" class="absolute inset-0 z-0"></div>
+      
+      <!-- Header flotante con título y botones de acción -->
+      <header class="absolute top-0 left-0 right-0 bg-white bg-opacity-95 shadow-md z-10 transition-all duration-300">
+        <div class="container mx-auto px-4 py-2 sm:py-3 flex justify-between items-center">
+          <!-- Logo y título -->
+          <div class="flex items-center space-x-3">
+            <img 
+              src="@/components/images/logotipo.png" 
+              alt="Logotipo Sembrando Datos" 
+              class="h-10 sm:h-12 w-auto object-contain"
+            />
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
+              Geoportal Sembrando Datos
+            </h1>
           </div>
-          <span class="text-xs">{{ tool.name }}</span>
-        </button>
-      </div>
-    </div>
 
-    <!-- Atribución en la parte inferior -->
-    <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
-      <p>© 2023 Sembrando Datos - Geoportal de visualización territorial</p>
+          <!-- Botones de acción -->
+          <div class="flex items-center space-x-2 sm:space-x-4">
+            <!-- Componente de perfil de usuario -->
+            <UserProfile />
+            
+            <!-- Botón de inicio rediseñado -->
+            <button 
+              @click="handleGoHome"
+              class="home-button px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0"
+              aria-label="Volver a la página de inicio"
+            >
+              <span class="home-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                </svg>
+              </span>
+              <span class="hidden sm:inline font-medium">Inicio</span>
+              <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
+            </button>
+
+            <!-- Botón de guardar -->
+            <button 
+              @click="showSaveDialog = true"
+              class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <span>💾</span>
+              <span class="hidden sm:inline text-sm">Guardar</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Panel lateral de herramientas - Corregir el uso de window.innerWidth -->
+      <div 
+        v-if="activeToolPanel && sidebarOpen"
+        class="absolute top-20 z-10 bg-white rounded-lg shadow-lg w-72 transition-all duration-500 ease-in-out animate-slide-in-right"
+        :style="{ left: sidebarOpen ? 'calc(80px + 1rem)' : '6rem' }"
+        :class="{ 'sm:left-96': sidebarOpen && windowWidth >= 640 }"
+      >
+        <!-- Contenido según herramienta activa -->
+        <div v-if="activeToolPanel === 'measure'">
+          <MeasurementTool :map="map" />
+        </div>
+        
+        <!-- Panel de búsqueda -->
+        <div v-if="activeToolPanel === 'search'">
+          <SearchTool :map="map" />
+        </div>
+        
+        <!-- Panel de dibujo -->
+        <div v-if="activeToolPanel === 'draw'">
+          <DrawTool :map="map" />
+        </div>
+        
+        <!-- Panel de capas -->
+        <div v-if="activeToolPanel === 'layers'">
+          <LayersTool :map="map" :layers="getAllLayers()" />
+        </div>
+      </div>
+
+      <!-- Atribución en la parte inferior -->
+      <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
+        <p>© 2023 Sembrando Datos - Geoportal de visualización territorial</p>
+      </div>
     </div>
 
     <!-- Modal para guardar mapa -->
@@ -1163,5 +1212,34 @@ input:checked + .toggle-label::after {
 
 .animate-modal-in {
   animation: modal-in 0.3s forwards;
+}
+
+/* Añadir efecto de onda para los botones */
+@keyframes ripple-effect {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.group-active\:animate-ripple-effect {
+  animation: ripple-effect 1s ease-out;
+}
+
+/* Añadir transición para la barra lateral */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-track-gray-100::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+}
+
+.scrollbar-thumb-green-500::-webkit-scrollbar-thumb {
+  background-color: #10b981;
 }
 </style>
