@@ -28,62 +28,47 @@ const layerOpacity = ref({}); // Para almacenar opacidad de capas
 const searchQuery = ref('');
 const searchResults = ref([]);
 
-// Capas organizadas en grupos
+// Modificar la estructura de capas para mejor organización
 const layerGroups = ref({
   principal: [
     {
       id: 1,
-      name: 'Territorios 28',
+      name: 'Territorios',
       visible: true,
       type: 'wms',
       url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
       params: {
-        'LAYERS': 'territorios_28',
+        'LAYERS': 'sembrandodatos:territorios_28',
+        'TILED': true,
         'FORMAT': 'image/png',
-        'TRANSPARENT': 'true'
+        'TRANSPARENT': true,
+        'VERSION': '1.1.1',
       },
-      description: 'Capa principal de territorios'
+      description: 'Capa base de territorios'
     }
   ],
   extras: [
     {
       id: 2,
-      name: 'Calles',
-      visible: false,
-      type: 'wms',
-      url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
-      params: {
-        'LAYERS': 'territorios_28',
-        'FORMAT': 'image/png',
-        'TRANSPARENT': 'true'
-      },
-      description: 'Calles y vías principales'
+      name: 'OpenStreetMap',
+      visible: true,
+      type: 'osm',
+      description: 'Mapa base de OpenStreetMap'
     },
     {
       id: 3,
-      name: 'Límites',
+      name: 'Límites Administrativos',
       visible: false,
       type: 'wms',
       url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
       params: {
-        'LAYERS': 'territorios_28',
+        'LAYERS': 'sembrandodatos:limites',
+        'TILED': true,
         'FORMAT': 'image/png',
-        'TRANSPARENT': 'true'
+        'TRANSPARENT': true,
+        'VERSION': '1.1.1',
       },
-      description: 'Límites de zonas administrativas'
-    },
-    {
-      id: 4,
-      name: 'Satélite',
-      visible: false,
-      type: 'wms',
-      url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
-      params: {
-        'LAYERS': 'territorios_28',
-        'FORMAT': 'image/png',
-        'TRANSPARENT': 'true'
-      },
-      description: 'Imagen satelital de la zona'
+      description: 'Límites administrativos del territorio'
     }
   ]
 });
@@ -106,17 +91,18 @@ const getAllLayers = () => {
 };
 
 const toggleLayerVisibility = (layer) => {
-  layer.visible = !layer.visible;
-  
-  // Buscar la capa correspondiente en el mapa y actualizar visibilidad
   if (map.value) {
-    const mapLayers = map.value.getLayers().getArray();
-    const olLayer = mapLayers.find(l => 
-      l.get('name') === layer.name
-    );
-    
-    if (olLayer) {
-      olLayer.setVisible(layer.visible);
+    const mapLayer = map.value.getLayers().getArray()
+      .find(l => l.get('name') === layer.name);
+    if (mapLayer) {
+      const currentVisibility = mapLayer.getVisible();
+      mapLayer.setVisible(!currentVisibility);
+      // Actualizar el estado en layerGroups
+      const groupKey = layer.id <= 1 ? 'principal' : 'extras';
+      const layerIndex = layerGroups.value[groupKey].findIndex(l => l.name === layer.name);
+      if (layerIndex !== -1) {
+        layerGroups.value[groupKey][layerIndex].visible = !currentVisibility;
+      }
     }
   }
 };
@@ -240,54 +226,57 @@ const zoomToFeature = (feature) => {
 };
 
 // Inicializar mapa cuando el componente se monte
-onMounted(() => {
-  // Simular tiempo de carga para mostrar la animación
-  setTimeout(() => {
-    loading.value = false;
-  }, 1000);
-
-  // Crear capas base (OpenStreetMap)
+const initializeMap = () => {
+  // Crear capa base OSM
   const osmLayer = new TileLayer({
     source: new OSM(),
-    visible: true
+    visible: layerGroups.value.extras.find(l => l.type === 'osm')?.visible || false,
+    properties: {
+      name: 'OpenStreetMap',
+      group: 'extras'
+    }
   });
-  
+
   // Crear capas WMS
-  const wmsLayers = getAllLayers().map(layer => {
-    return new TileLayer({
+  const wmsLayers = [...layerGroups.value.principal, ...layerGroups.value.extras]
+    .filter(layer => layer.type === 'wms')
+    .map(layer => new TileLayer({
       source: new TileWMS({
         url: layer.url,
         params: layer.params,
         serverType: 'geoserver',
       }),
       visible: layer.visible,
-      name: layer.name
-    });
-  });
-  
-  // Crear mapa
+      properties: {
+        name: layer.name,
+        group: layerGroups.value.principal.includes(layer) ? 'principal' : 'extras'
+      }
+    }));
+
+  // Crear mapa con todas las capas
   map.value = new Map({
     target: mapElement.value,
     layers: [osmLayer, ...wmsLayers],
     view: new View({
-      center: fromLonLat([-98.9, 21.5]), // [lon, lat]
-      zoom: 10
+      center: fromLonLat([-89.2182, 13.7001]), // Centrado en El Salvador
+      zoom: 8
     })
   });
 
-  // Manejar cambios de tamaño
-  const handleResize = () => {
-    if (map.value) {
-      setTimeout(() => map.value.updateSize(), 200);
-    }
-  };
-
-  window.addEventListener('resize', handleResize);
-
-  // Limpiar el listener cuando se desmonte
-  onBeforeUnmount(() => {
-    window.removeEventListener('resize', handleResize);
+  // Inicializar opacidades
+  map.value.getLayers().forEach(layer => {
+    const name = layer.get('name');
+    layerOpacity.value[name] = layer.getOpacity();
   });
+};
+
+onMounted(() => {
+  // Simular tiempo de carga
+  loading.value = true;
+  setTimeout(() => {
+    initializeMap();
+    loading.value = false;
+  }, 1000);
 });
 
 // Limpiar recursos cuando el componente se desmonte
@@ -1047,5 +1036,14 @@ input:checked + .toggle-label::after {
 
 .animate-slide-in-up {
   animation: slide-in-up 0.3s ease-out forwards;
+}
+
+/* Añadir estilos específicos para las capas */
+.toggle-label.active {
+  background-color: #10B981;
+}
+
+.toggle-label.active::after {
+  transform: translateX(1.5rem);
 }
 </style>
