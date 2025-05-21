@@ -15,6 +15,13 @@ import LayersTool from './map-tools/LayersTool.vue';
 import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
 import { useLayers } from '../composables/useLayers';
+// Importaciones para el marcador animado
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import { Vector as VectorSource } from 'ol/source';
+import { Vector as VectorLayer } from 'ol/layer';
+import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
+import Overlay from 'ol/Overlay';
 
 // Unificar definición de emisiones - combinar 'save-success', 'logout' y 'show-welcome'
 const emit = defineEmits(['save-success', 'logout', 'show-welcome']);
@@ -46,6 +53,11 @@ const reporteError = ref(null);
 const reporteCompleto = ref(null);
 const formatoDescarga = ref('json'); // Opciones: 'json', 'pdf', 'csv'
 const descargando = ref(false);
+
+// Estado para el marcador personalizado
+const markerSource = ref(null);
+const markerLayer = ref(null);
+const markerOverlay = ref(null);
 
 // Importar configuración de capas desde el composable
 const { layerGroups } = useLayers();
@@ -268,6 +280,22 @@ const initializeMap = () => {
       layerOpacity.value[name] = layer.getOpacity();
     });
 
+    // Inicializar la fuente de datos para el marcador si es necesario
+    markerSource.value = new VectorSource();
+    markerLayer.value = new VectorLayer({
+      source: markerSource.value,
+      zIndex: 1000, // Asegurar que el marcador esté por encima de otras capas
+      style: new Style({
+        image: new CircleStyle({
+          radius: 9,
+          fill: new Fill({ color: '#28a745' }),
+          stroke: new Stroke({ color: '#fff', width: 3 })
+        })
+      })
+    });
+    
+    map.value.addLayer(markerLayer.value);
+
     // Agregar event listener para capturar clics en el mapa
     map.value.on('singleclick', handleMapClick);
     
@@ -339,19 +367,65 @@ const handleMapClick = async (event) => {
         
         // Abrir el panel de detalles
         detailsPanelOpen.value = true;
+        
+        // Agregar el marcador animado en la posición del clic
+        addMarkerAtCoordinate(event.coordinate);
       } else {
         // No se encontró ningún territorio en la ubicación del clic
         territorioSeleccionado.value = null;
         territorioDetalles.value = null;
         detailsPanelOpen.value = false;
+        
+        // Eliminar el marcador si no hay territorio
+        removeMarker();
       }
     } catch (error) {
       console.error('Error al obtener información del territorio:', error);
       errorDetails.value = 'No se pudo obtener información del territorio.';
+      removeMarker();
     } finally {
       loadingDetails.value = false;
     }
   }
+};
+
+// Función para agregar el marcador animado en una coordenada específica
+const addMarkerAtCoordinate = (coordinate) => {
+  // Eliminar el marcador anterior si existe
+  removeMarker();
+  
+  if (!map.value) return;
+  
+  // Crear un elemento HTML para el marcador personalizado
+  const markerElement = document.createElement('div');
+  markerElement.className = 'custom-marker';
+  
+  // Crear un overlay para el marcador
+  markerOverlay.value = new Overlay({
+    position: coordinate,
+    positioning: 'center-center',
+    element: markerElement,
+    stopEvent: false
+  });
+  
+  // Añadir el overlay al mapa
+  map.value.addOverlay(markerOverlay.value);
+};
+
+// Función para eliminar el marcador actual
+const removeMarker = () => {
+  if (markerOverlay.value && map.value) {
+    map.value.removeOverlay(markerOverlay.value);
+    markerOverlay.value = null;
+  }
+};
+
+// Cerrar el panel de detalles y eliminar el marcador
+const cerrarPanelDetalles = () => {
+  detailsPanelOpen.value = false;
+  territorioSeleccionado.value = null;
+  territorioDetalles.value = null;
+  removeMarker();
 };
 
 // Función para obtener detalles completos del territorio desde el backend
@@ -389,13 +463,6 @@ const obtenerDetallesTerritorio = async (fid) => {
     console.error('Error al obtener detalles del territorio:', error);
     errorDetails.value = 'No se pudieron cargar los detalles completos del territorio.';
   }
-};
-
-// Función para cerrar el panel de detalles
-const cerrarPanelDetalles = () => {
-  detailsPanelOpen.value = false;
-  territorioSeleccionado.value = null;
-  territorioDetalles.value = null;
 };
 
 // Nueva función para obtener el título del territorio
@@ -458,6 +525,9 @@ onBeforeUnmount(() => {
           });
         }
       }
+      
+      // Eliminar el marcador si existe
+      removeMarker();
       
       map.value.setTarget(undefined);
       map.value = null;
@@ -1263,7 +1333,7 @@ const formatearFecha = (fechaStr) => {
                   class="flex-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-1"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <span>Ver reporte completo</span>
                 </button>
@@ -1311,7 +1381,7 @@ const formatearFecha = (fechaStr) => {
               </h2>
               <button 
                 @click="cerrarReporteModal"
-                class="p-2 hover:bg-white/20 rounded-full transition-colors"
+                class="p-2 hover:bg-white/20 rounded-full transition-colores"
                 aria-label="Cerrar"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1409,7 +1479,7 @@ const formatearFecha = (fechaStr) => {
                       <div class="space-y-2">
                         <div class="flex justify-between">
                           <span class="text-sm text-gray-500">Población:</span>
-                          <span class="text-sm font-medium">{{ reporteCompleto.poblacion?.toLocaleString() }} habitantes</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.poblacion?.toLocaleString() }}</span>
                         </div>
                         <div class="flex justify-between">
                           <span class="text-sm text-gray-500">Densidad poblacional:</span>
@@ -1678,14 +1748,14 @@ const formatearFecha = (fechaStr) => {
                 <button 
                   @click="showExitModal = false"
                   class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
-                         rounded-lg transition-colors duration-300"
+                         rounded-lg transition-colores duration-300"
                 >
                   Cancelar
                 </button>
                 <button 
                   @click="confirmExit"
                   class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
-                         rounded-lg transition-colors duration-300 flex items-center space-x-2
+                         rounded-lg transition-colores duration-300 flex items-center space-x-2
                          transform hover:scale-105 active:scale-100"
                 >
                   <span>Volver al inicio</span>
@@ -1718,14 +1788,14 @@ const formatearFecha = (fechaStr) => {
                 <button 
                   @click="logoutModal = false"
                   class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
-                         rounded-lg transition-colors duration-300"
+                         rounded-lg transition-colores duration-300"
                 >
                   Cancelar
                 </button>
                 <button 
                   @click="confirmLogout"
                   class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white 
-                         rounded-lg transition-colors duration-300 flex items-center space-x-2"
+                         rounded-lg transition-colores duration-300 flex items-center space-x-2"
                 >
                   <span>Cerrar sesión</span>
                   <span class="text-xl">→</span>
@@ -1825,11 +1895,11 @@ button:active {
 }
 
 @keyframes slideIn {
-  from {
+  0% {
     opacity: 0;
     transform: translateX(20px);
   }
-  to {
+  100% {
     opacity: 1;
     transform: translateX(0);
   }
@@ -2079,5 +2149,33 @@ input:checked + .toggle-label::after {
 /* Asegurar que el modal de reporte tenga un z-index adecuado */
 .z-\[60\] {
   z-index: 60;
+}
+
+/* Estilos para el marcador personalizado */
+:global(.custom-marker) {
+  background-color: #28a745;
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  box-shadow: 0 0 8px rgba(40, 167, 69, 0.8);
+  transform-origin: center;
+  animation: pulse 1.5s infinite;
+  pointer-events: none; /* No interferir con los clics del mapa */
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>
