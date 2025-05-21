@@ -39,6 +39,14 @@ const errorDetails = ref(null);
 // Estado para el modal de cierre de sesión
 const logoutModal = ref(false);
 
+// Estado para el modal de reporte completo
+const reporteModal = ref(false);
+const reporteCargando = ref(false);
+const reporteError = ref(null);
+const reporteCompleto = ref(null);
+const formatoDescarga = ref('json'); // Opciones: 'json', 'pdf', 'csv'
+const descargando = ref(false);
+
 // Importar configuración de capas desde el composable
 const { layerGroups } = useLayers();
 
@@ -562,6 +570,170 @@ const confirmLogout = () => {
   emit('logout');
   router.push('/login');
 };
+
+// Función para abrir el reporte completo
+const verReporteCompleto = async () => {
+  if (!territorioDetalles.value || !territorioDetalles.value.fid) {
+    console.error('No hay territorio seleccionado para mostrar reporte');
+    return;
+  }
+  
+  reporteCargando.value = true;
+  reporteError.value = null;
+  reporteModal.value = true;
+
+  try {
+    // Verificar si ya tenemos todos los datos necesarios o si necesitamos cargar datos adicionales
+    if (territorioDetalles.value && Object.keys(territorioDetalles.value).length > 10) {
+      // Ya tenemos suficientes datos, solo asignamos al reporte
+      reporteCompleto.value = { ...territorioDetalles.value };
+    } else {
+      // Necesitamos cargar datos adicionales
+      // En un entorno real, aquí haríamos una llamada API:
+      // const response = await fetch(`/api/territorios/${territorioDetalles.value.fid}`);
+      // const data = await response.json();
+      
+      // Simulamos una carga más completa de datos desde el backend
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simular tiempo de carga
+      
+      // Crear un objeto más completo con datos aleatorios simulados adicionales
+      reporteCompleto.value = {
+        ...territorioDetalles.value,
+        // Datos adicionales detallados
+        fecha_registro: new Date().toLocaleDateString(),
+        superficie_cultivable_ha: Math.floor(territorioDetalles.value.superficie_ha * 0.65),
+        densidad_poblacion: (territorioDetalles.value.poblacion / territorioDetalles.value.superficie_ha).toFixed(2),
+        cultivos_secundarios: ['Maíz', 'Frijol', 'Chile', 'Café', 'Caña', 'Aguacate', 'Jitomate']
+                            .sort(() => 0.5 - Math.random())
+                            .slice(0, 3)
+                            .join(', '),
+        tipo_suelo: ['Arcilloso', 'Arenoso', 'Franco', 'Limoso'][Math.floor(Math.random() * 4)],
+        ph_suelo: (5 + Math.random() * 3).toFixed(1),
+        materia_organica: (1 + Math.random() * 4).toFixed(2) + '%',
+        nitrogeno: (0.05 + Math.random() * 0.5).toFixed(3) + '%',
+        fosforo: (5 + Math.random() * 30).toFixed(1) + ' ppm',
+        potasio: (50 + Math.random() * 300).toFixed(1) + ' ppm',
+        capacidad_hidrica: (Math.random() * 100).toFixed(1) + '%',
+        coordenadas: {
+          latitud: (19 + Math.random() * 2).toFixed(6), 
+          longitud: (-99 - Math.random() * 2).toFixed(6)
+        },
+        municipio: territorioDetalles.value.municipio || 'Tulancingo',
+        estado: territorioDetalles.value.estado || 'Hidalgo',
+        uso_agua: (Math.random() * 1000).toFixed(1) + ' m³/año',
+        fuente_agua: ['Pozo', 'Río', 'Presa', 'Temporal'][Math.floor(Math.random() * 4)],
+        ecosistema: ['Bosque', 'Selva', 'Pastizal', 'Matorral'][Math.floor(Math.random() * 4)],
+        fauna_principales: ['Aves', 'Reptiles', 'Mamíferos pequeños', 'Insectos'][Math.floor(Math.random() * 4)],
+        flora_principales: ['Encino', 'Pino', 'Matorral xerófilo', 'Selva baja'][Math.floor(Math.random() * 4)],
+        riesgo_sequia: ['Bajo', 'Moderado', 'Alto', 'Muy alto'][Math.floor(Math.random() * 4)],
+        riesgo_inundacion: ['Bajo', 'Moderado', 'Alto', 'Muy alto'][Math.floor(Math.random() * 4)],
+        erosion_suelo: ['Leve', 'Moderada', 'Severa', 'Muy severa'][Math.floor(Math.random() * 4)],
+        produccion_estimada: Math.floor(1000 + Math.random() * 9000) + ' kg/ha',
+        valor_produccion: '$' + Math.floor(50000 + Math.random() * 950000).toLocaleString(),
+        fecha_actualizacion: '2023-' + 
+          (Math.floor(Math.random() * 12) + 1).toString().padStart(2, '0') + '-' + 
+          (Math.floor(Math.random() * 28) + 1).toString().padStart(2, '0')
+      };
+    }
+  } catch (error) {
+    console.error('Error al cargar el reporte completo:', error);
+    reporteError.value = 'No se pudo cargar el reporte completo. Intente nuevamente.';
+  } finally {
+    reporteCargando.value = false;
+  }
+};
+
+// Función para cerrar el modal de reporte
+const cerrarReporteModal = () => {
+  reporteModal.value = false;
+  reporteCompleto.value = null; // Limpiamos el reporte al cerrar
+};
+
+// Función para descargar el reporte en el formato seleccionado
+const descargarReporte = async () => {
+  if (!reporteCompleto.value) return;
+  
+  descargando.value = true;
+  
+  try {
+    const nombreArchivo = `territorio_${reporteCompleto.value.fid}_${Date.now()}`;
+    
+    if (formatoDescarga.value === 'json') {
+      // Descargar como JSON
+      const jsonString = JSON.stringify(reporteCompleto.value, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      descargarArchivo(blob, `${nombreArchivo}.json`);
+    } 
+    else if (formatoDescarga.value === 'csv') {
+      // Convertir a CSV
+      const csvContent = convertirACSV(reporteCompleto.value);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      descargarArchivo(blob, `${nombreArchivo}.csv`);
+    }
+    else if (formatoDescarga.value === 'pdf') {
+      // Aquí se implementaría la generación de PDF
+      // En un entorno real, generalmente se usaría una librería como jsPDF o
+      // se haría una petición al backend para generar el PDF
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simular tiempo de generación
+      alert('La generación de PDF estaría implementada aquí con una librería como jsPDF');
+    }
+  } catch (error) {
+    console.error('Error al descargar el reporte:', error);
+    alert('Error al generar la descarga. Intente nuevamente.');
+  } finally {
+    descargando.value = false;
+  }
+};
+
+// Función auxiliar para descargar el archivo
+const descargarArchivo = (blob, fileName) => {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Función auxiliar para convertir objeto a formato CSV
+const convertirACSV = (obj) => {
+  // Aplanar el objeto para que las propiedades anidadas se representen con notación de punto
+  const flattenedObject = {};
+  
+  function flatten(obj, prefix = '') {
+    for (const key in obj) {
+      if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+        flatten(obj[key], `${prefix}${key}.`);
+      } else {
+        flattenedObject[`${prefix}${key}`] = obj[key];
+      }
+    }
+  }
+  
+  flatten(obj);
+  
+  // Crear encabezados y valores
+  const headers = Object.keys(flattenedObject);
+  const values = Object.values(flattenedObject).map(value => 
+    typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
+  );
+  
+  return headers.join(',') + '\n' + values.join(',');
+};
+
+// Función para formatear fecha
+const formatearFecha = (fechaStr) => {
+  try {
+    const fecha = new Date(fechaStr);
+    return fecha.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return fechaStr;
+  }
+};
 </script>
 
 <template>
@@ -914,7 +1086,7 @@ const confirmLogout = () => {
             >
               <span class="home-icon">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
                 </svg>
               </span>
               <span class="hidden sm:inline font-medium">Inicio</span>
@@ -1086,11 +1258,20 @@ const confirmLogout = () => {
               
               <!-- Acciones -->
               <div class="flex space-x-2">
-                <button class="flex-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium">
-                  Ver reporte completo
+                <button 
+                  @click="verReporteCompleto" 
+                  class="flex-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Ver reporte completo</span>
                 </button>
-                <button class="flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium">
-                  Descargar datos
+                <button class="flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Descargar datos</span>
                 </button>
               </div>
             </div>
@@ -1099,7 +1280,7 @@ const confirmLogout = () => {
             <div v-else class="flex flex-col items-center justify-center h-full">
               <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0  11-18 0 9 9 0 0118 0z" />
               </svg>
               <p class="text-gray-500 text-center">No hay información disponible para este territorio</p>
             </div>
@@ -1112,6 +1293,343 @@ const confirmLogout = () => {
         </div>
       </Transition>
 
+      <!-- Modal para reporte completo del territorio -->
+      <Transition name="modal-fade">
+        <div 
+          v-if="reporteModal" 
+          class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 sm:p-6 md:p-8 overflow-y-auto"
+          @click.self="cerrarReporteModal"
+        >
+          <div class="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[95vh] overflow-hidden transform transition-all duration-300 animate-modal-in">
+            <!-- Cabecera del modal -->
+            <div class="bg-gradient-to-r from-emerald-500 to-green-600 p-5 text-white flex justify-between items-center sticky top-0 z-10">
+              <h2 class="text-xl sm:text-2xl font-medium flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Reporte completo: {{ getTituloTerritorio() }}</span>
+              </h2>
+              <button 
+                @click="cerrarReporteModal"
+                class="p-2 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Cerrar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Contenido del reporte con scroll -->
+            <div class="p-5 sm:p-8 overflow-y-auto max-h-[calc(95vh-6rem)]">
+              <!-- Estado de carga -->
+              <div v-if="reporteCargando" class="flex flex-col items-center justify-center py-16">
+                <div class="w-16 h-16 border-4 border-t-green-500 border-green-200 rounded-full animate-spin mb-4"></div>
+                <p class="text-gray-500">Cargando información detallada...</p>
+              </div>
+              
+              <!-- Mensaje de error -->
+              <div v-else-if="reporteError" class="bg-red-50 p-6 rounded-xl text-red-600 my-4 text-center">
+                <svg class="w-12 h-12 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="font-medium">{{ reporteError }}</p>
+                <button 
+                  @click="verReporteCompleto"
+                  class="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                >
+                  Intentar nuevamente
+                </button>
+              </div>
+              
+              <!-- Reporte completo -->
+              <div v-else-if="reporteCompleto" class="space-y-8">
+                <!-- Resumen del territorio -->
+                <section class="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl shadow-sm">
+                  <h3 class="text-xl font-semibold text-green-800 mb-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    Información general
+                  </h3>
+                  
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    <!-- Identificación -->
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                      <h4 class="text-sm font-medium text-gray-500 mb-3">Identificación</h4>
+                      <div class="space-y-2">
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">ID:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.fid }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Clave Municipal:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.clave_mun }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Municipio:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.municipio }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Estado:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.estado }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Geografía -->
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                      <h4 class="text-sm font-medium text-gray-500 mb-3">Geografía</h4>
+                      <div class="space-y-2">
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Superficie total:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.superficie_ha }} ha</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Superficie cultivable:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.superficie_cultivable_ha }} ha</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Altitud:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.altitud_m }} msnm</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Coordenadas:</span>
+                          <span class="text-sm font-medium">
+                            {{ reporteCompleto.coordenadas?.latitud }}, {{ reporteCompleto.coordenadas?.longitud }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Demografía -->
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                      <h4 class="text-sm font-medium text-gray-500 mb-3">Demografía</h4>
+                      <div class="space-y-2">
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Población:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.poblacion?.toLocaleString() }} habitantes</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Densidad poblacional:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.densidad_poblacion }} hab/ha</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Registro:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.fecha_registro }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-sm text-gray-500">Actualización:</span>
+                          <span class="text-sm font-medium">{{ formatearFecha(reporteCompleto.fecha_actualizacion) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                
+                <!-- Información climática y ambiental -->
+                <section>
+                  <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Información climática y ambiental
+                  </h3>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Clima -->
+                    <div class="bg-blue-50 rounded-xl p-5 border border-blue-100">
+                      <h4 class="text-base font-medium text-blue-800 mb-4">Clima</h4>
+                      
+                      <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white rounded-lg p-4 shadow-sm flex flex-col items-center">
+                          <span class="text-4xl mb-2 text-blue-700">
+                            {{ reporteCompleto.temperatura_c }}°C
+                          </span>
+                          <span class="text-sm text-gray-500">Temperatura media</span>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-4 shadow-sm flex flex-col items-center">
+                          <span class="text-4xl mb-2 text-blue-700">
+                            {{ reporteCompleto.precipitacion_mm }} mm
+                          </span>
+                          <span class="text-sm text-gray-500">Precipitación anual</span>
+                        </div>
+                      </div>
+                      
+                      <div class="mt-4 space-y-2">
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Riesgo de sequía:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.riesgo_sequia }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Riesgo de inundación:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.riesgo_inundacion }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Ecosistema -->
+                    <div class="bg-green-50 rounded-xl p-5 border border-green-100">
+                      <h4 class="text-base font-medium text-green-800 mb-4">Ecosistema</h4>
+                      
+                      <div class="space-y-2">
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Tipo de ecosistema:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.ecosistema }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Flora principal:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.flora_principales }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Fauna principal:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.fauna_principales }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Fuente de agua:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.fuente_agua }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Uso de agua anual:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.uso_agua }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                
+                <!-- Información agrícola -->
+                <section>
+                  <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                    </svg>
+                    Información agrícola y suelo
+                  </h3>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Cultivo -->
+                    <div class="col-span-1 md:col-span-2 bg-amber-50 rounded-xl p-5 border border-amber-100">
+                      <h4 class="text-base font-medium text-amber-800 mb-4">Datos de Cultivo</h4>
+                      
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div class="bg-white rounded-lg p-4 shadow-sm flex flex-col">
+                          <span class="text-2xl mb-2 text-amber-700">
+                            {{ reporteCompleto.n_cultivos }}
+                          </span>
+                          <span class="text-sm text-gray-500">Tipos de cultivos</span>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg p-4 shadow-sm flex flex-col">
+                          <span class="text-2xl mb-2 text-amber-700">
+                            {{ reporteCompleto.produccion_estimada }}
+                          </span>
+                          <span class="text-sm text-gray-500">Producción estimada</span>
+                        </div>
+                      </div>
+                      
+                      <div class="space-y-2">
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Cultivo principal:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.cultivo_principal }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Cultivos secundarios:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.cultivos_secundarios }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Valor de la producción:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.valor_produccion }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Suelo -->
+                    <div class="bg-amber-50 rounded-xl p-5 border border-amber-100">
+                      <h4 class="text-base font-medium text-amber-800 mb-4">Características del Suelo</h4>
+                      
+                      <div class="space-y-2">
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Tipo de suelo:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.tipo_suelo }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">pH:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.ph_suelo }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Materia orgánica:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.materia_organica }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Nitrógeno:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.nitrogeno }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Fósforo:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.fosforo }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Potasio:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.potasio }}</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white/80 rounded-lg">
+                          <span class="text-sm text-gray-600">Erosión:</span>
+                          <span class="text-sm font-medium">{{ reporteCompleto.erosion_suelo }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+            
+            <!-- Pie del modal con opciones de descarga -->
+            <div class="p-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between sticky bottom-0">
+              <!-- Selector de formato -->
+              <div class="flex items-center space-x-3 w-full sm:w-auto mb-4 sm:mb-0">
+                <label for="formato-descarga" class="text-sm text-gray-600">Formato de descarga:</label>
+                <select 
+                  id="formato-descarga"
+                  v-model="formatoDescarga"
+                  class="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="json">JSON</option>
+                  <option value="csv">CSV</option>
+                  <option value="pdf">PDF</option>
+                </select>
+              </div>
+              
+              <!-- Botones de acción -->
+              <div class="flex space-x-3 w-full sm:w-auto justify-end">
+                <button 
+                  @click="cerrarReporteModal"
+                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cerrar
+                </button>
+                <button 
+                  @click="descargarReporte"
+                  :disabled="descargando || !reporteCompleto"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="descargando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>{{ descargando ? 'Descargando...' : 'Descargar reporte' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+      
       <!-- Modal para guardar mapa -->
       <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-96">
@@ -1558,48 +2076,8 @@ input:checked + .toggle-label::after {
   animation: modal-in 0.3s forwards;
 }
 
-/* Añadir efecto de onda para los botones */
-@keyframes ripple-effect {
-  0% {
-    transform: scale(0);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-.group-active\:animate-ripple-effect {
-  animation: ripple-effect 1s ease-out;
-}
-
-/* Añadir transición para la barra lateral */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-track-gray-100::-webkit-scrollbar-track {
-  background-color: #f3f4f6;
-}
-
-.scrollbar-thumb-green-500::-webkit-scrollbar-thumb {
-  background-color: #10b981;
-}
-
-/* Animaciones para el panel lateral */
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: transform 0.3s ease-out;
-}
-
-.slide-right-enter-from,
-.slide-right-leave-to {
-  transform: translateX(100%);
-}
-
-.slide-right-enter-to,
-.slide-right-leave-from {
-  transform: translateX(0);
+/* Asegurar que el modal de reporte tenga un z-index adecuado */
+.z-\[60\] {
+  z-index: 60;
 }
 </style>
