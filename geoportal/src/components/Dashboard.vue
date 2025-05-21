@@ -320,10 +320,9 @@ const handleMapClick = async (event) => {
         const feature = data.features[0];
         const fid = feature.id.split('.')[1]; // Extraer el ID numérico de 'territorios_28.3'
         
-        // Establecer territorio seleccionado básico
+        // Establecer territorio seleccionado básico - CORREGIDO: Verificar los campos para el nombre
         territorioSeleccionado.value = {
           fid,
-          nombre: feature.properties.nombre_territorio || 'Territorio sin nombre',
           ...feature.properties
         };
         
@@ -357,11 +356,13 @@ const obtenerDetallesTerritorio = async (fid) => {
     // En una implementación real, descomentar la línea anterior y eliminar este retardo simulado
     await new Promise(resolve => setTimeout(resolve, 600));
     
-    // Datos simulados para el ejemplo
+    // Datos simulados para el ejemplo - CORREGIDO: Preservar el nombre si existe
     const mockResponse = {
       fid: parseInt(fid),
       clave_mun: territorioSeleccionado.value.clave_mun || 12007,
-      nombre_territorio: territorioSeleccionado.value.nombre_territorio || 'Territorio de prueba',
+      // Usar el nombre que viene de la API o construir un fallback
+      nombre: territorioSeleccionado.value.nombre || null,
+      nombre_territorio: territorioSeleccionado.value.nombre_territorio || null,
       n_cultivos: Math.floor(Math.random() * 15) + 1,
       superficie_ha: Math.floor(Math.random() * 5000) + 100,
       poblacion: Math.floor(Math.random() * 50000) + 1000,
@@ -387,6 +388,19 @@ const cerrarPanelDetalles = () => {
   detailsPanelOpen.value = false;
   territorioSeleccionado.value = null;
   territorioDetalles.value = null;
+};
+
+// Nueva función para obtener el título del territorio
+const getTituloTerritorio = () => {
+  if (!territorioDetalles.value) return 'Territorio';
+  
+  // Verificar diferentes posibles nombres de campo
+  const nombre = territorioDetalles.value.nombre_territorio || 
+                territorioDetalles.value.nombre || 
+                territorioDetalles.value.territorio_nombre;
+  
+  // Si existe algún nombre, usarlo; si no, usar el ID como fallback
+  return nombre || `Territorio #${territorioDetalles.value.fid}`;
 };
 
 // Computed para verificar si hay datos disponibles
@@ -803,6 +817,46 @@ const confirmLogout = () => {
                   </button>
                 </div>
               </div>
+
+              <!-- Contenido minimalista cuando la sidebar está colapsada -->
+              <div v-else class="py-4">
+                <div class="flex flex-col items-center space-y-8">
+                  <button v-for="tool in mapTools" 
+                          :key="tool.id"
+                          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; sidebarOpen = true;"
+                          class="p-2 rounded-lg hover:bg-green-50 transition-all duration-300 relative group"
+                          :class="{'bg-green-100': activeToolPanel === tool.id}">
+                    <!-- Tooltip para mostrar el nombre de la herramienta -->
+                    <div class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                      {{ tool.name }}
+                      <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
+                    </div>
+
+                    <!-- Icono para capas -->
+                    <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                    </svg>
+                    
+                    <!-- Icono para medición -->
+                    <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    
+                    <!-- Icono para dibujo -->
+                    <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+                    </svg>
+                    
+                    <!-- Icono para búsqueda -->
+                    <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    
+                    <!-- Indicador de herramienta activa -->
+                    <span v-if="activeToolPanel === tool.id" class="absolute -right-1 top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                  </button>
+                </div>
+              </div>
             </div>
           </transition>
         </div>
@@ -910,10 +964,10 @@ const confirmLogout = () => {
       <Transition name="slide-right">
         <div v-if="detailsPanelOpen" 
              class="absolute top-20 right-0 bottom-8 w-80 sm:w-96 bg-white shadow-lg rounded-l-xl z-30 overflow-hidden flex flex-col">
-          <!-- Encabezado del panel -->
+          <!-- Encabezado del panel - CORREGIDO: Usar función getTituloTerritorio -->
           <div class="p-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white flex items-center justify-between">
             <h2 class="font-medium truncate">
-              {{ territorioSeleccionado?.nombre || 'Territorio' }}
+              {{ getTituloTerritorio() }}
             </h2>
             <button @click="cerrarPanelDetalles" 
                     class="p-1 hover:bg-white/20 rounded-full transition-colors">
@@ -956,10 +1010,10 @@ const confirmLogout = () => {
                 </div>
               </div>
               
-              <!-- Nombre del territorio -->
+              <!-- Nombre del territorio - ACTUALIZADO: Usar la función getTituloTerritorio -->
               <div class="bg-green-50 p-4 rounded-lg">
                 <h3 class="text-lg font-medium text-green-800">
-                  {{ territorioDetalles.nombre_territorio }}
+                  {{ getTituloTerritorio() }}
                 </h3>
               </div>
               
