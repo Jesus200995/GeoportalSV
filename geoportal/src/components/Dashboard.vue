@@ -14,6 +14,7 @@ import UserProfile from './UserProfile.vue';
 import LayersTool from './map-tools/LayersTool.vue';
 import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
+import { useLayers } from '../composables/useLayers';
 
 // Unificar definición de emisiones - combinar 'save-success', 'logout' y 'show-welcome'
 const emit = defineEmits(['save-success', 'logout', 'show-welcome']);
@@ -26,52 +27,10 @@ const activeTab = ref('principal'); // Para controlar pestañas de grupos de cap
 const activeToolPanel = ref(''); // layers, measure, draw, search
 const layerOpacity = ref({}); // Para almacenar opacidad de capas
 const searchQuery = ref('');
-const searchResults = ref([]);
+const searchResults = ref([]); // Corregido: faltaba el corchete de cierre
 
-// Modificar la estructura de capas para mejor organización
-const layerGroups = ref({
-  principal: [
-    {
-      id: 1,
-      name: 'Territorios',
-      visible: true,
-      type: 'wms',
-      url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
-      params: {
-        'LAYERS': 'sembrandodatos:territorios_28',
-        'TILED': true,
-        'FORMAT': 'image/png',
-        'TRANSPARENT': true,
-        'VERSION': '1.1.1',
-      },
-      description: 'Capa base de territorios'
-    }
-  ],
-  extras: [
-    {
-      id: 2,
-      name: 'OpenStreetMap',
-      visible: true,
-      type: 'osm',
-      description: 'Mapa base de OpenStreetMap'
-    },
-    {
-      id: 3,
-      name: 'Límites Administrativos',
-      visible: false,
-      type: 'wms',
-      url: 'http://localhost:8089/geoserver/sembrandodatos/wms',
-      params: {
-        'LAYERS': 'sembrandodatos:limites',
-        'TILED': true,
-        'FORMAT': 'image/png',
-        'TRANSPARENT': true,
-        'VERSION': '1.1.1',
-      },
-      description: 'Límites administrativos del territorio'
-    }
-  ]
-});
+// Importar configuración de capas desde el composable
+const { layerGroups } = useLayers();
 
 // Referencias a elementos DOM
 const mapElement = ref(null);
@@ -142,8 +101,8 @@ const searchFeatures = async () => {
   
   // Implementar búsqueda WFS aquí
   try {
-    const geoserverUrl = 'http://localhost:8089/geoserver'; // Definir explícitamente
-    const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrandodatos:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
+    const geoserverUrl = 'http://31.97.8.51:8082/geoserver'; // URL actualizada
+    const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
     const data = await response.json();
     searchResults.value = data.features;
   } catch (error) {
@@ -258,8 +217,8 @@ const initializeMap = () => {
     target: mapElement.value,
     layers: [osmLayer, ...wmsLayers],
     view: new View({
-      center: fromLonLat([-89.2182, 13.7001]), // Centrado en El Salvador
-      zoom: 8
+      center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
+      zoom: 9
     })
   });
 

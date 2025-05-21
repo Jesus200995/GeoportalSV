@@ -55,9 +55,9 @@ const performSearch = async () => {
 
   try {
     // Búsqueda en GeoServer
-    const geoserverUrl = 'http://localhost:8089/geoserver';
+    const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
     const geoserverResponse = await fetch(
-      `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrandodatos:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
+      `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
     );
 
     if (!geoserverResponse.ok) {
