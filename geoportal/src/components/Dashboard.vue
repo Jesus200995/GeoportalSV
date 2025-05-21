@@ -197,31 +197,24 @@ const zoomToFeature = (feature) => {
 // Inicializar mapa cuando el componente se monte
 const initializeMap = () => {
   try {
-    console.log("Iniciando carga del mapa...");
-    
     // Crear capa base OSM
     const osmLayer = new TileLayer({
       source: new OSM(),
-      visible: layerGroups.value.extras.find(l => l.type === 'osm')?.visible || true, // Cambiar a true por defecto
+      visible: true, // Asegurarnos que al menos esta capa sea visible
       properties: {
         name: 'OpenStreetMap',
         group: 'extras'
       }
     });
 
-    console.log("Capa OSM creada correctamente");
-
-    // Crear capas WMS con manejo de errores
-    const wmsLayers = [];
-    
+    // Crear capas WMS de forma más defensiva
+    let wmsLayers = [];
     try {
-      [...layerGroups.value.principal, ...layerGroups.value.extras]
+      wmsLayers = [...layerGroups.value.principal, ...layerGroups.value.extras]
         .filter(layer => layer.type === 'wms')
-        .forEach(layer => {
+        .map(layer => {
           try {
-            console.log(`Intentando cargar capa WMS: ${layer.name}`);
-            
-            const wmsLayer = new TileLayer({
+            return new TileLayer({
               source: new TileWMS({
                 url: layer.url,
                 params: layer.params,
@@ -233,24 +226,23 @@ const initializeMap = () => {
                 group: layerGroups.value.principal.includes(layer) ? 'principal' : 'extras'
               }
             });
-            
-            // Agregar evento para detectar errores de carga en la capa
-            const source = wmsLayer.getSource();
-            source.on('tileloaderror', (event) => {
-              console.error(`Error al cargar tile para capa ${layer.name}:`, event);
-            });
-            
-            wmsLayers.push(wmsLayer);
-            console.log(`Capa WMS ${layer.name} creada correctamente`);
-          } catch (layerError) {
-            console.error(`Error al crear la capa WMS ${layer.name}:`, layerError);
+          } catch (error) {
+            console.error(`Error creando la capa WMS ${layer.name}:`, error);
+            return null;
           }
-        });
-    } catch (wmsError) {
-      console.error("Error al procesar capas WMS:", wmsError);
+        })
+        .filter(layer => layer !== null); // Eliminar capas que fallaron
+    } catch (error) {
+      console.error("Error al crear capas WMS:", error);
+      // Continuar con un array vacío de capas WMS si falla
+      wmsLayers = [];
     }
 
-    console.log(`Creando mapa con ${wmsLayers.length} capas WMS`);
+    // Verificar que el elemento del mapa existe
+    if (!mapElement.value) {
+      console.error("El elemento del mapa no existe");
+      return;
+    }
 
     // Crear mapa con todas las capas
     map.value = new Map({
@@ -259,11 +251,8 @@ const initializeMap = () => {
       view: new View({
         center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
         zoom: 9
-      }),
-      controls: []  // Iniciar sin controles por defecto
+      })
     });
-
-    console.log("Mapa creado correctamente");
 
     // Inicializar opacidades
     map.value.getLayers().forEach(layer => {
@@ -274,16 +263,10 @@ const initializeMap = () => {
     // Agregar event listener para capturar clics en el mapa
     map.value.on('singleclick', handleMapClick);
     
-    // Verificar si el mapa se ha cargado correctamente
-    if (map.value && map.value.getTargetElement()) {
-      console.log("Mapa inicializado y listo");
-      loading.value = false;
-    } else {
-      throw new Error("No se pudo inicializar el mapa correctamente");
-    }
+    console.log("Mapa inicializado correctamente");
   } catch (error) {
-    console.error("Error al inicializar el mapa:", error);
-    loading.value = false; // Detener la carga incluso si hay error
+    console.error("Error durante la inicialización del mapa:", error);
+    throw error; // Re-lanzar para manejar en el onMounted
   }
 };
 
@@ -411,17 +394,6 @@ const hayDatosTerritorio = computed(() => {
   return territorioDetalles.value !== null;
 });
 
-// Limpiar recursos cuando el componente se desmonte
-onBeforeUnmount(() => {
-  if (map.value) {
-    map.value.setTarget(undefined);
-    map.value = null;
-  }
-  
-  // Eliminar el event listener
-  window.removeEventListener('resize', updateWindowWidth);
-});
-
 // Añadir referencia reactiva para el ancho de la ventana
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 0);
 
@@ -429,6 +401,52 @@ const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 0);
 const updateWindowWidth = () => {
   windowWidth.value = window.innerWidth;
 };
+
+onMounted(() => {
+  // Simular tiempo de carga
+  loading.value = true;
+  setTimeout(() => {
+    try {
+      initializeMap();
+      // Añadir el event listener para cambios de tamaño
+      window.addEventListener('resize', updateWindowWidth);
+      // Asegurarnos de tener el ancho correcto al inicio
+      updateWindowWidth();
+      loading.value = false;
+    } catch (error) {
+      console.error("Error inicializando el mapa:", error);
+      // Asegurarse de quitar la pantalla de carga incluso si hay un error
+      loading.value = false;
+    }
+  }, 1000);
+});
+
+// Limpiar recursos cuando el componente se desmonte
+onBeforeUnmount(() => {
+  if (map.value) {
+    try {
+      // Remover listeners antes de destruir el mapa
+      if (map.value.getTargetElement()) {
+        const listeners = map.value.getTargetElement().listeners;
+        if (listeners) {
+          Object.keys(listeners).forEach(type => {
+            listeners[type].forEach(listener => {
+              map.value.getTargetElement().removeEventListener(type, listener);
+            });
+          });
+        }
+      }
+      
+      map.value.setTarget(undefined);
+      map.value = null;
+    } catch (error) {
+      console.error("Error al desmontar el mapa:", error);
+    }
+  }
+  
+  // Eliminar el event listener
+  window.removeEventListener('resize', updateWindowWidth);
+});
 
 // Agregar funcionalidad de zoom
 const zoomIn = () => {
@@ -530,37 +548,6 @@ const confirmLogout = () => {
   emit('logout');
   router.push('/login');
 };
-
-onMounted(() => {
-  // Simular tiempo de carga
-  loading.value = true;
-  
-  // Añadir un temporizador de seguridad para evitar quedarse en "cargando" indefinidamente
-  const loadingTimeout = setTimeout(() => {
-    if (loading.value) {
-      console.warn("Tiempo de carga excedido, forzando finalización de carga");
-      loading.value = false;
-    }
-  }, 10000); // 10 segundos como máximo
-  
-  try {
-    setTimeout(() => {
-      initializeMap();
-      // Una vez que el mapa esté inicializado correctamente, detenemos el temporizador de seguridad
-      clearTimeout(loadingTimeout);
-    }, 1000);
-  } catch (error) {
-    console.error("Error en montaje del componente:", error);
-    loading.value = false;
-    clearTimeout(loadingTimeout);
-  }
-  
-  // Añadir el event listener para cambios de tamaño
-  window.addEventListener('resize', updateWindowWidth);
-  
-  // Asegurarnos de tener el ancho correcto al inicio
-  updateWindowWidth();
-});
 </script>
 
 <template>
@@ -774,46 +761,6 @@ onMounted(() => {
                       </div>
                     </li>
                   </ul>
-                </div>
-              </div>
-
-              <!-- Contenido minimalista cuando la sidebar está colapsada -->
-              <div v-else class="py-4">
-                <div class="flex flex-col items-center space-y-8">
-                  <button v-for="tool in mapTools" 
-                          :key="tool.id"
-                          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; sidebarOpen = true;"
-                          class="p-2 rounded-lg hover:bg-green-50 transition-all duration-300 relative group"
-                          :class="{'bg-green-100': activeToolPanel === tool.id}">
-                    <!-- Tooltip para mostrar el nombre de la herramienta -->
-                    <div class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
-                      {{ tool.name }}
-                      <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
-                    </div>
-
-                    <!-- Icono para capas -->
-                    <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-                    </svg>
-                    
-                    <!-- Icono para medición -->
-                    <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    
-                    <!-- Icono para dibujo -->
-                    <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
-                    </svg>
-                    
-                    <!-- Icono para búsqueda -->
-                    <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                    
-                    <!-- Indicador de herramienta activa -->
-                    <span v-if="activeToolPanel === tool.id" class="absolute -right-1 top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  </button>
                 </div>
               </div>
 

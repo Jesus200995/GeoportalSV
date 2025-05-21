@@ -17,16 +17,8 @@ const loadSavedMaps = () => {
 
 // Abrir mapa
 const openMap = (map) => {
-  try {
-    console.log("Abriendo mapa:", map);
-    showWelcome.value = false;
-    // Implementar lógica para cargar el mapa seleccionado
-  } catch (error) {
-    console.error("Error al abrir el mapa:", error);
-    // En caso de error, volver a la pantalla de bienvenida
-    showWelcome.value = true;
-    showNotification('Error al cargar el mapa', 'error');
-  }
+  showWelcome.value = false;
+  // Implementar lógica para cargar el mapa seleccionado
 };
 
 // Eliminar mapa
