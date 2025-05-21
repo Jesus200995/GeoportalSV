@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRouter } from 'vue-router'; 
 import 'ol/ol.css';
 import Map from 'ol/Map';
@@ -27,7 +27,17 @@ const activeTab = ref('principal'); // Para controlar pestañas de grupos de cap
 const activeToolPanel = ref(''); // layers, measure, draw, search
 const layerOpacity = ref({}); // Para almacenar opacidad de capas
 const searchQuery = ref('');
-const searchResults = ref([]); // Corregido: faltaba el corchete de cierre
+const searchResults = ref([]);
+
+// Estado para el panel de detalles del territorio
+const territorioSeleccionado = ref(null);
+const territorioDetalles = ref(null);
+const detailsPanelOpen = ref(false);
+const loadingDetails = ref(false);
+const errorDetails = ref(null);
+
+// Estado para el modal de cierre de sesión
+const logoutModal = ref(false);
 
 // Importar configuración de capas desde el composable
 const { layerGroups } = useLayers();
@@ -186,62 +196,219 @@ const zoomToFeature = (feature) => {
 
 // Inicializar mapa cuando el componente se monte
 const initializeMap = () => {
-  // Crear capa base OSM
-  const osmLayer = new TileLayer({
-    source: new OSM(),
-    visible: layerGroups.value.extras.find(l => l.type === 'osm')?.visible || false,
-    properties: {
-      name: 'OpenStreetMap',
-      group: 'extras'
-    }
-  });
-
-  // Crear capas WMS
-  const wmsLayers = [...layerGroups.value.principal, ...layerGroups.value.extras]
-    .filter(layer => layer.type === 'wms')
-    .map(layer => new TileLayer({
-      source: new TileWMS({
-        url: layer.url,
-        params: layer.params,
-        serverType: 'geoserver',
-      }),
-      visible: layer.visible,
+  try {
+    console.log("Iniciando carga del mapa...");
+    
+    // Crear capa base OSM
+    const osmLayer = new TileLayer({
+      source: new OSM(),
+      visible: layerGroups.value.extras.find(l => l.type === 'osm')?.visible || true, // Cambiar a true por defecto
       properties: {
-        name: layer.name,
-        group: layerGroups.value.principal.includes(layer) ? 'principal' : 'extras'
+        name: 'OpenStreetMap',
+        group: 'extras'
       }
-    }));
+    });
 
-  // Crear mapa con todas las capas
-  map.value = new Map({
-    target: mapElement.value,
-    layers: [osmLayer, ...wmsLayers],
-    view: new View({
-      center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
-      zoom: 9
-    })
-  });
+    console.log("Capa OSM creada correctamente");
 
-  // Inicializar opacidades
-  map.value.getLayers().forEach(layer => {
-    const name = layer.get('name');
-    layerOpacity.value[name] = layer.getOpacity();
-  });
+    // Crear capas WMS con manejo de errores
+    const wmsLayers = [];
+    
+    try {
+      [...layerGroups.value.principal, ...layerGroups.value.extras]
+        .filter(layer => layer.type === 'wms')
+        .forEach(layer => {
+          try {
+            console.log(`Intentando cargar capa WMS: ${layer.name}`);
+            
+            const wmsLayer = new TileLayer({
+              source: new TileWMS({
+                url: layer.url,
+                params: layer.params,
+                serverType: 'geoserver',
+              }),
+              visible: layer.visible,
+              properties: {
+                name: layer.name,
+                group: layerGroups.value.principal.includes(layer) ? 'principal' : 'extras'
+              }
+            });
+            
+            // Agregar evento para detectar errores de carga en la capa
+            const source = wmsLayer.getSource();
+            source.on('tileloaderror', (event) => {
+              console.error(`Error al cargar tile para capa ${layer.name}:`, event);
+            });
+            
+            wmsLayers.push(wmsLayer);
+            console.log(`Capa WMS ${layer.name} creada correctamente`);
+          } catch (layerError) {
+            console.error(`Error al crear la capa WMS ${layer.name}:`, layerError);
+          }
+        });
+    } catch (wmsError) {
+      console.error("Error al procesar capas WMS:", wmsError);
+    }
+
+    console.log(`Creando mapa con ${wmsLayers.length} capas WMS`);
+
+    // Crear mapa con todas las capas
+    map.value = new Map({
+      target: mapElement.value,
+      layers: [osmLayer, ...wmsLayers],
+      view: new View({
+        center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
+        zoom: 9
+      }),
+      controls: []  // Iniciar sin controles por defecto
+    });
+
+    console.log("Mapa creado correctamente");
+
+    // Inicializar opacidades
+    map.value.getLayers().forEach(layer => {
+      const name = layer.get('name');
+      layerOpacity.value[name] = layer.getOpacity();
+    });
+
+    // Agregar event listener para capturar clics en el mapa
+    map.value.on('singleclick', handleMapClick);
+    
+    // Verificar si el mapa se ha cargado correctamente
+    if (map.value && map.value.getTargetElement()) {
+      console.log("Mapa inicializado y listo");
+      loading.value = false;
+    } else {
+      throw new Error("No se pudo inicializar el mapa correctamente");
+    }
+  } catch (error) {
+    console.error("Error al inicializar el mapa:", error);
+    loading.value = false; // Detener la carga incluso si hay error
+  }
 };
 
-onMounted(() => {
-  // Simular tiempo de carga
-  loading.value = true;
-  setTimeout(() => {
-    initializeMap();
-    loading.value = false;
-  }, 1000);
+// Función para manejar clics en el mapa y obtener información de la característica
+const handleMapClick = async (event) => {
+  // Limpiar estado previo
+  errorDetails.value = null;
   
-  // Añadir el event listener para cambios de tamaño
-  window.addEventListener('resize', updateWindowWidth);
+  const viewResolution = map.value.getView().getResolution();
+  const projection = map.value.getView().getProjection().getCode();
   
-  // Asegurarnos de tener el ancho correcto al inicio
-  updateWindowWidth();
+  // Buscar la capa de territorios
+  const territoriosLayer = map.value.getLayers().getArray().find(layer => {
+    const source = layer.getSource();
+    return source && 
+           source.getParams && 
+           source.getParams().LAYERS === 'sembrando:territorios_28';
+  });
+  
+  if (!territoriosLayer) {
+    console.error('Capa de territorios no encontrada');
+    return;
+  }
+  
+  const source = territoriosLayer.getSource();
+  
+  // Obtener URL para GetFeatureInfo
+  const url = source.getFeatureInfoUrl(
+    event.coordinate,
+    viewResolution,
+    projection,
+    {
+      'INFO_FORMAT': 'application/json',
+      'FEATURE_COUNT': 1,
+      'QUERY_LAYERS': 'sembrando:territorios_28'
+    }
+  );
+  
+  if (url) {
+    try {
+      // Mostrar loading
+      loadingDetails.value = true;
+      
+      // Realizar consulta GetFeatureInfo
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      // Verificar si hay características encontradas
+      if (data.features && data.features.length > 0) {
+        // Obtener el identificador del territorio
+        const feature = data.features[0];
+        const fid = feature.id.split('.')[1]; // Extraer el ID numérico de 'territorios_28.3'
+        
+        // Establecer territorio seleccionado básico
+        territorioSeleccionado.value = {
+          fid,
+          nombre: feature.properties.nombre_territorio || 'Territorio sin nombre',
+          ...feature.properties
+        };
+        
+        // Obtener detalles completos desde el backend
+        await obtenerDetallesTerritorio(fid);
+        
+        // Abrir el panel de detalles
+        detailsPanelOpen.value = true;
+      } else {
+        // No se encontró ningún territorio en la ubicación del clic
+        territorioSeleccionado.value = null;
+        territorioDetalles.value = null;
+        detailsPanelOpen.value = false;
+      }
+    } catch (error) {
+      console.error('Error al obtener información del territorio:', error);
+      errorDetails.value = 'No se pudo obtener información del territorio.';
+    } finally {
+      loadingDetails.value = false;
+    }
+  }
+};
+
+// Función para obtener detalles completos del territorio desde el backend
+const obtenerDetallesTerritorio = async (fid) => {
+  try {
+    // En un entorno real, esta sería la URL de tu backend
+    // const response = await fetch(`/api/territorio/${fid}`);
+    
+    // Como no tenemos un backend real, simulamos la respuesta
+    // En una implementación real, descomentar la línea anterior y eliminar este retardo simulado
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    // Datos simulados para el ejemplo
+    const mockResponse = {
+      fid: parseInt(fid),
+      clave_mun: territorioSeleccionado.value.clave_mun || 12007,
+      nombre_territorio: territorioSeleccionado.value.nombre_territorio || 'Territorio de prueba',
+      n_cultivos: Math.floor(Math.random() * 15) + 1,
+      superficie_ha: Math.floor(Math.random() * 5000) + 100,
+      poblacion: Math.floor(Math.random() * 50000) + 1000,
+      altitud_m: Math.floor(Math.random() * 2500) + 100,
+      precipitacion_mm: Math.floor(Math.random() * 1500) + 300,
+      temperatura_c: (15 + Math.random() * 10).toFixed(1),
+      cultivo_principal: ['Maíz', 'Frijol', 'Café', 'Caña', 'Aguacate'][Math.floor(Math.random() * 5)]
+    };
+    
+    // En una implementación real se usaría:
+    // const data = await response.json();
+    // territorioDetalles.value = data;
+    
+    territorioDetalles.value = mockResponse;
+  } catch (error) {
+    console.error('Error al obtener detalles del territorio:', error);
+    errorDetails.value = 'No se pudieron cargar los detalles completos del territorio.';
+  }
+};
+
+// Función para cerrar el panel de detalles
+const cerrarPanelDetalles = () => {
+  detailsPanelOpen.value = false;
+  territorioSeleccionado.value = null;
+  territorioDetalles.value = null;
+};
+
+// Computed para verificar si hay datos disponibles
+const hayDatosTerritorio = computed(() => {
+  return territorioDetalles.value !== null;
 });
 
 // Limpiar recursos cuando el componente se desmonte
@@ -363,6 +530,37 @@ const confirmLogout = () => {
   emit('logout');
   router.push('/login');
 };
+
+onMounted(() => {
+  // Simular tiempo de carga
+  loading.value = true;
+  
+  // Añadir un temporizador de seguridad para evitar quedarse en "cargando" indefinidamente
+  const loadingTimeout = setTimeout(() => {
+    if (loading.value) {
+      console.warn("Tiempo de carga excedido, forzando finalización de carga");
+      loading.value = false;
+    }
+  }, 10000); // 10 segundos como máximo
+  
+  try {
+    setTimeout(() => {
+      initializeMap();
+      // Una vez que el mapa esté inicializado correctamente, detenemos el temporizador de seguridad
+      clearTimeout(loadingTimeout);
+    }, 1000);
+  } catch (error) {
+    console.error("Error en montaje del componente:", error);
+    loading.value = false;
+    clearTimeout(loadingTimeout);
+  }
+  
+  // Añadir el event listener para cambios de tamaño
+  window.addEventListener('resize', updateWindowWidth);
+  
+  // Asegurarnos de tener el ancho correcto al inicio
+  updateWindowWidth();
+});
 </script>
 
 <template>
@@ -618,6 +816,46 @@ const confirmLogout = () => {
                   </button>
                 </div>
               </div>
+
+              <!-- Contenido minimalista cuando la sidebar está colapsada -->
+              <div v-else class="py-4">
+                <div class="flex flex-col items-center space-y-8">
+                  <button v-for="tool in mapTools" 
+                          :key="tool.id"
+                          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; sidebarOpen = true;"
+                          class="p-2 rounded-lg hover:bg-green-50 transition-all duration-300 relative group"
+                          :class="{'bg-green-100': activeToolPanel === tool.id}">
+                    <!-- Tooltip para mostrar el nombre de la herramienta -->
+                    <div class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                      {{ tool.name }}
+                      <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
+                    </div>
+
+                    <!-- Icono para capas -->
+                    <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                    </svg>
+                    
+                    <!-- Icono para medición -->
+                    <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    
+                    <!-- Icono para dibujo -->
+                    <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
+                    </svg>
+                    
+                    <!-- Icono para búsqueda -->
+                    <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    
+                    <!-- Indicador de herramienta activa -->
+                    <span v-if="activeToolPanel === tool.id" class="absolute -right-1 top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                  </button>
+                </div>
+              </div>
             </div>
           </transition>
         </div>
@@ -721,117 +959,264 @@ const confirmLogout = () => {
         </div>
       </div>
 
-      <!-- Atribución en la parte inferior -->
-      <div class="absolute left-0 right-0 bottom-0 bg-white bg-opacity-90 text-xs py-1 px-3 text-gray-600 text-center z-10">
-        <p>© 2023 Sembrando Datos - Geoportal de visualización territorial</p>
-      </div>
-    </div>
-
-    <!-- Modal para guardar mapa -->
-    <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-96">
-        <h3 class="text-lg font-semibold text-green-800 mb-4">Guardar Mapa</h3>
-        <input 
-          v-model="newMapName"
-          type="text"
-          placeholder="Nombre del mapa"
-          class="w-full px-3 py-2 border rounded-lg mb-4"
-        />
-        <div class="flex justify-end space-x-3">
-          <button 
-            @click="showSaveDialog = false"
-            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            Cancelar
-          </button>
-          <button 
-            @click="saveMap"
-            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            Guardar
-          </button>
+      <!-- Panel de detalles del territorio seleccionado -->
+      <Transition name="slide-right">
+        <div v-if="detailsPanelOpen" 
+             class="absolute top-20 right-0 bottom-8 w-80 sm:w-96 bg-white shadow-lg rounded-l-xl z-30 overflow-hidden flex flex-col">
+          <!-- Encabezado del panel -->
+          <div class="p-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white flex items-center justify-between">
+            <h2 class="font-medium truncate">
+              {{ territorioSeleccionado?.nombre || 'Territorio' }}
+            </h2>
+            <button @click="cerrarPanelDetalles" 
+                    class="p-1 hover:bg-white/20 rounded-full transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Contenido del panel -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <!-- Estado de carga -->
+            <div v-if="loadingDetails" class="flex flex-col items-center justify-center h-full">
+              <div class="w-10 h-10 border-2 border-t-green-500 border-green-200 rounded-full animate-spin mb-3"></div>
+              <p class="text-gray-500 text-sm">Cargando información...</p>
+            </div>
+            
+            <!-- Mensaje de error -->
+            <div v-else-if="errorDetails" class="bg-red-50 p-4 rounded-lg text-red-600 my-4">
+              <p class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ errorDetails }}
+              </p>
+            </div>
+            
+            <!-- Detalles del territorio -->
+            <div v-else-if="hayDatosTerritorio" class="space-y-6">
+              <!-- ID y clave -->
+              <div class="flex justify-between bg-gray-50 p-3 rounded-lg">
+                <div class="text-center">
+                  <span class="text-xs text-gray-500 block">ID</span>
+                  <span class="font-medium text-gray-800">{{ territorioDetalles.fid }}</span>
+                </div>
+                <div class="text-center">
+                  <span class="text-xs text-gray-500 block">Clave Municipal</span>
+                  <span class="font-medium text-gray-800">{{ territorioDetalles.clave_mun }}</span>
+                </div>
+              </div>
+              
+              <!-- Nombre del territorio -->
+              <div class="bg-green-50 p-4 rounded-lg">
+                <h3 class="text-lg font-medium text-green-800">
+                  {{ territorioDetalles.nombre_territorio }}
+                </h3>
+              </div>
+              
+              <!-- Datos generales -->
+              <div class="space-y-3">
+                <h4 class="text-sm font-medium text-gray-600 border-b pb-1">Datos generales</h4>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <!-- Número de cultivos -->
+                  <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                    <div class="flex items-center space-x-2">
+                      <div class="p-1.5 bg-green-100 rounded-full">
+                        <svg class="w-4 h-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span class="text-xs text-gray-500 block">Cultivos</span>
+                        <span class="font-medium text-gray-800">{{ territorioDetalles.n_cultivos }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Superficie -->
+                  <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                    <div class="flex items-center space-x-2">
+                      <div class="p-1.5 bg-blue-100 rounded-full">
+                        <svg class="w-4 h-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span class="text-xs text-gray-500 block">Superficie</span>
+                        <span class="font-medium text-gray-800">{{ territorioDetalles.superficie_ha }} ha</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Datos demográficos y geográficos -->
+                <div class="space-y-2">
+                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
+                    <span class="text-sm text-gray-600">Población:</span>
+                    <span class="text-sm font-medium">{{ territorioDetalles.poblacion?.toLocaleString() }}</span>
+                  </div>
+                  
+                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
+                    <span class="text-sm text-gray-600">Altitud:</span>
+                    <span class="text-sm font-medium">{{ territorioDetalles.altitud_m }} msnm</span>
+                  </div>
+                  
+                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
+                    <span class="text-sm text-gray-600">Precipitación anual:</span>
+                    <span class="text-sm font-medium">{{ territorioDetalles.precipitacion_mm }} mm</span>
+                  </div>
+                  
+                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
+                    <span class="text-sm text-gray-600">Temperatura media:</span>
+                    <span class="text-sm font-medium">{{ territorioDetalles.temperatura_c }}°C</span>
+                  </div>
+                  
+                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
+                    <span class="text-sm text-gray-600">Cultivo principal:</span>
+                    <span class="text-sm font-medium">{{ territorioDetalles.cultivo_principal }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Acciones -->
+              <div class="flex space-x-2">
+                <button class="flex-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium">
+                  Ver reporte completo
+                </button>
+                <button class="flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium">
+                  Descargar datos
+                </button>
+              </div>
+            </div>
+            
+            <!-- Caso sin datos -->
+            <div v-else class="flex flex-col items-center justify-center h-full">
+              <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-gray-500 text-center">No hay información disponible para este territorio</p>
+            </div>
+          </div>
+          
+          <!-- Pie del panel -->
+          <div class="p-3 bg-gray-50 text-center text-xs text-gray-500">
+            Última actualización: {{ new Date().toLocaleDateString() }}
+          </div>
         </div>
-      </div>
-    </div>
+      </Transition>
 
-    <!-- Modal elegante para confirmar salida -->
-    <Transition name="modal-fade">
-      <div v-if="showExitModal" 
-           class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-           @click.self="showExitModal = false">
-        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
-                    scale-100 opacity-100 shadow-xl animate-modal-in">
-          <div class="text-center">
-            <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
-              <span class="text-5xl">🏠</span>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-4">
-              ¿Volver al inicio?
-            </h3>
-            <p class="text-gray-600 mb-8">
-              ¿Estás seguro de que deseas salir del mapa actual? Los cambios no guardados se perderán.
-            </p>
-            <div class="flex space-x-3 justify-center">
-              <button 
-                @click="showExitModal = false"
-                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
-                       rounded-lg transition-colors duration-300"
-              >
-                Cancelar
-              </button>
-              <button 
-                @click="confirmExit"
-                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
-                       rounded-lg transition-colors duration-300 flex items-center space-x-2
-                       transform hover:scale-105 active:scale-100"
-              >
-                <span>Volver al inicio</span>
-                <span class="text-xl transition-transform transform group-hover:translate-x-1">→</span>
-              </button>
-            </div>
+      <!-- Modal para guardar mapa -->
+      <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96">
+          <h3 class="text-lg font-semibold text-green-800 mb-4">Guardar Mapa</h3>
+          <input 
+            v-model="newMapName"
+            type="text"
+            placeholder="Nombre del mapa"
+            class="w-full px-3 py-2 border rounded-lg mb-4"
+          />
+          <div class="flex justify-end space-x-3">
+            <button 
+              @click="showSaveDialog = false"
+              class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button 
+              @click="saveMap"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            >
+              Guardar
+            </button>
           </div>
         </div>
       </div>
-    </Transition>
 
-    <!-- Modal de cierre de sesión -->
-    <Transition name="modal-fade">
-      <div v-if="logoutModal" 
-           class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-           @click.self="logoutModal = false">
-        <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
-                    scale-100 opacity-100 shadow-xl">
-          <div class="text-center">
-            <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
-              <span class="text-5xl">🚪</span>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-4">
-              Cerrar sesión
-            </h3>
-            <p class="text-gray-600 mb-8">
-              ¿Estás seguro de que deseas cerrar sesión? Los cambios no guardados se perderán.
-            </p>
-            <div class="flex space-x-3 justify-center">
-              <button 
-                @click="logoutModal = false"
-                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
-                       rounded-lg transition-colors duration-300"
-              >
-                Cancelar
-              </button>
-              <button 
-                @click="confirmLogout"
-                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white 
-                       rounded-lg transition-colors duration-300 flex items-center space-x-2"
-              >
-                <span>Cerrar sesión</span>
-                <span class="text-xl">→</span>
-              </button>
+      <!-- Modal elegante para confirmar salida -->
+      <Transition name="modal-fade">
+        <div v-if="showExitModal" 
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+             @click.self="showExitModal = false">
+          <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
+                      scale-100 opacity-100 shadow-xl animate-modal-in">
+            <div class="text-center">
+              <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
+                <span class="text-5xl">🏠</span>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-4">
+                ¿Volver al inicio?
+              </h3>
+              <p class="text-gray-600 mb-8">
+                ¿Estás seguro de que deseas salir del mapa actual? Los cambios no guardados se perderán.
+              </p>
+              <div class="flex space-x-3 justify-center">
+                <button 
+                  @click="showExitModal = false"
+                  class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
+                         rounded-lg transition-colors duration-300"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  @click="confirmExit"
+                  class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white 
+                         rounded-lg transition-colors duration-300 flex items-center space-x-2
+                         transform hover:scale-105 active:scale-100"
+                >
+                  <span>Volver al inicio</span>
+                  <span class="text-xl transition-transform transform group-hover:translate-x-1">→</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+
+      <!-- Modal de cierre de sesión -->
+      <Transition name="modal-fade">
+        <div v-if="logoutModal" 
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+             @click.self="logoutModal = false">
+          <div class="bg-white rounded-2xl p-6 w-[90%] max-w-md transform transition-all duration-300
+                      scale-100 opacity-100 shadow-xl">
+            <div class="text-center">
+              <div class="mb-4 transform transition-all duration-500 hover:rotate-12">
+                <span class="text-5xl">🚪</span>
+              </div>
+              <h3 class="text-xl font-bold text-gray-900 mb-4">
+                Cerrar sesión
+              </h3>
+              <p class="text-gray-600 mb-8">
+                ¿Estás seguro de que deseas cerrar sesión? Los cambios no guardados se perderán.
+              </p>
+              <div class="flex space-x-3 justify-center">
+                <button 
+                  @click="logoutModal = false"
+                  class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 
+                         rounded-lg transition-colors duration-300"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  @click="confirmLogout"
+                  class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white 
+                         rounded-lg transition-colors duration-300 flex items-center space-x-2"
+                >
+                  <span>Cerrar sesión</span>
+                  <span class="text-xl">→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
 
@@ -1199,5 +1584,21 @@ input:checked + .toggle-label::after {
 
 .scrollbar-thumb-green-500::-webkit-scrollbar-thumb {
   background-color: #10b981;
+}
+
+/* Animaciones para el panel lateral */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.3s ease-out;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  transform: translateX(100%);
+}
+
+.slide-right-enter-to,
+.slide-right-leave-from {
+  transform: translateX(0);
 }
 </style>

@@ -15,7 +15,7 @@ export function useLayers() {
           'TILED': true,
           'FORMAT': 'image/png',
           'TRANSPARENT': true,
-          'VERSION': '1.1.1',
+          'VERSION': '1.3.0', // Cambiado de 1.1.1 a 1.3.0 por compatibilidad
         },
         description: 'Capa base de territorios'
       }
@@ -24,7 +24,7 @@ export function useLayers() {
       {
         id: 2,
         name: 'OpenStreetMap',
-        visible: true,
+        visible: true, // Asegurarse que esté visible por defecto
         type: 'osm',
         description: 'Mapa base de OpenStreetMap'
       },
@@ -39,7 +39,7 @@ export function useLayers() {
           'TILED': true,
           'FORMAT': 'image/png',
           'TRANSPARENT': true,
-          'VERSION': '1.1.1',
+          'VERSION': '1.3.0', // Cambiado de 1.1.1 a 1.3.0
         },
         description: 'Límites administrativos del territorio'
       }
