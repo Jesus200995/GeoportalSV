@@ -10,12 +10,15 @@ export function useLayers() {
         id: 0,
         name: 'Territorios',
         description: 'Capa de territorios sembrando datos',
-        visible: true,
+        visible: false, // Por defecto apagado para que se controle desde el gestor de capas
         type: 'wms',
-        url: geoserverUrl + '/wms',
+        url: geoserverUrl + '/sembrando/wms',
         params: {
           'LAYERS': 'sembrando:territorios_28',
-          'TILED': true
+          'TILED': true,
+          'FORMAT': 'image/png',
+          'TRANSPARENT': true,
+          'VERSION': '1.1.1'
         }
       },
       {
@@ -24,10 +27,13 @@ export function useLayers() {
         description: 'Unidades de riego en México',
         visible: false,
         type: 'wms',
-        url: geoserverUrl + '/wms',
+        url: geoserverUrl + '/sembrando/wms',
         params: {
           'LAYERS': 'sembrando:unidades_riego',
-          'TILED': true
+          'TILED': true,
+          'FORMAT': 'image/png',
+          'TRANSPARENT': true,
+          'VERSION': '1.1.1'
         }
       },
     ],
@@ -38,10 +44,13 @@ export function useLayers() {
         description: 'Límites municipales',
         visible: false,
         type: 'wms',
-        url: geoserverUrl + '/wms',
+        url: geoserverUrl + '/sembrando/wms',
         params: {
           'LAYERS': 'sembrando:municipios_hidalgo',
-          'TILED': true
+          'TILED': true,
+          'FORMAT': 'image/png',
+          'TRANSPARENT': true,
+          'VERSION': '1.1.1'
         }
       },
       {
@@ -50,18 +59,59 @@ export function useLayers() {
         description: 'Red hidrológica principal',
         visible: false,
         type: 'wms',
-        url: geoserverUrl + '/wms',
+        url: geoserverUrl + '/sembrando/wms',
         params: {
           'LAYERS': 'sembrando:rios',
-          'TILED': true
+          'TILED': true,
+          'FORMAT': 'image/png',
+          'TRANSPARENT': true,
+          'VERSION': '1.1.1'
         }
       },
     ],
-    // Nuevo grupo para capas dinámicas añadidas desde el explorador de capas
+    // Grupo para capas dinámicas añadidas desde el explorador de capas
     dinamicas: []
   });
 
+  // Función para añadir una capa dinámica basada en datos de GeoServer
+  const addDynamicLayer = (layer) => {
+    // Evitar duplicados
+    if (layerGroups.value.dinamicas.some(l => l.name === layer.name)) {
+      return;
+    }
+    
+    const newLayer = {
+      id: `dynamic-${Date.now()}`,
+      name: layer.name,
+      title: layer.title || layer.name,
+      description: layer.abstract || 'Capa dinámica de GeoServer',
+      visible: true,
+      type: 'wms',
+      url: layer.wmsUrl || `${geoserverUrl}/sembrando/wms`,
+      params: {
+        'LAYERS': layer.fullName || `sembrando:${layer.name}`,
+        'TILED': true,
+        'FORMAT': 'image/png', 
+        'TRANSPARENT': true,
+        'VERSION': '1.1.1'
+      },
+      legendUrl: layer.legendUrl
+    };
+    
+    layerGroups.value.dinamicas.push(newLayer);
+    return newLayer;
+  };
+
+  // Función para eliminar una capa dinámica
+  const removeDynamicLayer = (layerName) => {
+    layerGroups.value.dinamicas = layerGroups.value.dinamicas.filter(
+      layer => layer.name !== layerName
+    );
+  };
+
   return {
-    layerGroups
+    layerGroups,
+    addDynamicLayer,
+    removeDynamicLayer
   };
 }

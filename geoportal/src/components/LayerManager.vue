@@ -65,6 +65,7 @@ const fetchLayers = async () => {
   
   try {
     layers.value = await getAvailableLayers();
+    console.log('Capas obtenidas de GeoServer:', layers.value);
   } catch (err) {
     console.error('Error al obtener capas:', err);
     error.value = 'No se pudieron cargar las capas de GeoServer.';
@@ -98,37 +99,47 @@ const toggleLayer = (layer) => {
 
 // Añadir la capa al mapa
 const addLayerToMap = (layer) => {
+  if (!props.map || !layer) {
+    console.error('No se puede añadir capa: Mapa o capa no definidos');
+    return;
+  }
+  
   // Si la capa ya existe en el mapa, solo hacerla visible
   if (olLayers.value[layer.name]) {
+    console.log(`Haciendo visible la capa existente: ${layer.name}`);
     olLayers.value[layer.name].setVisible(true);
     return;
   }
   
+  console.log(`Añadiendo nueva capa al mapa: ${layer.name}`, layer);
+  
   // Crear la fuente WMS
   const wmsSource = new TileWMS({
-    url: layer.wmsUrl,
+    url: layer.wmsUrl || 'http://31.97.8.51:8082/geoserver/sembrando/wms',
     params: {
-      'LAYERS': layer.fullName,
+      'LAYERS': layer.fullName || `sembrando:${layer.name}`,
       'TILED': true,
       'FORMAT': 'image/png',
-      'TRANSPARENT': true
+      'TRANSPARENT': true,
+      'VERSION': '1.1.1'
     },
     serverType: 'geoserver',
-    transition: 250
+    transition: 250,
+    crossOrigin: 'anonymous'
   });
   
   // Crear la capa OpenLayers
   const wmsLayer = new TileLayer({
     source: wmsSource,
     properties: {
-      title: layer.title,
+      title: layer.title || layer.name,
       name: layer.name,
       id: layer.name,
       type: 'wms',
       group: 'dynamic'
     },
     visible: true,
-    zIndex: 5 // Asegurar que aparezca sobre la capa base pero debajo de otros elementos
+    zIndex: 10 // Asegurar que aparezca sobre la capa base pero debajo de otros elementos
   });
   
   // Añadir la capa al mapa
@@ -136,17 +147,25 @@ const addLayerToMap = (layer) => {
   
   // Guardar referencia a la capa
   olLayers.value[layer.name] = wmsLayer;
+  
+  console.log(`Capa ${layer.name} añadida al mapa correctamente`);
 };
 
 // Remover la capa del mapa (o hacerla invisible)
 const removeLayerFromMap = (layer) => {
+  if (!props.map || !layer) {
+    console.error('No se puede remover capa: Mapa o capa no definidos');
+    return;
+  }
+  
   if (olLayers.value[layer.name]) {
-    // Opción 1: Hacer la capa invisible pero mantenerla en el mapa
-    // olLayers.value[layer.name].setVisible(false);
+    console.log(`Removiendo capa del mapa: ${layer.name}`);
     
-    // Opción 2: Quitar la capa del mapa
+    // Remover completamente la capa del mapa
     props.map.removeLayer(olLayers.value[layer.name]);
     delete olLayers.value[layer.name];
+  } else {
+    console.warn(`Intento de remover capa no existente: ${layer.name}`);
   }
 };
 
@@ -154,6 +173,26 @@ const removeLayerFromMap = (layer) => {
 const refreshLayers = () => {
   fetchLayers();
 };
+
+// Observar cambios en el mapa - si el mapa cambia, actualizar las capas
+watch(() => props.map, (newMap) => {
+  if (newMap) {
+    console.log('El mapa cambió, actualizando capas...');
+    // Limpiar las capas existentes
+    Object.values(olLayers.value).forEach(layer => {
+      newMap.removeLayer(layer);
+    });
+    olLayers.value = {};
+    
+    // Volver a añadir las capas activas
+    activeLayers.value.forEach(layerName => {
+      const layer = layers.value.find(l => l.name === layerName);
+      if (layer) {
+        addLayerToMap(layer);
+      }
+    });
+  }
+}, { immediate: true });
 </script>
 
 <template>
@@ -252,8 +291,19 @@ const refreshLayers = () => {
             class="mx-auto max-h-32" 
             @error="$event.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23CCC\' d=\'M21.9,21.9l-8.9-8.9l-9,9H3v-1l9-9L3,3V2h1l9,9l8.9-8.9L21.9,21.9z M21.9,2H21l-9,9L3,2H2v1l9,9l-9,9v1h1l9-9l9,9h1L21.9,2z\'/%3E%3C/svg%3E';"
           />
+          <p v-if="isLayerActive(layer.name)" class="text-xs text-green-600 text-center mt-2">
+            ✅ Capa activa y visible en el mapa
+          </p>
         </div>
       </div>
+    </div>
+
+    <!-- Información de debug -->
+    <div class="mt-4 p-3 text-xs text-gray-500 bg-gray-50 rounded-lg">
+      <p>{{ activeLayers.length }} capa(s) activa(s)</p>
+      <p v-if="Object.keys(olLayers).length > 0">
+        Capas en el mapa: {{ Object.keys(olLayers).join(', ') }}
+      </p>
     </div>
   </div>
 </template>

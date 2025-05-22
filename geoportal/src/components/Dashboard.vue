@@ -2,8 +2,8 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRouter } from 'vue-router'; 
 import 'ol/ol.css';
-import Map from 'ol/Map';
-import View from 'ol/View';
+import { Map, View } from 'ol';
+import { defaults as defaultControls, ScaleLine, FullScreen, ZoomSlider } from 'ol/control';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import TileWMS from 'ol/source/TileWMS';
@@ -229,7 +229,8 @@ const initializeMap = () => {
       properties: {
         name: 'OpenStreetMap',
         group: 'base'
-      }
+      },
+      zIndex: 0  // Asegurar que esté en el fondo
     });
 
     // Verificar que el elemento del mapa existe
@@ -244,8 +245,16 @@ const initializeMap = () => {
       layers: [osmLayer],
       view: new View({
         center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
-        zoom: 9
-      })
+        zoom: 9,
+        projection: 'EPSG:3857' // Usar Web Mercator como estándar
+      }),
+      controls: defaultControls({
+        attributionOptions: { collapsible: false }
+      }).extend([
+        new ScaleLine(),
+        new FullScreen(),
+        new ZoomSlider()
+      ])
     });
 
     // Inicializar opacidades
@@ -1001,46 +1010,6 @@ const formatearFecha = (fechaStr) => {
                   </button>
                 </div>
               </div>
-
-              <!-- Contenido minimalista cuando la sidebar está colapsada -->
-              <div v-else class="py-4">
-                <div class="flex flex-col items-center space-y-8">
-                  <button v-for="tool in mapTools" 
-                          :key="tool.id"
-                          @click="activeToolPanel = activeToolPanel === tool.id ? '' : tool.id; sidebarOpen = true;"
-                          class="p-2 rounded-lg hover:bg-green-50 transition-all duration-300 relative group"
-                          :class="{'bg-green-100': activeToolPanel === tool.id}">
-                    <!-- Tooltip para mostrar el nombre de la herramienta -->
-                    <div class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
-                      {{ tool.name }}
-                      <div class="absolute top-1/2 -left-1 transform -translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
-                    </div>
-
-                    <!-- Icono para capas -->
-                    <svg v-if="tool.id === 'layers'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
-                    </svg>
-                    
-                    <!-- Icono para medición -->
-                    <svg v-if="tool.id === 'measure'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    
-                    <!-- Icono para dibujo -->
-                    <svg v-if="tool.id === 'draw'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1117.25 10.5" />
-                    </svg>
-                    
-                    <!-- Icono para búsqueda -->
-                    <svg v-if="tool.id === 'search'" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                    
-                    <!-- Indicador de herramienta activa -->
-                    <span v-if="activeToolPanel === tool.id" class="absolute -right-1 top-1/2 transform -translate-y-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  </button>
-                </div>
-              </div>
             </div>
           </transition>
         </div>
@@ -1618,7 +1587,7 @@ const formatearFecha = (fechaStr) => {
               <div class="flex space-x-3 w-full sm:w-auto justify-end">
                 <button 
                   @click="cerrarReporteModal"
-                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colores"
                 >
                   Cerrar
                 </button>

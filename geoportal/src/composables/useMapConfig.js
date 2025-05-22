@@ -16,7 +16,7 @@ export function useMapConfig() {
     zoom: 9,
     minZoom: 5,
     maxZoom: 19,
-    projection: 'EPSG:3857' // Web Mercator
+    projection: 'EPSG:3857' // Web Mercator - estándar para visualización web
   });
   
   // Opciones de interacción

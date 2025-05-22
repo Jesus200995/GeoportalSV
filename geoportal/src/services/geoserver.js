@@ -157,7 +157,8 @@ export function getWMSLayerParams(layerName) {
     LAYERS: layerName,
     TILED: true,
     FORMAT: 'image/png',
-    TRANSPARENT: true
+    TRANSPARENT: true,
+    VERSION: '1.1.1'
   };
 }
 
@@ -167,6 +168,22 @@ export function getWMSLayerParams(layerName) {
  */
 export function getGeoServerUrl() {
   return GEOSERVER_URL;
+}
+
+/**
+ * Obtiene la URL de WMS para el workspace actual
+ * @returns {string} URL del servicio WMS
+ */
+export function getWMSUrl() {
+  return `${GEOSERVER_URL}/${WORKSPACE}/wms`;
+}
+
+/**
+ * Obtiene el nombre del workspace
+ * @returns {string} Nombre del workspace
+ */
+export function getWorkspace() {
+  return WORKSPACE;
 }
 
 /**
@@ -180,6 +197,8 @@ export async function getAvailableLayers() {
     
     // Generar las credenciales de autenticación básica
     const authHeader = 'Basic ' + btoa(`${GEOSERVER_AUTH.username}:${GEOSERVER_AUTH.password}`);
+    
+    console.log('Obteniendo capas desde:', url);
     
     // Hacer la solicitud HTTP con autenticación
     const response = await fetch(url, {
@@ -195,25 +214,54 @@ export async function getAvailableLayers() {
 
     // Obtener los datos en formato JSON
     const data = await response.json();
+    console.log('Respuesta API REST GeoServer:', data);
     
     // Verificar que la estructura esperada de datos existe
     if (!data.featureTypes || !data.featureTypes.featureType) {
+      console.warn('No se encontraron capas en el API REST de GeoServer');
       return [];
     }
     
     // Procesar y devolver la lista de capas
-    return data.featureTypes.featureType.map(layer => ({
+    const processedLayers = data.featureTypes.featureType.map(layer => ({
       name: layer.name,
       title: layer.title || layer.name,
       abstract: layer.abstract || '',
       fullName: `${WORKSPACE}:${layer.name}`,
       workspace: WORKSPACE,
-      wmsUrl: `${GEOSERVER_URL}/wms`,
+      wmsUrl: `${GEOSERVER_URL}/${WORKSPACE}/wms`,
       wfsUrl: `${GEOSERVER_URL}/wfs`,
       legendUrl: `${GEOSERVER_URL}/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
     }));
+    
+    console.log('Capas procesadas:', processedLayers);
+    return processedLayers;
   } catch (error) {
     console.error("Error al obtener capas desde GeoServer REST API:", error);
     return [];
+  }
+}
+
+/**
+ * Comprueba si una capa existe en GeoServer
+ * @param {string} layerName - Nombre de la capa (sin el prefijo del workspace)
+ * @returns {Promise<boolean>} Si la capa existe o no
+ */
+export async function checkLayerExists(layerName) {
+  try {
+    const url = `${GEOSERVER_URL}/rest/workspaces/${WORKSPACE}/featuretypes/${layerName}`;
+    const authHeader = 'Basic ' + btoa(`${GEOSERVER_AUTH.username}:${GEOSERVER_AUTH.password}`);
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error(`Error al comprobar si existe la capa ${layerName}:`, error);
+    return false;
   }
 }
