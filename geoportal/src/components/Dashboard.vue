@@ -15,6 +15,7 @@ import LayersTool from './map-tools/LayersTool.vue';
 import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
 import { useLayers } from '../composables/useLayers';
+import AvailableLayers from './map-tools/AvailableLayers.vue';
 // Importaciones para el marcador animado
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
@@ -904,6 +905,11 @@ const formatearFecha = (fechaStr) => {
                   </div>
                 </li>
               </ul>
+
+              <!-- Componente de capas disponibles desde GeoServer -->
+              <div class="mt-6 border-t border-gray-200 pt-4">
+                <AvailableLayers :map="map" :expanded="sidebarOpen" />
+              </div>
             </div>
 
             <!-- Contenido de la pestaña Extras con iconos solo en modo colapsado -->
@@ -1351,7 +1357,7 @@ const formatearFecha = (fechaStr) => {
               <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0  11-18 0 9 9 0 0118 0z" />
-              </svg>
+            </svg>
               <p class="text-gray-500 text-center">No hay información disponible para este territorio</p>
             </div>
           </div>

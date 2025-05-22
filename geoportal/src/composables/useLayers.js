@@ -1,117 +1,67 @@
 import { ref } from 'vue';
 
+// Configuración de grupos de capas 
 export function useLayers() {
-  // Configuración centralizada de capas
+  const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
+
   const layerGroups = ref({
     principal: [
       {
-        id: 1,
+        id: 0,
         name: 'Territorios',
+        description: 'Capa de territorios sembrando datos',
         visible: true,
         type: 'wms',
-        url: 'http://31.97.8.51:8082/geoserver/sembrando/wms', // URL actualizada
+        url: geoserverUrl + '/wms',
         params: {
-          'LAYERS': 'sembrando:territorios_28', // Nombre de capa actualizado
-          'TILED': true,
-          'FORMAT': 'image/png',
-          'TRANSPARENT': true,
-          'VERSION': '1.1.1',
-        },
-        description: 'Capa base de territorios'
-      }
+          'LAYERS': 'sembrando:territorios_28',
+          'TILED': true
+        }
+      },
+      {
+        id: 1,
+        name: 'Unidades de riego',
+        description: 'Unidades de riego en México',
+        visible: false,
+        type: 'wms',
+        url: geoserverUrl + '/wms',
+        params: {
+          'LAYERS': 'sembrando:unidades_riego',
+          'TILED': true
+        }
+      },
     ],
     extras: [
       {
         id: 2,
-        name: 'OpenStreetMap',
-        visible: true,
-        type: 'osm',
-        description: 'Mapa base de OpenStreetMap'
+        name: 'Municipios',
+        description: 'Límites municipales',
+        visible: false,
+        type: 'wms',
+        url: geoserverUrl + '/wms',
+        params: {
+          'LAYERS': 'sembrando:municipios_hidalgo',
+          'TILED': true
+        }
       },
       {
         id: 3,
-        name: 'Límites Administrativos',
+        name: 'Ríos',
+        description: 'Red hidrológica principal',
         visible: false,
         type: 'wms',
-        url: 'http://31.97.8.51:8082/geoserver/sembrando/wms', // URL actualizada
+        url: geoserverUrl + '/wms',
         params: {
-          'LAYERS': 'sembrando:limites', // Ajustar según la capa disponible
-          'TILED': true,
-          'FORMAT': 'image/png',
-          'TRANSPARENT': true,
-          'VERSION': '1.1.1',
-        },
-        description: 'Límites administrativos del territorio'
-      }
-    ]
+          'LAYERS': 'sembrando:rios',
+          'TILED': true
+        }
+      },
+    ],
+    // Nuevo grupo para capas dinámicas añadidas desde el explorador de capas
+    dinamicas: []
   });
 
-  // Función para añadir una nueva capa al grupo específico
-  const addLayer = (layer, group = 'extras') => {
-    if (layerGroups.value[group]) {
-      // Asignar un ID único a la nueva capa
-      const newId = Math.max(...layerGroups.value[group].map(l => l.id), 0) + 1;
-      layer.id = newId;
-      layerGroups.value[group].push(layer);
-      return true;
-    }
-    return false;
-  };
-
-  // Función para eliminar una capa por ID
-  const removeLayer = (layerId, group) => {
-    if (!group) {
-      // Buscar en todos los grupos
-      for (const groupName in layerGroups.value) {
-        const index = layerGroups.value[groupName].findIndex(l => l.id === layerId);
-        if (index !== -1) {
-          layerGroups.value[groupName].splice(index, 1);
-          return true;
-        }
-      }
-    } else if (layerGroups.value[group]) {
-      // Buscar en el grupo especificado
-      const index = layerGroups.value[group].findIndex(l => l.id === layerId);
-      if (index !== -1) {
-        layerGroups.value[group].splice(index, 1);
-        return true;
-      }
-    }
-    return false;
-  };
-
-  // Función para actualizar una capa existente
-  const updateLayer = (layerId, updates, group) => {
-    if (!group) {
-      // Buscar en todos los grupos
-      for (const groupName in layerGroups.value) {
-        const index = layerGroups.value[groupName].findIndex(l => l.id === layerId);
-        if (index !== -1) {
-          layerGroups.value[groupName][index] = {
-            ...layerGroups.value[groupName][index],
-            ...updates
-          };
-          return true;
-        }
-      }
-    } else if (layerGroups.value[group]) {
-      // Buscar en el grupo especificado
-      const index = layerGroups.value[group].findIndex(l => l.id === layerId);
-      if (index !== -1) {
-        layerGroups.value[group][index] = {
-          ...layerGroups.value[group][index],
-          ...updates
-        };
-        return true;
-      }
-    }
-    return false;
-  };
-
   return {
-    layerGroups,
-    addLayer,
-    removeLayer,
-    updateLayer
+    layerGroups
   };
 }
