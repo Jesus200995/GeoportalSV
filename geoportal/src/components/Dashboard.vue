@@ -16,6 +16,7 @@ import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
 import { useLayers } from '../composables/useLayers';
 import AvailableLayers from './map-tools/AvailableLayers.vue';
+import LayerManager from './LayerManager.vue'; // Importamos el nuevo componente
 // Importaciones para el marcador animado
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
@@ -36,6 +37,9 @@ const activeToolPanel = ref(''); // layers, measure, draw, search
 const layerOpacity = ref({}); // Para almacenar opacidad de capas
 const searchQuery = ref('');
 const searchResults = ref([]);
+
+// Nuevo estado para manejar la visibilidad del LayerManager
+const showLayerManager = ref(true);
 
 // Estado para el panel de detalles del territorio
 const territorioSeleccionado = ref(null);
@@ -221,43 +225,12 @@ const initializeMap = () => {
     // Crear capa base OSM
     const osmLayer = new TileLayer({
       source: new OSM(),
-      visible: true, // Asegurarnos que al menos esta capa sea visible
+      visible: true,
       properties: {
         name: 'OpenStreetMap',
-        group: 'extras'
+        group: 'base'
       }
     });
-
-    // Crear capas WMS de forma más defensiva
-    let wmsLayers = [];
-    try {
-      wmsLayers = [...layerGroups.value.principal, ...layerGroups.value.extras]
-        .filter(layer => layer.type === 'wms')
-        .map(layer => {
-          try {
-            return new TileLayer({
-              source: new TileWMS({
-                url: layer.url,
-                params: layer.params,
-                serverType: 'geoserver',
-              }),
-              visible: layer.visible,
-              properties: {
-                name: layer.name,
-                group: layerGroups.value.principal.includes(layer) ? 'principal' : 'extras'
-              }
-            });
-          } catch (error) {
-            console.error(`Error creando la capa WMS ${layer.name}:`, error);
-            return null;
-          }
-        })
-        .filter(layer => layer !== null); // Eliminar capas que fallaron
-    } catch (error) {
-      console.error("Error al crear capas WMS:", error);
-      // Continuar con un array vacío de capas WMS si falla
-      wmsLayers = [];
-    }
 
     // Verificar que el elemento del mapa existe
     if (!mapElement.value) {
@@ -265,10 +238,10 @@ const initializeMap = () => {
       return;
     }
 
-    // Crear mapa con todas las capas
+    // Crear mapa con la capa base
     map.value = new Map({
       target: mapElement.value,
-      layers: [osmLayer, ...wmsLayers],
+      layers: [osmLayer],
       view: new View({
         center: fromLonLat([-98.9, 20.1]), // Centrado en Hidalgo, México
         zoom: 9
@@ -303,7 +276,7 @@ const initializeMap = () => {
     console.log("Mapa inicializado correctamente");
   } catch (error) {
     console.error("Error durante la inicialización del mapa:", error);
-    throw error; // Re-lanzar para manejar en el onMounted
+    throw error;
   }
 };
 
@@ -852,7 +825,7 @@ const formatearFecha = (fechaStr) => {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span v-if="sidebarOpen" class="truncate">Capas Principales</span>
+            <span v-if="sidebarOpen" class="truncate">Capas</span>
           </button>
           <button 
             @click="changeTab('extras')" 
@@ -862,54 +835,17 @@ const formatearFecha = (fechaStr) => {
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
-            <span v-if="sidebarOpen" class="truncate">Extras</span>
+            <span v-if="sidebarOpen" class="truncate">Herramientas</span>
           </button>
         </div>
 
         <!-- Contenido según la pestaña activa -->
         <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-green-500">
           <transition name="fade" mode="out-in">
-            <!-- Contenido de la pestaña Principal -->
-            <div v-if="activeTab === 'principal' && sidebarOpen" class="p-4 space-y-4 animate-fade-in">
-              <h2 class="text-lg font-semibold text-green-800 flex items-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <span>Capas Principales</span>
-              </h2>
-              
-              <ul class="space-y-3">
-                <li v-for="layer in layerGroups.principal" :key="layer.id" 
-                    class="transform transition-all duration-300 hover:translate-x-1">
-                  <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
-                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
-                      <input 
-                        type="checkbox" 
-                        :id="`layer-${layer.id}`" 
-                        :checked="layer.visible"
-                        @change="toggleLayerVisibility(layer)" 
-                        class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-                      />
-                      <label 
-                        :for="`layer-${layer.id}`" 
-                        class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
-                        :class="{'active': layer.visible}"
-                      ></label>
-                    </div>
-                    <div>
-                      <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
-                        {{ layer.name }}
-                      </label>
-                      <p class="text-xs text-gray-500">{{ layer.description }}</p>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-
-              <!-- Componente de capas disponibles desde GeoServer -->
-              <div class="mt-6 border-t border-gray-200 pt-4">
-                <AvailableLayers :map="map" :expanded="sidebarOpen" />
-              </div>
+            <!-- Pestaña Capas con el nuevo LayerManager -->
+            <div v-if="activeTab === 'principal' && sidebarOpen" class="p-4 animate-fade-in">
+              <!-- Nuevo componente de LayerManager -->
+              <LayerManager :map="map" />
             </div>
 
             <!-- Contenido de la pestaña Extras con iconos solo en modo colapsado -->
@@ -1719,13 +1655,13 @@ const formatearFecha = (fechaStr) => {
           <div class="flex justify-end space-x-3">
             <button 
               @click="showSaveDialog = false"
-              class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colores"
             >
               Cancelar
             </button>
             <button 
               @click="saveMap"
-              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colores"
             >
               Guardar
             </button>

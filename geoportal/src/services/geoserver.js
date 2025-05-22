@@ -6,6 +6,12 @@
 const GEOSERVER_URL = 'http://31.97.8.51:8082/geoserver';
 const WORKSPACE = 'sembrando';
 
+// Credenciales de autenticación para GeoServer
+const GEOSERVER_AUTH = {
+  username: 'admin',
+  password: 'geoserver'
+};
+
 /**
  * Obtiene las capacidades del servicio WMS de GeoServer
  * @returns {Promise<Array>} Lista de capas disponibles
@@ -161,4 +167,53 @@ export function getWMSLayerParams(layerName) {
  */
 export function getGeoServerUrl() {
   return GEOSERVER_URL;
+}
+
+/**
+ * Obtiene la lista de capas disponibles utilizando el API REST de GeoServer
+ * @returns {Promise<Array>} Lista de capas disponibles
+ */
+export async function getAvailableLayers() {
+  try {
+    // URL del API REST de GeoServer para listar feature types
+    const url = `${GEOSERVER_URL}/rest/workspaces/${WORKSPACE}/featuretypes.json`;
+    
+    // Generar las credenciales de autenticación básica
+    const authHeader = 'Basic ' + btoa(`${GEOSERVER_AUTH.username}:${GEOSERVER_AUTH.password}`);
+    
+    // Hacer la solicitud HTTP con autenticación
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error en la respuesta: ${response.status}`);
+    }
+
+    // Obtener los datos en formato JSON
+    const data = await response.json();
+    
+    // Verificar que la estructura esperada de datos existe
+    if (!data.featureTypes || !data.featureTypes.featureType) {
+      return [];
+    }
+    
+    // Procesar y devolver la lista de capas
+    return data.featureTypes.featureType.map(layer => ({
+      name: layer.name,
+      title: layer.title || layer.name,
+      abstract: layer.abstract || '',
+      fullName: `${WORKSPACE}:${layer.name}`,
+      workspace: WORKSPACE,
+      wmsUrl: `${GEOSERVER_URL}/wms`,
+      wfsUrl: `${GEOSERVER_URL}/wfs`,
+      legendUrl: `${GEOSERVER_URL}/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
+    }));
+  } catch (error) {
+    console.error("Error al obtener capas desde GeoServer REST API:", error);
+    return [];
+  }
 }

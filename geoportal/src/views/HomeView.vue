@@ -348,6 +348,17 @@ const handleDashboardEvents = (event) => {
     showNotification('Mapa guardado correctamente');
   }
 };
+
+// Función para manejar cambios de capa
+const handleLayerToggle = (layerName, isActive) => {
+  const action = isActive ? 'activada' : 'desactivada';
+  showNotification(`Capa "${layerName}" ${action} correctamente`);
+};
+
+// Cargar mapas guardados cuando se monte el componente
+onMounted(() => {
+  loadSavedMaps();
+});
 </script>
 
 <template>
