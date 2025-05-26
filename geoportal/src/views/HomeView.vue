@@ -160,7 +160,7 @@ onMounted(() => {
                     <!-- Texto VISOR mejorado -->
                     <div class="relative z-10 flex flex-col items-center">
                       <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg mb-3">VISOR</span>
-                      <span class="text-sm text-green-300 font-medium px-3 py-0.5 rounded-full bg-black/15 backdrop-blur-sm border border-green-500/20 shadow-sm">EXPLORAR TERRITORIOS</span>
+                      <span class="text-xs text-green-300 font-medium tracking-wide drop-shadow-md">EXPLORAR TERRITORIOS</span>
                     </div>
                     
                     <!-- Efecto de brillo al hacer hover mejorado -->
@@ -213,7 +213,7 @@ onMounted(() => {
                     <!-- Texto DATOS mejorado -->
                     <div class="relative z-10 flex flex-col items-center">
                       <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg mb-3">DATOS</span>
-                      <span class="text-sm text-blue-300 font-medium px-3 py-0.5 rounded-full bg-black/15 backdrop-blur-sm border border-blue-500/20 shadow-sm">ANÁLISIS Y ESTADÍSTICAS</span>
+                      <span class="text-xs text-blue-300 font-medium tracking-wide drop-shadow-md">ANÁLISIS Y ESTADÍSTICAS</span>
                     </div>
                     
                     <!-- Efecto de brillo al hacer hover mejorado -->
@@ -362,7 +362,21 @@ onMounted(() => {
 .particle:nth-child(8) { left: 80%; animation-delay: 14s; }
 .particle:nth-child(9) { left: 90%; animation-delay: 16s; }
 
-/* Nuevos estilos para la animación de plasma */
+/* Nuevos estilos para las etiquetas elegantes */
+.text-sm.text-green-300,
+.text-sm.text-blue-300 {
+  letter-spacing: 0.05em;
+  backdrop-filter: blur(2px);
+  transition: all 0.3s ease;
+}
+
+.visor-button:hover .text-sm.text-green-300,
+.stats-button:hover .text-sm.text-blue-300 {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos refinados para el plasma del visor */
 .plasma-bg {
   background: linear-gradient(125deg, 
     rgba(6, 78, 59, 0.9), 
