@@ -132,8 +132,7 @@ onMounted(() => {
               <div class="flex flex-wrap justify-center gap-8 sm:gap-12 md:gap-16">
                 <!-- Círculo 1: Visor de Mapa -->
                 <div class="relative group mb-8">
-                  <!-- Círculo exterior con animación de luz verde - Mejorado con blur más intenso -->
-                  <div class="absolute -inset-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
+                  <!-- Eliminada la animación del círculo exterior con gradiente -->
                   
                   <!-- Botón del visor con nueva clase para efecto de clic -->
                   <button 
@@ -174,8 +173,7 @@ onMounted(() => {
                 
                 <!-- Círculo 2: Estadísticas y Análisis -->
                 <div class="relative group mb-8">
-                  <!-- Círculo exterior con animación de luz azul -->
-                  <div class="absolute -inset-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-reverse"></div>
+                  <!-- Eliminada la animación del círculo exterior con gradiente -->
                   
                   <!-- Botón de estadísticas -->
                   <button 
@@ -366,6 +364,7 @@ onMounted(() => {
   background-size: 300% 300%;
   animation: plasma-shift 15s ease infinite;
   border-radius: 50%;
+  z-index: -1;
 }
 
 .plasma-layer1 {
