@@ -42,36 +42,36 @@ const changeBackgroundImage = () => {
   currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
 };
 
-// Función para abrir el visor de mapa con animación de transición
+// Función para abrir el visor de mapa con animación de transición más rápida
 const openVisor = () => {
   isTransitioning.value = true;
   transitionTarget.value = 'map';
   
-  // Esperar a que termine la animación antes de mostrar el dashboard
+  // Reducir tiempo de espera para transición más rápida
   setTimeout(() => {
     showWelcome.value = false;
     
-    // Reiniciar el estado de transición después de un breve retraso
+    // Reducir tiempo de reinicio de estado de transición
     setTimeout(() => {
       isTransitioning.value = false;
-    }, 100);
-  }, 1200); // Duración total de la animación
+    }, 50);
+  }, 300); // Reducido de 1200ms a 300ms para una transición más rápida
 };
 
-// Función para abrir el dashboard de estadísticas con animación
+// Función para abrir el dashboard de estadísticas con animación más rápida
 const openStats = () => {
   isTransitioning.value = true;
   transitionTarget.value = 'stats';
   
-  // Esperar a que termine la animación antes de mostrar el dashboard de estadísticas
+  // Reducir tiempo de espera para transición más rápida
   setTimeout(() => {
     showWelcome.value = false;
     
-    // Reiniciar el estado de transición después de un breve retraso
+    // Reducir tiempo de reinicio de estado de transición
     setTimeout(() => {
       isTransitioning.value = false;
-    }, 100);
-  }, 1200);
+    }, 50);
+  }, 300); // Reducido de 1200ms a 300ms para una transición más rápida
 };
 
 // Iniciar el carrusel de fondo
@@ -511,7 +511,7 @@ onMounted(() => {
   height: 100%;
   background-color: rgba(255, 255, 255, 0.95);
   transform: scale(0);
-  transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 /* Simplificar las transiciones eliminando los gradientes animados */
@@ -535,11 +535,13 @@ onMounted(() => {
 .map-transition {
   transform: scale(20);
   background-color: rgba(230, 250, 240, 0.95);
+  transition: transform 0.3s ease-out;
 }
 
 .stats-transition {
   transform: scale(20);
   background-color: rgba(240, 240, 255, 0.95);
+  transition: transform 0.3s ease-out;
 }
 
 /* Animación pulsante para el logo */
