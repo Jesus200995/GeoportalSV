@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue';
+import * as XLSX from 'xlsx';
 
 const props = defineProps({
   show: Boolean,
@@ -236,7 +237,7 @@ const decodeText = (text) => {
     .replace(/Ãš/g, 'Ú')
     .replace(/Ã±/g, 'ñ')
     .replace(/Ã'/g, 'Ñ')
-    .replace(/Ã¼/g, 'ü')
+    .replace(/Ãü/g, 'ü')
     .replace(/Ãœ/g, 'Ü');
 };
 
@@ -395,6 +396,49 @@ watch(() => props.feature, (newValue) => {
     fetchAdditionalData();
   }
 });
+
+// Función para descargar información en formato Excel
+const downloadExcel = () => {
+  if (!props.feature || !combinedProperties.value) return;
+  
+  try {
+    // Preparar los datos para el Excel
+    const data = [];
+    
+    // Convertir propiedades a formato tabular para Excel
+    Object.entries(combinedProperties.value).forEach(([key, value]) => {
+      data.push({
+        Atributo: translatePropertyName(key),
+        Valor: typeof value === 'object' ? JSON.stringify(value) : value
+      });
+    });
+    
+    // Crear libro de trabajo y hoja
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    
+    // Ajustar ancho de columnas
+    const wscols = [
+      { wch: 30 }, // Ancho para columna de Atributo
+      { wch: 50 }  // Ancho para columna de Valor
+    ];
+    worksheet['!cols'] = wscols;
+    
+    // Añadir la hoja al libro
+    const sheetName = props.feature.properties?.nombre_territorio || 
+                     props.feature.properties?.nombre || 
+                     'Información del lugar';
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 30)); // Limitar nombre a 30 caracteres
+    
+    // Generar archivo y descargar
+    const fileName = `${sheetName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  } catch (error) {
+    console.error('Error al generar archivo Excel:', error);
+    alert('Hubo un problema al generar el archivo Excel. Por favor intente de nuevo.');
+  }
+};
 </script>
 
 <template>
@@ -563,9 +607,23 @@ watch(() => props.feature, (newValue) => {
           <span class="text-sm text-gray-500">
             {{ activeLayer ? activeLayer.get('name') || activeLayer.get('title') : 'Capa' }}
           </span>
-          <button @click="closeModal" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-            Cerrar
-          </button>
+          <div class="flex space-x-3">
+            <!-- Botón para descargar Excel -->
+            <button 
+              @click="downloadExcel" 
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center space-x-2 shadow-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Descargar Excel</span>
+            </button>
+            
+            <!-- Botón para cerrar (existente) -->
+            <button @click="closeModal" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
