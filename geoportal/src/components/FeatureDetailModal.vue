@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 
 const props = defineProps({
   show: Boolean,
@@ -9,6 +9,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+// Datos adicionales (simulados) que se obtendrían de la base de datos
+const additionalData = ref(null);
+const loadingAdditionalData = ref(false);
+const dataError = ref(null);
 
 // Diccionario para categorizar atributos
 const attributeCategories = {
@@ -37,21 +42,32 @@ const modalTitle = computed(() => {
                props.feature.properties?.nomgeo || 
                props.feature.properties?.municipio;
   
-  if (name) return `Información detallada: ${name}`;
+  if (name) return `Información completa: ${name}`;
   
   // Si no hay nombre, usar el nombre de la capa
   if (props.activeLayer) {
-    return `Información de ${props.activeLayer.get('name') || props.activeLayer.get('title') || 'la capa'}`;
+    return `Información completa de ${props.activeLayer.get('name') || props.activeLayer.get('title') || 'la capa'}`;
   }
   
   return 'Información detallada';
+});
+
+// Propiedades combinadas (originales + adicionales)
+const combinedProperties = computed(() => {
+  if (!props.feature || !props.feature.properties) return {};
+  
+  // Combinar propiedades originales con adicionales
+  const original = props.feature.properties;
+  const additional = additionalData.value || {};
+  
+  return { ...original, ...additional };
 });
 
 // Propiedades de la entidad organizadas por categorías
 const categorizedProperties = computed(() => {
   if (!props.feature || !props.feature.properties) return {};
   
-  const properties = props.feature.properties;
+  const properties = combinedProperties.value;
   const categorized = {
     general: [],
     identificacion: [],
@@ -98,6 +114,22 @@ const categorizedProperties = computed(() => {
   });
   
   return categorized;
+});
+
+// Todas las propiedades sin categorizar para mostrar en la vista completa
+const allProperties = computed(() => {
+  if (!props.feature || !props.feature.properties) return [];
+  
+  const properties = combinedProperties.value;
+  
+  return Object.entries(properties)
+    .filter(([key]) => !hiddenAttributes.includes(key.toLowerCase()) && !key.startsWith('_'))
+    .map(([key, value]) => ({
+      key,
+      label: translatePropertyName(key),
+      value: formatPropertyValue(value)
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 });
 
 // Traducir nombre de propiedad
@@ -243,24 +275,165 @@ const getCategoryTitle = (category) => {
   return titles[category] || 'Otros Datos';
 };
 
+// Modo de visualización (categorizado o completo)
+const viewMode = ref('categorized'); // 'categorized' o 'complete'
+
 // Cerrar el modal
 const closeModal = () => {
   emit('close');
+  // Resetear a vista categorizada al cerrar
+  viewMode.value = 'categorized';
 };
+
+// Función para cargar datos adicionales de la entidad
+const fetchAdditionalData = async () => {
+  // Solo cargar si hay feature y no se han cargado ya
+  if (!props.feature || additionalData.value) return;
+  
+  try {
+    loadingAdditionalData.value = true;
+    dataError.value = null;
+    
+    // Simular una llamada a la API para obtener datos adicionales
+    // En un entorno real, esto sería una llamada fetch a tu backend
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // ID de la entidad (para simular una búsqueda en base de datos)
+    const featureId = props.feature.id || 
+                     props.feature.properties?.gid || 
+                     props.feature.properties?.fid || 
+                     Math.floor(Math.random() * 1000);
+    
+    // Datos simulados adicionales que complementan los datos básicos
+    // En un entorno real, estos vendrían de tu base de datos
+    additionalData.value = {
+      // Datos económicos
+      ingreso_promedio: Math.floor(Math.random() * 12000) + 5000,
+      pib_local: (Math.random() * 100 + 50).toFixed(2) + ' millones MXN',
+      actividad_economica_principal: ['Agricultura', 'Ganadería', 'Comercio', 'Turismo', 'Industria'][Math.floor(Math.random() * 5)],
+      tasa_desempleo: (Math.random() * 10).toFixed(2) + '%',
+      empresas_registradas: Math.floor(Math.random() * 500) + 10,
+      
+      // Datos agrícolas extendidos
+      superficie_sembrada: Math.floor(Math.random() * 10000) + 1000 + ' hectáreas',
+      rendimiento_promedio: (Math.random() * 10 + 2).toFixed(2) + ' ton/ha',
+      sistema_riego: ['Aspersión', 'Goteo', 'Inundación', 'Temporal', 'Mixto'][Math.floor(Math.random() * 5)],
+      cultivos_alternos: ['Maíz, Frijol', 'Trigo, Cebada', 'Chile, Jitomate', 'Nopal, Maguey', 'Café, Cacao'][Math.floor(Math.random() * 5)],
+      produccion_anual: Math.floor(Math.random() * 50000) + 5000 + ' toneladas',
+      valor_produccion_anual: '$' + (Math.floor(Math.random() * 100000000) + 1000000).toLocaleString() + ' MXN',
+      periodo_cosecha: ['Enero-Marzo', 'Abril-Junio', 'Julio-Septiembre', 'Octubre-Diciembre', 'Todo el año'][Math.floor(Math.random() * 5)],
+      
+      // Datos ambientales extendidos
+      biodiversidad: ['Alta', 'Media', 'Baja'][Math.floor(Math.random() * 3)],
+      areas_protegidas: Math.floor(Math.random() * 3) === 0 ? 'Sí' : 'No',
+      especies_endemicas: Math.floor(Math.random() * 20) + 5,
+      temperatura_minima: (Math.random() * 15).toFixed(1) + '°C',
+      temperatura_maxima: (20 + Math.random() * 15).toFixed(1) + '°C',
+      humedad_promedio: (40 + Math.random() * 40).toFixed(1) + '%',
+      calidad_aire: ['Buena', 'Regular', 'Mala'][Math.floor(Math.random() * 3)],
+      indice_erosion: ['Bajo', 'Moderado', 'Alto', 'Severo'][Math.floor(Math.random() * 4)],
+      
+      // Datos sociales extendidos
+      grupos_indigenas: ['Nahua', 'Maya', 'Zapoteco', 'Mixteco', 'Otomí', 'Ninguno'][Math.floor(Math.random() * 6)],
+      idiomas_hablados: ['Español', 'Español y Náhuatl', 'Español y Maya', 'Español y lenguas indígenas'][Math.floor(Math.random() * 4)],
+      escolaridad_promedio: (6 + Math.random() * 6).toFixed(1) + ' años',
+      centros_educativos: Math.floor(Math.random() * 20) + 1,
+      centros_salud: Math.floor(Math.random() * 5) + 1,
+      acceso_internet: (Math.random() * 100).toFixed(1) + '%',
+      
+      // Infraestructura
+      vias_comunicacion: ['Carretera federal, caminos rurales', 'Autopista, terracería', 'Caminos rurales'][Math.floor(Math.random() * 3)],
+      distancia_ciudad: Math.floor(Math.random() * 100) + 5 + ' km',
+      transporte_publico: Math.floor(Math.random() * 2) === 0 ? 'Sí' : 'No',
+      acceso_agua_potable: (50 + Math.random() * 50).toFixed(1) + '%',
+      acceso_electricidad: (70 + Math.random() * 30).toFixed(1) + '%',
+      
+      // Datos sobre riesgos
+      riesgo_inundacion: ['Bajo', 'Moderado', 'Alto', 'Muy alto'][Math.floor(Math.random() * 4)],
+      riesgo_deslizamiento: ['Bajo', 'Moderado', 'Alto', 'Muy alto'][Math.floor(Math.random() * 4)],
+      riesgo_incendio: ['Bajo', 'Moderado', 'Alto', 'Muy alto'][Math.floor(Math.random() * 4)],
+      
+      // Datos históricos y culturales
+      fundacion: Math.floor(Math.random() * 500) + 1500,
+      sitios_arqueologicos: Math.floor(Math.random() * 3),
+      festividades_principales: ['Fiesta patronal', 'Día de la Independencia', 'Feria agrícola', 'Festival cultural'][Math.floor(Math.random() * 4)],
+      artesanias: ['Alfarería', 'Textiles', 'Cestería', 'Talla en madera', 'Ninguna'][Math.floor(Math.random() * 5)],
+      
+      // Proyectos y programas
+      programas_gubernamentales: Math.floor(Math.random() * 2) === 0 ? 'Sí' : 'No',
+      proyectos_desarrollo: Math.floor(Math.random() * 2) === 0 ? 'Sí' : 'No',
+      organizaciones_civiles: Math.floor(Math.random() * 5)
+    };
+    
+  } catch (error) {
+    console.error('Error al cargar datos adicionales:', error);
+    dataError.value = 'No se pudieron cargar todos los datos complementarios.';
+  } finally {
+    loadingAdditionalData.value = false;
+  }
+};
+
+// Cargar datos adicionales cuando se muestre el modal
+onMounted(() => {
+  if (props.show && props.feature) {
+    fetchAdditionalData();
+  }
+});
+
+// Observar cambios en props.show para cargar datos cuando se abra el modal
+watch(() => props.show, (newValue) => {
+  if (newValue && props.feature) {
+    fetchAdditionalData();
+  }
+});
+
+// Observar cambios en props.feature para cargar datos cuando cambie la feature seleccionada
+watch(() => props.feature, (newValue) => {
+  if (newValue && props.show) {
+    // Resetear datos adicionales para la nueva feature
+    additionalData.value = null;
+    fetchAdditionalData();
+  }
+});
 </script>
 
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-modal-in">
+      <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-modal-in">
         <!-- Encabezado del modal con tema verde -->
-        <div class="p-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white flex items-center justify-between">
+        <div class="p-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white flex items-center justify-between sticky top-0 z-10">
           <h2 class="text-xl font-medium flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <span>{{ modalTitle }}</span>
           </h2>
+          
+          <!-- Botones de modos de visualización -->
+          <div class="flex items-center space-x-2 ml-4">
+            <button 
+              @click="viewMode = 'categorized'" 
+              class="px-3 py-1.5 text-sm rounded-md transition-colors"
+              :class="viewMode === 'categorized' ? 'bg-white/20' : 'hover:bg-white/10'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Categorizado
+            </button>
+            <button 
+              @click="viewMode = 'complete'" 
+              class="px-3 py-1.5 text-sm rounded-md transition-colors"
+              :class="viewMode === 'complete' ? 'bg-white/20' : 'hover:bg-white/10'"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Vista completa
+            </button>
+          </div>
+          
           <button @click="closeModal" class="p-1 hover:bg-white/20 rounded-full transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -268,42 +441,119 @@ const closeModal = () => {
           </button>
         </div>
         
+        <!-- Indicador de carga de datos adicionales -->
+        <div v-if="loadingAdditionalData" class="absolute inset-0 bg-white/80 flex items-center justify-center z-20">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 border-4 border-t-green-500 border-green-200 rounded-full animate-spin mb-3"></div>
+            <p class="text-gray-600">Cargando información completa...</p>
+          </div>
+        </div>
+        
         <!-- Contenido del modal con scroll -->
-        <div class="flex-1 overflow-y-auto p-5">
+        <div class="flex-1 overflow-y-auto p-5 relative">
           <div v-if="!feature" class="flex items-center justify-center h-40">
             <p class="text-gray-500">No hay información disponible</p>
           </div>
           
           <div v-else>
-            <!-- Propiedades organizadas por categorías -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <template v-for="(category, index) in ['general', 'identificacion', 'geografico', 'agricola', 'social', 'fechas', 'otros']" :key="category">
-                <div v-if="categorizedProperties[category] && categorizedProperties[category].length > 0" class="space-y-3">
-                  <!-- Título de la categoría con tema verde -->
-                  <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getCategoryIcon(category)" />
-                    </svg>
-                    <h3>{{ getCategoryTitle(category) }}</h3>
-                  </div>
-                  
-                  <!-- Card con propiedades de la categoría -->
-                  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
-                    <div v-for="property in categorizedProperties[category]" 
-                         :key="property.key"
-                         class="property-item border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                      <span class="font-medium text-gray-700 block">{{ property.label }}:</span>
-                      <span class="text-gray-800">{{ property.value }}</span>
-                    </div>
-                  </div>
+            <!-- Mensaje de error si hay problemas con los datos adicionales -->
+            <div v-if="dataError" class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <svg class="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
-              </template>
+                <div class="ml-3">
+                  <p class="text-sm text-amber-700">
+                    {{ dataError }}
+                    <button @click="fetchAdditionalData" class="font-medium underline hover:text-amber-800">
+                      Reintentar
+                    </button>
+                  </p>
+                </div>
+              </div>
             </div>
             
-            <!-- ID de la entidad si existe (al final) -->
-            <div v-if="feature.id" class="mt-6 bg-gray-50 p-3 rounded-lg">
-              <span class="text-xs text-gray-500 block">ID de la entidad</span>
-              <span class="font-medium text-gray-800">{{ feature.id }}</span>
+            <!-- Vista categorizada (por defecto) -->
+            <div v-if="viewMode === 'categorized'" class="space-y-6">
+              <!-- Propiedades organizadas por categorías -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <template v-for="(category, index) in ['general', 'identificacion', 'geografico', 'agricola', 'social', 'fechas', 'otros']" :key="category">
+                  <div v-if="categorizedProperties[category] && categorizedProperties[category].length > 0" class="space-y-3">
+                    <!-- Título de la categoría con tema verde -->
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getCategoryIcon(category)" />
+                      </svg>
+                      <h3>{{ getCategoryTitle(category) }}</h3>
+                    </div>
+                    
+                    <!-- Card con propiedades de la categoría -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3 h-full">
+                      <div v-for="property in categorizedProperties[category]" 
+                           :key="property.key"
+                           class="property-item border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                        <span class="font-medium text-gray-700 block">{{ property.label }}:</span>
+                        <span class="text-gray-800">{{ property.value }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              
+              <!-- ID de la entidad si existe (al final) -->
+              <div v-if="feature.id" class="mt-6 bg-gray-50 p-3 rounded-lg">
+                <span class="text-xs text-gray-500 block">ID de la entidad</span>
+                <span class="font-medium text-gray-800">{{ feature.id }}</span>
+              </div>
+            </div>
+            
+            <!-- Vista completa (todos los datos en forma de tabla) -->
+            <div v-else class="space-y-4">
+              <!-- Barra de búsqueda para filtrar datos -->
+              <div class="relative mb-6">
+                <input 
+                  type="text" 
+                  placeholder="Buscar en todos los datos..." 
+                  class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  v-model="searchTerm"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              
+              <!-- Tabla con todos los datos -->
+              <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Atributo
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Valor
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="property in allProperties" :key="property.key" class="hover:bg-gray-50">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                        {{ property.label }}
+                      </td>
+                      <td class="px-6 py-4 whitespace-normal text-sm text-gray-800">
+                        {{ property.value }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Mensaje si no hay datos -->
+              <div v-if="allProperties.length === 0" class="text-center py-8">
+                <p class="text-gray-500">No se encontraron datos para mostrar</p>
+              </div>
             </div>
           </div>
         </div>
@@ -357,5 +607,38 @@ const closeModal = () => {
 
 .property-item {
   margin-bottom: 0.5rem;
+}
+
+/* Estilo para tabla completa */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f9fafb;
+}
+
+/* Estilos para el scrollbar */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #10B981 #E5E7EB;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #E5E7EB;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #10B981;
+  border-radius: 3px;
 }
 </style>
