@@ -111,7 +111,8 @@ onMounted(() => {
         <header class="py-6 px-4">
           <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-3">
-              <img src="@/components/images/logotipo.png" alt="Logo" class="h-12 w-12" />
+              <!-- Aumentamos el tamaño del logo -->
+              <img src="@/components/images/logotipo.png" alt="Logo" class="h-16 w-16 animate-logo-pulse" />
               <h1 class="text-white text-2xl md:text-3xl lg:text-4xl font-serif font-bold">
                 Geoportal <span class="text-green-400">Sembrando Datos</span>
               </h1>
@@ -125,9 +126,12 @@ onMounted(() => {
         <!-- Contenido principal centrado -->
         <main class="flex-1 flex items-center justify-center px-4 py-8">
           <div class="max-w-7xl mx-auto text-center">
-            <!-- Contenedor para los círculos en fila -->
-            <div class="flex flex-col items-center justify-center mt-12">
-              <h2 class="text-2xl font-semibold text-white mb-12 tracking-wide">Seleccione una herramienta</h2>
+            <!-- Contenedor para los círculos en fila - Movido más arriba reduciendo el margen top -->
+            <div class="flex flex-col items-center justify-center mt-4">
+              <!-- Mejora de la tipografía y adición de animación elegante -->
+              <h2 class="text-3xl font-semibold text-white mb-12 tracking-wide animate-pulse-slow fancy-text">
+                Seleccione una herramienta
+              </h2>
               
               <div class="flex flex-wrap justify-center gap-8 sm:gap-12 md:gap-16">
                 <!-- Círculo 1: Visor de Mapa -->
@@ -536,5 +540,41 @@ onMounted(() => {
 .stats-transition {
   transform: scale(20);
   background-color: rgba(240, 240, 255, 0.95);
+}
+
+/* Animación pulsante para el logo */
+@keyframes logo-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.animate-logo-pulse {
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+/* Estilo y animación para el título "Seleccione una herramienta" */
+.fancy-text {
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.5px;
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(45deg, #ffffff, #d4f5e9, #ffffff);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animación más lenta y elegante para el texto */
+.animate-pulse-slow {
+  animation: text-shine 3s ease-in-out infinite;
+}
+
+@keyframes text-shine {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
 }
 </style>
