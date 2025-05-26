@@ -979,6 +979,9 @@ const {
         <p class="text-green-700 font-medium">Cargando geoportal...</p>
       </div>
 
+      <!-- Animación de entrada para el dashboard -->
+      <div class="dashboard-enter-animation"></div>
+
       <!-- Mapa a pantalla completa -->
       <div ref="mapElement" class="absolute inset-0 z-0"></div>
       
@@ -1656,37 +1659,33 @@ button:active {
   transform: translateX(0);
 }
 
-/* Estilos para los switches */
-.toggle-label {
-  position: relative;
-  display: block;
-  width: 3rem;
-  height: 1.5rem;
-  border-radius: 9999px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  background-color: #D1D5DB;
+/* Estilos específicos para el componente Dashboard.vue */
+.dashboard-enter-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(209, 250, 229, 0.95) 30%,
+    rgba(147, 197, 253, 0.9) 70%,
+    rgba(37, 99, 235, 0.85) 100%
+  );
+  z-index: 99;
+  opacity: 1;
+  animation: dashboard-fade-out 1s ease-out forwards;
+  pointer-events: none;
 }
 
-input:checked + .toggle-label {
-  background-color: #10B981;
-}
-
-.toggle-label::after {
-  content: '';
-  position: absolute;
-  top: 0.25rem;
-  left: 0.25rem;
-  background-color: white;
-  width: 1rem;
-  height: 1rem;
-  border-radius: 9999px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease-in-out;
-}
-
-input:checked + .toggle-label::after {
-  transform: translateX(1.5rem);
+@keyframes dashboard-fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Animaciones para el modal */

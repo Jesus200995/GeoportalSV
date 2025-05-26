@@ -5,6 +5,7 @@ import ToastNotification from '../components/notifications/ToastNotification.vue
 import UserProfile from '../components/UserProfile.vue';
 
 const showWelcome = ref(true);
+const isTransitioning = ref(false);
 
 // Estado para notificaciones
 const notification = ref({
@@ -39,9 +40,19 @@ const changeBackgroundImage = () => {
   currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
 };
 
-// Función para abrir el visor de mapa
+// Función para abrir el visor de mapa con animación de transición
 const openVisor = () => {
-  showWelcome.value = false;
+  isTransitioning.value = true;
+  
+  // Esperar a que termine la animación antes de mostrar el dashboard
+  setTimeout(() => {
+    showWelcome.value = false;
+    
+    // Reiniciar el estado de transición después de un breve retraso
+    setTimeout(() => {
+      isTransitioning.value = false;
+    }, 100);
+  }, 1200); // Duración total de la animación
 };
 
 // Iniciar el carrusel de fondo
@@ -52,6 +63,11 @@ onMounted(() => {
 
 <template>
   <div>
+    <!-- Animación de transición al hacer clic -->
+    <div v-if="isTransitioning" class="transition-overlay">
+      <div class="transition-wave"></div>
+    </div>
+    
     <!-- Vista de bienvenida -->
     <div v-if="showWelcome" class="min-h-screen flex flex-col">
       <!-- Fondo con imágenes en carrusel -->
@@ -95,10 +111,10 @@ onMounted(() => {
                 <!-- Círculo exterior con animación de luz verde - Mejorado con blur más intenso -->
                 <div class="absolute -inset-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
                 
-                <!-- Nuevo botón del visor con animación de plasma -->
+                <!-- Botón del visor con nueva clase para efecto de clic -->
                 <button 
                   @click="openVisor"
-                  class="relative bg-black/40 backdrop-blur-lg hover:bg-black/50 text-white rounded-full p-10 w-80 h-80 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
+                  class="visor-button relative bg-black/40 backdrop-blur-lg hover:bg-black/50 text-white rounded-full p-10 w-80 h-80 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
                 >
                   <!-- Fondo animado tipo plasma -->
                   <div class="absolute inset-0 w-full h-full overflow-hidden">
@@ -325,6 +341,80 @@ onMounted(() => {
   100% {
     background-position: 100% 100%;
     transform: rotate(10deg);
+  }
+}
+
+/* Animación de transición al hacer clic en el visor */
+.transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: transparent;
+  z-index: 100;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.transition-wave {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vh;
+  height: 100vh;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(209, 250, 229, 0.9) 30%,
+    rgba(147, 197, 253, 0.85) 70%,
+    rgba(37, 99, 235, 0.8) 100%
+  );
+  animation: wave-expand 1.2s ease-out forwards;
+  opacity: 0.98;
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes wave-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.4;
+  }
+  40% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 1;
+  }
+}
+
+/* Animación para el botón al hacer clic */
+.visor-button:active::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.8;
+  animation: button-ripple 0.6s ease-out;
+  z-index: 5;
+}
+
+@keyframes button-ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(50);
+    opacity: 0;
   }
 }
 </style>
