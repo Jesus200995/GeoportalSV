@@ -130,7 +130,7 @@ onMounted(() => {
             <div class="flex flex-col items-center justify-center mt-[-40px]">
               <!-- Texto mejorado con mejor tipografía y animación más elegante -->
               <h2 class="text-3xl font-semibold text-white mb-10 tracking-wider elegant-text">
-                <span class="elegant-animation">Seleccione una herramienta</span>
+                <span class="elegant-animation" data-text="Seleccione una herramienta">Seleccione una herramienta</span>
               </h2>
               
               <div class="flex flex-wrap justify-center gap-8 sm:gap-12 md:gap-16">
@@ -553,13 +553,14 @@ onMounted(() => {
   animation: logo-pulse 3s ease-in-out infinite;
 }
 
-/* Estilos mejorados para el texto elegante */
+/* Estilos para el texto elegante */
 .elegant-text {
   font-family: 'Poppins', sans-serif;
   letter-spacing: 1px;
   text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
   position: relative;
   padding-bottom: 6px;
+  color: white;
 }
 
 .elegant-text::after {
@@ -573,29 +574,41 @@ onMounted(() => {
   transform: translateX(-50%);
 }
 
-/* Animación más suave y elegante */
+/* Nueva animación con efecto de brillo verde claro horizontal */
 .elegant-animation {
+  position: relative;
   display: inline-block;
-  background: linear-gradient(45deg, #ffffff, #d4f5e9, #ffffff);
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: elegant-shine 3s ease-in-out infinite alternate;
 }
 
-@keyframes elegant-shine {
+.elegant-animation::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(144, 238, 144, 0.3) 25%,
+    rgba(152, 251, 152, 0.7) 50%,
+    rgba(144, 238, 144, 0.3) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shineGreen 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes shineGreen {
   0% {
-    background-position: 0% center;
-    transform: translateY(0);
-  }
-  50% {
-    background-position: 100% center;
-    transform: translateY(-2px);
+    background-position: -200% 0;
   }
   100% {
-    background-position: 0% center;
-    transform: translateY(0);
+    background-position: 200% 0;
   }
 }
 </style>
