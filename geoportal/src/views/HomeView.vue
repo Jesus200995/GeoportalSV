@@ -89,30 +89,56 @@ onMounted(() => {
         <!-- Contenido principal centrado -->
         <main class="flex-1 flex items-center justify-center px-4 py-8">
           <div class="max-w-7xl mx-auto text-center">
-            <!-- Círculo grande para el visor -->
+            <!-- Círculo grande para el visor - REDISEÑADO -->
             <div class="flex flex-col items-center justify-center mt-12">
               <div class="relative group">
-                <!-- Círculo exterior con animación de luz verde -->
-                <div class="absolute -inset-1 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-lg opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
+                <!-- Círculo exterior con animación de luz verde - Mejorado con blur más intenso -->
+                <div class="absolute -inset-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
                 
-                <!-- Botón del visor -->
+                <!-- Nuevo botón del visor con animación de plasma -->
                 <button 
                   @click="openVisor"
-                  class="relative bg-white bg-opacity-10 backdrop-blur-sm hover:bg-opacity-20 text-white rounded-full p-8 w-64 h-64 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/10"
+                  class="relative bg-black/40 backdrop-blur-lg hover:bg-black/50 text-white rounded-full p-10 w-80 h-80 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
                 >
-                  <img src="@/components/images/vizual2.png" alt="Mapa" class="w-32 h-32 object-cover rounded-full mb-4 shadow-lg" />
-                  <span class="text-2xl font-bold tracking-wide">VISOR</span>
-                  <span class="text-sm text-green-300 mt-2">Haga clic para explorar</span>
+                  <!-- Fondo animado tipo plasma -->
+                  <div class="absolute inset-0 w-full h-full overflow-hidden">
+                    <!-- Capas de gradientes animados para efecto plasma -->
+                    <div class="plasma-bg absolute inset-0 opacity-90"></div>
+                    <div class="plasma-layer1 absolute inset-0"></div>
+                    <div class="plasma-layer2 absolute inset-0"></div>
+                    
+                    <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"></div>
+                  </div>
                   
-                  <!-- Efecto de brillo al hacer hover -->
+                  <!-- Icono de globo terráqueo/mapa -->
+                  <div class="relative z-10 mb-1 group-hover:scale-110 transition-transform duration-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 01-1.81 1.025 1.055 1.055 0 01-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 01-1.383-2.46l.007-.042a2.25 2.25 0 01.29-.787l.09-.15a2.25 2.25 0 012.37-1.048l1.178.236a1.125 1.125 0 001.302-.795l.208-.73a1.125 1.125 0 00-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 01-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 01-1.458-1.137l1.411-2.353a2.25 2.25 0 00.286-.76m11.928 9.869A9 9 0 008.965 3.525m11.928 9.868A9 9 0 118.965 3.525" />
+                    </svg>
+                  </div>
+                  
+                  <!-- Texto VISOR mejorado -->
+                  <div class="relative z-10 flex flex-col items-center">
+                    <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg">VISOR</span>
+                    <span class="text-sm text-green-300 mt-2 font-medium bg-black/30 px-4 py-1 rounded-full">EXPLORAR TERRITORIOS</span>
+                  </div>
+                  
+                  <!-- Efecto de brillo al hacer hover mejorado -->
                   <div class="absolute inset-0 rounded-full overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-br from-green-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700"></div>
                   </div>
+                  
+                  <!-- Anillo exterior adicional -->
+                  <div class="absolute -inset-1.5 rounded-full border border-green-400/30 opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                  
+                  <!-- Indicador pulsante para llamar la atención -->
+                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-green-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
                 </button>
               </div>
               
               <!-- Texto descriptivo debajo del botón -->
-              <div class="mt-12 max-w-2xl text-white">
+              <div class="mt-16 max-w-2xl text-white">
                 <h2 class="text-2xl mb-4 font-medium text-green-300">Visualizador Geográfico Integral</h2>
                 <p class="text-lg text-gray-300">
                   Explore datos territoriales, agrícolas y ambientales a través de nuestro visor interactivo. 
@@ -173,7 +199,27 @@ onMounted(() => {
 }
 
 .animate-spin-slow {
-  animation: spin-slow 10s linear infinite;
+  animation: spin-slow 20s linear infinite;
+}
+
+/* Animación pulsante más lenta para el indicador */
+@keyframes ping-slow {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.6;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 3s ease-in-out infinite;
 }
 
 /* Estilo para partículas flotantes */
@@ -222,4 +268,63 @@ onMounted(() => {
 .particle:nth-child(7) { left: 70%; animation-delay: 12s; }
 .particle:nth-child(8) { left: 80%; animation-delay: 14s; }
 .particle:nth-child(9) { left: 90%; animation-delay: 16s; }
+
+/* Nuevos estilos para la animación de plasma */
+.plasma-bg {
+  background: linear-gradient(125deg, #064e3b, #065f46, #047857, #059669);
+  background-size: 400% 400%;
+  animation: plasma-shift 15s ease infinite;
+}
+
+.plasma-layer1 {
+  background: radial-gradient(circle at 30% 50%, rgba(5, 150, 105, 0.8) 0%, rgba(5, 150, 105, 0) 50%),
+              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.8) 0%, rgba(6, 182, 212, 0) 50%);
+  background-size: 200% 200%;
+  mix-blend-mode: screen;
+  animation: plasma-pulse 10s ease infinite alternate;
+  opacity: 0.7;
+}
+
+.plasma-layer2 {
+  background: radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.8) 0%, rgba(16, 185, 129, 0) 50%),
+              radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.8) 0%, rgba(14, 165, 233, 0) 50%);
+  background-size: 150% 150%;
+  mix-blend-mode: screen;
+  animation: plasma-move 8s ease-in-out infinite alternate-reverse;
+  opacity: 0.7;
+}
+
+@keyframes plasma-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes plasma-pulse {
+  0% {
+    background-position: 0% 0%;
+    transform: scale(1);
+  }
+  100% {
+    background-position: 100% 100%;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes plasma-move {
+  0% {
+    background-position: 0% 0%;
+    transform: rotate(0deg);
+  }
+  100% {
+    background-position: 100% 100%;
+    transform: rotate(10deg);
+  }
+}
 </style>
