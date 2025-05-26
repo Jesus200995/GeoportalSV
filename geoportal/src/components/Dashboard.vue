@@ -24,6 +24,9 @@ import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
 import Overlay from 'ol/Overlay';
+// Importar nuevo componente y composable
+import FeatureInfoPanel from './FeatureInfoPanel.vue';
+import { useFeatureInfo } from '../composables/useFeatureInfo';
 
 // Unificar definición de emisiones - combinar 'save-success', 'logout' y 'show-welcome'
 const emit = defineEmits(['save-success', 'logout', 'show-welcome']);
@@ -291,84 +294,14 @@ const initializeMap = () => {
 
 // Función para manejar clics en el mapa y obtener información de la característica
 const handleMapClick = async (event) => {
-  // Limpiar estado previo
-  errorDetails.value = null;
+  // Usar el nuevo sistema de obtención de información
+  await fetchFeatureInfo(map.value, event.coordinate);
   
-  const viewResolution = map.value.getView().getResolution();
-  const projection = map.value.getView().getProjection().getCode();
-  
-  // Buscar la capa de territorios
-  const territoriosLayer = map.value.getLayers().getArray().find(layer => {
-    const source = layer.getSource();
-    return source && 
-           source.getParams && 
-           source.getParams().LAYERS === 'sembrando:territorios_28';
-  });
-  
-  if (!territoriosLayer) {
-    console.error('Capa de territorios no encontrada');
-    return;
-  }
-  
-  const source = territoriosLayer.getSource();
-  
-  // Obtener URL para GetFeatureInfo
-  const url = source.getFeatureInfoUrl(
-    event.coordinate,
-    viewResolution,
-    projection,
-    {
-      'INFO_FORMAT': 'application/json',
-      'FEATURE_COUNT': 1,
-      'QUERY_LAYERS': 'sembrando:territorios_28'
-    }
-  );
-  
-  if (url) {
-    try {
-      // Mostrar loading
-      loadingDetails.value = true;
-      
-      // Realizar consulta GetFeatureInfo
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      // Verificar si hay características encontradas
-      if (data.features && data.features.length > 0) {
-        // Obtener el identificador del territorio
-        const feature = data.features[0];
-        const fid = feature.id.split('.')[1]; // Extraer el ID numérico de 'territorios_28.3'
-        
-        // Establecer territorio seleccionado básico - CORREGIDO: Verificar los campos para el nombre
-        territorioSeleccionado.value = {
-          fid,
-          ...feature.properties
-        };
-        
-        // Obtener detalles completos desde el backend
-        await obtenerDetallesTerritorio(fid);
-        
-        // Abrir el panel de detalles
-        detailsPanelOpen.value = true;
-        
-        // Agregar el marcador animado en la posición del clic
-        addMarkerAtCoordinate(event.coordinate);
-      } else {
-        // No se encontró ningún territorio en la ubicación del clic
-        territorioSeleccionado.value = null;
-        territorioDetalles.value = null;
-        detailsPanelOpen.value = false;
-        
-        // Eliminar el marcador si no hay territorio
-        removeMarker();
-      }
-    } catch (error) {
-      console.error('Error al obtener información del territorio:', error);
-      errorDetails.value = 'No se pudo obtener información del territorio.';
-      removeMarker();
-    } finally {
-      loadingDetails.value = false;
-    }
+  // Si se encontró información, añadir marcador en la posición del clic
+  if (showFeatureInfoPanel.value) {
+    addMarkerAtCoordinate(event.coordinate);
+  } else {
+    removeMarker();
   }
 };
 
@@ -405,9 +338,7 @@ const removeMarker = () => {
 
 // Cerrar el panel de detalles y eliminar el marcador
 const cerrarPanelDetalles = () => {
-  detailsPanelOpen.value = false;
-  territorioSeleccionado.value = null;
-  territorioDetalles.value = null;
+  closeFeatureInfoPanel();
   removeMarker();
 };
 
@@ -787,6 +718,18 @@ const formatearFecha = (fechaStr) => {
     return fechaStr;
   }
 };
+
+// Añadir useFeatureInfo al script setup
+const { 
+  featureInfo, 
+  selectedFeature, 
+  loading: featureInfoLoading, 
+  error: featureInfoError, 
+  showPanel: showFeatureInfoPanel,
+  activeLayer: activeFeatureLayer,
+  fetchFeatureInfo,
+  closePanel: closeFeatureInfoPanel 
+} = useFeatureInfo();
 </script>
 
 <template>
@@ -1113,167 +1056,17 @@ const formatearFecha = (fechaStr) => {
         </div>
       </div>
 
-      <!-- Panel de detalles del territorio seleccionado -->
-      <Transition name="slide-right">
-        <div v-if="detailsPanelOpen" 
-             class="absolute top-20 right-0 bottom-8 w-80 sm:w-96 bg-white shadow-lg rounded-l-xl z-30 overflow-hidden flex flex-col">
-          <!-- Encabezado del panel - CORREGIDO: Usar función getTituloTerritorio -->
-          <div class="p-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white flex items-center justify-between">
-            <h2 class="font-medium truncate">
-              {{ getTituloTerritorio() }}
-            </h2>
-            <button @click="cerrarPanelDetalles" 
-                    class="p-1 hover:bg-white/20 rounded-full transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Contenido del panel -->
-          <div class="flex-1 overflow-y-auto p-4">
-            <!-- Estado de carga -->
-            <div v-if="loadingDetails" class="flex flex-col items-center justify-center h-full">
-              <div class="w-10 h-10 border-2 border-t-green-500 border-green-200 rounded-full animate-spin mb-3"></div>
-              <p class="text-gray-500 text-sm">Cargando información...</p>
-            </div>
-            
-            <!-- Mensaje de error -->
-            <div v-else-if="errorDetails" class="bg-red-50 p-4 rounded-lg text-red-600 my-4">
-              <p class="flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {{ errorDetails }}
-              </p>
-            </div>
-            
-            <!-- Detalles del territorio -->
-            <div v-else-if="hayDatosTerritorio" class="space-y-6">
-              <!-- ID y clave -->
-              <div class="flex justify-between bg-gray-50 p-3 rounded-lg">
-                <div class="text-center">
-                  <span class="text-xs text-gray-500 block">ID</span>
-                  <span class="font-medium text-gray-800">{{ territorioDetalles.fid }}</span>
-                </div>
-                <div class="text-center">
-                  <span class="text-xs text-gray-500 block">Clave Municipal</span>
-                  <span class="font-medium text-gray-800">{{ territorioDetalles.clave_mun }}</span>
-                </div>
-              </div>
-              
-              <!-- Nombre del territorio - ACTUALIZADO: Usar la función getTituloTerritorio -->
-              <div class="bg-green-50 p-4 rounded-lg">
-                <h3 class="text-lg font-medium text-green-800">
-                  {{ getTituloTerritorio() }}
-                </h3>
-              </div>
-              
-              <!-- Datos generales -->
-              <div class="space-y-3">
-                <h4 class="text-sm font-medium text-gray-600 border-b pb-1">Datos generales</h4>
-                
-                <div class="grid grid-cols-2 gap-4">
-                  <!-- Número de cultivos -->
-                  <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                    <div class="flex items-center space-x-2">
-                      <div class="p-1.5 bg-green-100 rounded-full">
-                        <svg class="w-4 h-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span class="text-xs text-gray-500 block">Cultivos</span>
-                        <span class="font-medium text-gray-800">{{ territorioDetalles.n_cultivos }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Superficie -->
-                  <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                    <div class="flex items-center space-x-2">
-                      <div class="p-1.5 bg-blue-100 rounded-full">
-                        <svg class="w-4 h-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span class="text-xs text-gray-500 block">Superficie</span>
-                        <span class="font-medium text-gray-800">{{ territorioDetalles.superficie_ha }} ha</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Datos demográficos y geográficos -->
-                <div class="space-y-2">
-                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <span class="text-sm text-gray-600">Población:</span>
-                    <span class="text-sm font-medium">{{ territorioDetalles.poblacion?.toLocaleString() }}</span>
-                  </div>
-                  
-                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <span class="text-sm text-gray-600">Altitud:</span>
-                    <span class="text-sm font-medium">{{ territorioDetalles.altitud_m }} msnm</span>
-                  </div>
-                  
-                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <span class="text-sm text-gray-600">Precipitación anual:</span>
-                    <span class="text-sm font-medium">{{ territorioDetalles.precipitacion_mm }} mm</span>
-                  </div>
-                  
-                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <span class="text-sm text-gray-600">Temperatura media:</span>
-                    <span class="text-sm font-medium">{{ territorioDetalles.temperatura_c }}°C</span>
-                  </div>
-                  
-                  <div class="flex justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <span class="text-sm text-gray-600">Cultivo principal:</span>
-                    <span class="text-sm font-medium">{{ territorioDetalles.cultivo_principal }}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Acciones -->
-              <div class="flex space-x-2">
-                <button 
-                  @click="verReporteCompleto" 
-                  class="flex-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Ver reporte completo</span>
-                </button>
-                <button class="flex-1 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium flex items-center justify-center space-x-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>Descargar datos</span>
-                </button>
-              </div>
-            </div>
-            
-            <!-- Caso sin datos -->
-            <div v-else class="flex flex-col items-center justify-center h-full">
-              <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0  11-18 0 9 9 0 0118 0z" />
-            </svg>
-              <p class="text-gray-500 text-center">No hay información disponible para este territorio</p>
-            </div>
-          </div>
-          
-          <!-- Pie del panel -->
-          <div class="p-3 bg-gray-50 text-center text-xs text-gray-500">
-            Última actualización: {{ new Date().toLocaleDateString() }}
-          </div>
-        </div>
-      </Transition>
-
+      <!-- Reemplazar el panel de detalles del territorio por el nuevo FeatureInfoPanel -->
+      <FeatureInfoPanel
+        :featureInfo="featureInfo"
+        :selectedFeature="selectedFeature"
+        :loading="featureInfoLoading"
+        :error="featureInfoError"
+        :showPanel="showFeatureInfoPanel"
+        :activeLayer="activeFeatureLayer"
+        @close="cerrarPanelDetalles"
+      />
+      
       <!-- Modal para reporte completo del territorio -->
       <Transition name="modal-fade">
         <div 
