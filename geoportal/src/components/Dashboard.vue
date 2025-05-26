@@ -1019,15 +1019,6 @@ const {
               <span class="hidden sm:inline font-medium">Inicio</span>
               <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
             </button>
-
-            <!-- Botón de guardar -->
-            <button 
-              @click="showSaveDialog = true"
-              class="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 flex items-center space-x-1 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <span>💾</span>
-              <span class="hidden sm:inline text-sm">Guardar</span>
-            </button>
           </div>
         </div>
       </header>
@@ -1407,33 +1398,6 @@ const {
         </div>
       </Transition>
       
-      <!-- Modal para guardar mapa -->
-      <div v-if="showSaveDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-96">
-          <h3 class="text-lg font-semibold text-green-800 mb-4">Guardar Mapa</h3>
-          <input 
-            v-model="newMapName"
-            type="text"
-            placeholder="Nombre del mapa"
-            class="w-full px-3 py-2 border rounded-lg mb-4"
-          />
-          <div class="flex justify-end space-x-3">
-            <button 
-              @click="showSaveDialog = false"
-              class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colores"
-            >
-              Cancelar
-            </button>
-            <button 
-              @click="saveMap"
-              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colores"
-            >
-              Guardar
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Modal elegante para confirmar salida -->
       <Transition name="modal-fade">
         <div v-if="showExitModal" 
