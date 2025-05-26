@@ -126,11 +126,11 @@ onMounted(() => {
         <!-- Contenido principal centrado -->
         <main class="flex-1 flex items-center justify-center px-4 py-8">
           <div class="max-w-7xl mx-auto text-center">
-            <!-- Contenedor para los círculos en fila - Movido más arriba reduciendo el margen top -->
-            <div class="flex flex-col items-center justify-center mt-4">
-              <!-- Mejora de la tipografía y adición de animación elegante -->
-              <h2 class="text-3xl font-semibold text-white mb-12 tracking-wide animate-pulse-slow fancy-text">
-                Seleccione una herramienta
+            <!-- Contenedor para los círculos en fila - Posición ajustada más arriba -->
+            <div class="flex flex-col items-center justify-center mt-[-40px]">
+              <!-- Texto mejorado con mejor tipografía y animación más elegante -->
+              <h2 class="text-3xl font-semibold text-white mb-10 tracking-wider elegant-text">
+                <span class="elegant-animation">Seleccione una herramienta</span>
               </h2>
               
               <div class="flex flex-wrap justify-center gap-8 sm:gap-12 md:gap-16">
@@ -553,28 +553,49 @@ onMounted(() => {
   animation: logo-pulse 3s ease-in-out infinite;
 }
 
-/* Estilo y animación para el título "Seleccione una herramienta" */
-.fancy-text {
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
-  letter-spacing: 0.5px;
+/* Estilos mejorados para el texto elegante */
+.elegant-text {
   font-family: 'Poppins', sans-serif;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
   position: relative;
+  padding-bottom: 6px;
+}
+
+.elegant-text::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: translateX(-50%);
+}
+
+/* Animación más suave y elegante */
+.elegant-animation {
   display: inline-block;
   background: linear-gradient(45deg, #ffffff, #d4f5e9, #ffffff);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: elegant-shine 3s ease-in-out infinite alternate;
 }
 
-/* Animación más lenta y elegante para el texto */
-.animate-pulse-slow {
-  animation: text-shine 3s ease-in-out infinite;
-}
-
-@keyframes text-shine {
-  0% { background-position: 0% center; }
-  50% { background-position: 100% center; }
-  100% { background-position: 0% center; }
+@keyframes elegant-shine {
+  0% {
+    background-position: 0% center;
+    transform: translateY(0);
+  }
+  50% {
+    background-position: 100% center;
+    transform: translateY(-2px);
+  }
+  100% {
+    background-position: 0% center;
+    transform: translateY(0);
+  }
 }
 </style>
