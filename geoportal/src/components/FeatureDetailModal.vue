@@ -253,8 +253,8 @@ const closeModal = () => {
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-modal-in">
-        <!-- Encabezado del modal -->
-        <div class="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex items-center justify-between">
+        <!-- Encabezado del modal con tema verde -->
+        <div class="p-5 bg-gradient-to-r from-emerald-600 to-green-700 text-white flex items-center justify-between">
           <h2 class="text-xl font-medium flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -279,9 +279,9 @@ const closeModal = () => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <template v-for="(category, index) in ['general', 'identificacion', 'geografico', 'agricola', 'social', 'fechas', 'otros']" :key="category">
                 <div v-if="categorizedProperties[category] && categorizedProperties[category].length > 0" class="space-y-3">
-                  <!-- Título de la categoría -->
+                  <!-- Título de la categoría con tema verde -->
                   <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getCategoryIcon(category)" />
                     </svg>
                     <h3>{{ getCategoryTitle(category) }}</h3>
@@ -308,12 +308,12 @@ const closeModal = () => {
           </div>
         </div>
         
-        <!-- Pie del modal -->
+        <!-- Pie del modal con tema verde -->
         <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
           <span class="text-sm text-gray-500">
             {{ activeLayer ? activeLayer.get('name') || activeLayer.get('title') : 'Capa' }}
           </span>
-          <button @click="closeModal" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors">
+          <button @click="closeModal" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
             Cerrar
           </button>
         </div>
