@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import FeatureDetailModal from './FeatureDetailModal.vue';
 
 const props = defineProps({
   featureInfo: Object,
@@ -327,6 +328,47 @@ const getCategoryTitle = (category) => {
   
   return titles[category] || 'Otros Datos';
 };
+
+// Añadir estado para el modal
+const showDetailModal = ref(false);
+
+// Determinar las propiedades importantes para el resumen
+const keyProperties = computed(() => {
+  if (!properties.value) return [];
+  
+  // Lista de claves prioritarias para mostrar en el resumen
+  const priorityKeys = [
+    'nombre', 'nombre_territorio', 'nomgeo', 'nom_geo', 'nom_mun', 'nom_ent', 
+    'municipio', 'estado', 'entidad', 'cvegeo', 'cve_geo', 'clave_mun', 'cve_mun',
+    'region', 'n_cultivos', 'cultivo_principal', 'poblacion'
+  ];
+  
+  // Filtrar propiedades para mostrar solo las importantes
+  return Object.entries(properties.value)
+    .filter(([key]) => priorityKeys.includes(key.toLowerCase()))
+    .map(([key, value]) => ({
+      key,
+      label: attributeLabels[key.toLowerCase()] || formatPropertyName(key),
+      value: formatPropertyValue(value)
+    }))
+    .sort((a, b) => {
+      // Ordenar según la posición en la lista de prioridades
+      const indexA = priorityKeys.indexOf(a.key.toLowerCase());
+      const indexB = priorityKeys.indexOf(b.key.toLowerCase());
+      return indexA - indexB;
+    })
+    .slice(0, 5); // Mostrar máximo 5 propiedades en el resumen
+});
+
+// Función para abrir el modal con información completa
+const openDetailModal = () => {
+  showDetailModal.value = true;
+};
+
+// Función para cerrar el modal
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+};
 </script>
 
 <template>
@@ -365,45 +407,45 @@ const getCategoryTitle = (category) => {
         </p>
       </div>
       
-      <!-- Detalles de la entidad -->
-      <div v-else-if="selectedFeature" class="space-y-6">
-        <!-- ID de la entidad si existe -->
-        <div v-if="selectedFeature.id" class="bg-gray-50 p-3 rounded-lg">
-          <span class="text-xs text-gray-500 block">ID de la entidad</span>
-          <span class="font-medium text-gray-800">{{ selectedFeature.id }}</span>
-        </div>
-        
-        <!-- Propiedades organizadas por categorías -->
-        <template v-for="(category, index) in ['general', 'identificacion', 'geografico', 'agricola', 'social', 'fechas', 'otros']" :key="category">
-          <div v-if="hasCategoryProperties(category)" class="space-y-3">
-            <!-- Título de la categoría -->
-            <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getCategoryIcon(category)" />
-              </svg>
-              <h3>{{ getCategoryTitle(category) }}</h3>
-            </div>
-            
-            <!-- Card con propiedades de la categoría -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
-              <div v-for="property in propertyList[category]" 
-                   :key="property.originalKey"
-                   class="property-item">
-                <span class="text-xs text-gray-500 block">{{ property.label }}</span>
-                <span class="font-medium text-gray-800">{{ property.value }}</span>
-              </div>
+      <!-- Resumen de información (versión simplificada) -->
+      <div v-else-if="selectedFeature" class="space-y-4">
+        <!-- Tarjeta de resumen -->
+        <div class="bg-white rounded-lg shadow border border-gray-100 p-4 space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2 mb-2">
+            Resumen de información
+          </h3>
+          
+          <!-- Propiedades clave -->
+          <div v-for="property in keyProperties" :key="property.key" class="py-1.5">
+            <div class="flex items-start">
+              <span class="font-medium text-gray-700 min-w-[130px]">{{ property.label }}:</span>
+              <span class="text-gray-800 ml-2">{{ property.value }}</span>
             </div>
           </div>
-        </template>
+          
+          <!-- Botón para ver información completa -->
+          <button 
+            @click="openDetailModal"
+            class="mt-3 w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-300 flex items-center justify-center space-x-2 shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Ver información completa</span>
+          </button>
+        </div>
         
-        <!-- Botón para mostrar todas las propiedades si hay muchas -->
-        <button 
-          v-if="propertyList.otros && propertyList.otros.length > 5 && !showAllProperties"
-          @click="showAllProperties = true"
-          class="w-full py-2 text-center text-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-        >
-          Mostrar todos los atributos
-        </button>
+        <!-- Mapa en miniatura o vista previa si está disponible -->
+        <div v-if="selectedFeature.geometry" class="bg-gray-50 rounded-lg p-2 border border-gray-200">
+          <p class="text-xs text-gray-500 mb-1">Ubicación geográfica:</p>
+          <div class="h-32 bg-blue-50 rounded overflow-hidden flex items-center justify-center">
+            <span class="text-blue-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+            </span>
+          </div>
+        </div>
       </div>
       
       <!-- Caso sin datos -->
@@ -426,6 +468,15 @@ const getCategoryTitle = (category) => {
       </span>
     </div>
   </div>
+  
+  <!-- Usar el componente modal -->
+  <FeatureDetailModal 
+    :show="showDetailModal"
+    :feature="selectedFeature"
+    :activeLayer="activeLayer"
+    :attributeLabels="attributeLabels"
+    @close="closeDetailModal"
+  />
 </template>
 
 <style scoped>
@@ -473,5 +524,37 @@ const getCategoryTitle = (category) => {
   border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
+}
+
+/* Animación del modal */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .bg-white,
+.modal-leave-to .bg-white {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.3s forwards;
 }
 </style>
