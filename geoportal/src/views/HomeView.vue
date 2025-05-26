@@ -3,9 +3,11 @@ import { ref, onMounted } from 'vue';
 import Dashboard from '../components/Dashboard.vue';
 import ToastNotification from '../components/notifications/ToastNotification.vue';
 import UserProfile from '../components/UserProfile.vue';
+import StatsDashboard from '../components/StatsDashboard.vue';
 
 const showWelcome = ref(true);
 const isTransitioning = ref(false);
+const transitionTarget = ref(''); // Para determinar a qué componente hacer la transición
 
 // Estado para notificaciones
 const notification = ref({
@@ -43,6 +45,7 @@ const changeBackgroundImage = () => {
 // Función para abrir el visor de mapa con animación de transición
 const openVisor = () => {
   isTransitioning.value = true;
+  transitionTarget.value = 'map';
   
   // Esperar a que termine la animación antes de mostrar el dashboard
   setTimeout(() => {
@@ -55,6 +58,22 @@ const openVisor = () => {
   }, 1200); // Duración total de la animación
 };
 
+// Función para abrir el dashboard de estadísticas con animación
+const openStats = () => {
+  isTransitioning.value = true;
+  transitionTarget.value = 'stats';
+  
+  // Esperar a que termine la animación antes de mostrar el dashboard de estadísticas
+  setTimeout(() => {
+    showWelcome.value = false;
+    
+    // Reiniciar el estado de transición después de un breve retraso
+    setTimeout(() => {
+      isTransitioning.value = false;
+    }, 100);
+  }, 1200);
+};
+
 // Iniciar el carrusel de fondo
 onMounted(() => {
   setInterval(changeBackgroundImage, 5000);
@@ -65,7 +84,7 @@ onMounted(() => {
   <div>
     <!-- Animación de transición al hacer clic -->
     <div v-if="isTransitioning" class="transition-overlay">
-      <div class="transition-wave"></div>
+      <div class="transition-wave" :class="transitionTarget === 'stats' ? 'stats-transition' : 'map-transition'"></div>
     </div>
     
     <!-- Vista de bienvenida -->
@@ -105,61 +124,116 @@ onMounted(() => {
         <!-- Contenido principal centrado -->
         <main class="flex-1 flex items-center justify-center px-4 py-8">
           <div class="max-w-7xl mx-auto text-center">
-            <!-- Círculo grande para el visor - REDISEÑADO -->
+            <!-- Contenedor para los círculos en fila -->
             <div class="flex flex-col items-center justify-center mt-12">
-              <div class="relative group">
-                <!-- Círculo exterior con animación de luz verde - Mejorado con blur más intenso -->
-                <div class="absolute -inset-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
-                
-                <!-- Botón del visor con nueva clase para efecto de clic -->
-                <button 
-                  @click="openVisor"
-                  class="visor-button relative bg-black/40 backdrop-blur-lg hover:bg-black/50 text-white rounded-full p-10 w-80 h-80 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
-                >
-                  <!-- Fondo animado tipo plasma -->
-                  <div class="absolute inset-0 w-full h-full overflow-hidden">
-                    <!-- Capas de gradientes animados para efecto plasma -->
-                    <div class="plasma-bg absolute inset-0 opacity-90"></div>
-                    <div class="plasma-layer1 absolute inset-0"></div>
-                    <div class="plasma-layer2 absolute inset-0"></div>
-                    
-                    <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
-                    <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50"></div>
-                  </div>
-                  
-                  <!-- Icono de globo terráqueo/mapa -->
-                  <div class="relative z-10 mb-1 group-hover:scale-110 transition-transform duration-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 01-1.81 1.025 1.055 1.055 0 01-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 01-1.383-2.46l.007-.042a2.25 2.25 0 01.29-.787l.09-.15a2.25 2.25 0 012.37-1.048l1.178.236a1.125 1.125 0 001.302-.795l.208-.73a1.125 1.125 0 00-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 01-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 01-1.458-1.137l1.411-2.353a2.25 2.25 0 00.286-.76m11.928 9.869A9 9 0 008.965 3.525m11.928 9.868A9 9 0 118.965 3.525" />
-                    </svg>
-                  </div>
-                  
-                  <!-- Texto VISOR mejorado -->
-                  <div class="relative z-10 flex flex-col items-center">
-                    <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg">VISOR</span>
-                    <span class="text-sm text-green-300 mt-2 font-medium bg-black/30 px-4 py-1 rounded-full">EXPLORAR TERRITORIOS</span>
-                  </div>
-                  
-                  <!-- Efecto de brillo al hacer hover mejorado -->
-                  <div class="absolute inset-0 rounded-full overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-br from-green-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700"></div>
-                  </div>
-                  
-                  <!-- Anillo exterior adicional -->
-                  <div class="absolute -inset-1.5 rounded-full border border-green-400/30 opacity-50 group-hover:opacity-80 transition-opacity"></div>
-                  
-                  <!-- Indicador pulsante para llamar la atención -->
-                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-green-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
-                </button>
-              </div>
+              <h2 class="text-2xl font-semibold text-white mb-12 tracking-wide">Seleccione una herramienta</h2>
               
-              <!-- Texto descriptivo debajo del botón -->
-              <div class="mt-16 max-w-2xl text-white">
-                <h2 class="text-2xl mb-4 font-medium text-green-300">Visualizador Geográfico Integral</h2>
-                <p class="text-lg text-gray-300">
-                  Explore datos territoriales, agrícolas y ambientales a través de nuestro visor interactivo. 
-                  Descubra información detallada sobre cultivos, condiciones del suelo, y más.
-                </p>
+              <div class="flex flex-wrap justify-center gap-8 sm:gap-12 md:gap-16">
+                <!-- Círculo 1: Visor de Mapa -->
+                <div class="relative group mb-8">
+                  <!-- Círculo exterior con animación de luz verde - Mejorado con blur más intenso -->
+                  <div class="absolute -inset-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-slow"></div>
+                  
+                  <!-- Botón del visor con nueva clase para efecto de clic -->
+                  <button 
+                    @click="openVisor"
+                    class="visor-button relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full p-10 w-72 h-72 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
+                  >
+                    <!-- Fondo animado tipo plasma refinado -->
+                    <div class="absolute inset-0 w-full h-full overflow-hidden rounded-full">
+                      <!-- Capas de gradientes animados para efecto plasma -->
+                      <div class="plasma-bg absolute inset-0 opacity-80"></div>
+                      <div class="plasma-layer1 absolute inset-0"></div>
+                      <div class="plasma-layer2 absolute inset-0"></div>
+                      
+                      <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
+                      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40"></div>
+                    </div>
+                    
+                    <!-- Icono de globo terráqueo/mapa -->
+                    <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.893 13.393l-1.135-1.135a2.252 2.252 0 01-.421-.585l-1.08-2.16a.414.414 0 00-.663-.107.827.827 0 01-.812.21l-1.273-.363a.89.89 0 00-.738 1.595l.587.39c.59.395.674 1.23.172 1.732l-.2.2c-.212.212-.33.498-.33.796v.41c0 .409-.11.809-.32 1.158l-1.315 2.191a2.11 2.11 0 01-1.81 1.025 1.055 1.055 0 01-1.055-1.055v-1.172c0-.92-.56-1.747-1.414-2.089l-.655-.261a2.25 2.25 0 01-1.383-2.46l.007-.042a2.25 2.25 0 01.29-.787l.09-.15a2.25 2.25 0 012.37-1.048l1.178.236a1.125 1.125 0 001.302-.795l.208-.73a1.125 1.125 0 00-.578-1.315l-.665-.332-.091.091a2.25 2.25 0 01-1.591.659h-.18c-.249 0-.487.1-.662.274a.931.931 0 01-1.458-1.137l1.411-2.353a2.25 2.25 0 00.286-.76m11.928 9.869A9 9 0 008.965 3.525m11.928 9.868A9 9 0 118.965 3.525" />
+                      </svg>
+                    </div>
+                    
+                    <!-- Texto VISOR mejorado -->
+                    <div class="relative z-10 flex flex-col items-center">
+                      <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg mb-3">VISOR</span>
+                      <span class="text-sm text-green-300 font-medium px-3 py-0.5 rounded-full bg-black/15 backdrop-blur-sm border border-green-500/20 shadow-sm">EXPLORAR TERRITORIOS</span>
+                    </div>
+                    
+                    <!-- Efecto de brillo al hacer hover mejorado -->
+                    <div class="absolute inset-0 rounded-full overflow-hidden">
+                      <div class="absolute inset-0 bg-gradient-to-br from-green-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700"></div>
+                    </div>
+                    
+                    <!-- Anillo exterior adicional -->
+                    <div class="absolute -inset-1.5 rounded-full border border-green-400/30 opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                    
+                    <!-- Indicador pulsante para llamar la atención -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-green-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
+                  </button>
+                  
+                  <!-- Etiqueta descriptiva -->
+                  <div class="mt-6 text-center">
+                    <h3 class="text-xl font-semibold text-white">Visor de Mapas</h3>
+                    <p class="text-gray-300 mt-2 max-w-xs">Explore datos geográficos con nuestro visor interactivo</p>
+                  </div>
+                </div>
+                
+                <!-- Círculo 2: Estadísticas y Análisis -->
+                <div class="relative group mb-8">
+                  <!-- Círculo exterior con animación de luz azul -->
+                  <div class="absolute -inset-3 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full blur-xl opacity-70 group-hover:opacity-90 animate-spin-reverse"></div>
+                  
+                  <!-- Botón de estadísticas -->
+                  <button 
+                    @click="openStats"
+                    class="stats-button relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full p-10 w-72 h-72 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-blue-500/20 border border-white/20 overflow-hidden"
+                  >
+                    <!-- Fondo animado tipo plasma azul refinado -->
+                    <div class="absolute inset-0 w-full h-full overflow-hidden rounded-full">
+                      <!-- Capas de gradientes animados para efecto plasma -->
+                      <div class="stats-plasma-bg absolute inset-0 opacity-80"></div>
+                      <div class="stats-plasma-layer1 absolute inset-0"></div>
+                      <div class="stats-plasma-layer2 absolute inset-0"></div>
+                      
+                      <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
+                      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40"></div>
+                    </div>
+                    
+                    <!-- Icono de estadísticas -->
+                    <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                      </svg>
+                    </div>
+                    
+                    <!-- Texto DATOS mejorado -->
+                    <div class="relative z-10 flex flex-col items-center">
+                      <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg mb-3">DATOS</span>
+                      <span class="text-sm text-blue-300 font-medium px-3 py-0.5 rounded-full bg-black/15 backdrop-blur-sm border border-blue-500/20 shadow-sm">ANÁLISIS Y ESTADÍSTICAS</span>
+                    </div>
+                    
+                    <!-- Efecto de brillo al hacer hover mejorado -->
+                    <div class="absolute inset-0 rounded-full overflow-hidden">
+                      <div class="absolute inset-0 bg-gradient-to-br from-blue-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700"></div>
+                    </div>
+                    
+                    <!-- Anillo exterior adicional -->
+                    <div class="absolute -inset-1.5 rounded-full border border-blue-400/30 opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                    
+                    <!-- Indicador pulsante para llamar la atención -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-blue-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
+                  </button>
+                  
+                  <!-- Etiqueta descriptiva -->
+                  <div class="mt-6 text-center">
+                    <h3 class="text-xl font-semibold text-white">Análisis y Estadísticas</h3>
+                    <p class="text-gray-300 mt-2 max-w-xs">Visualice datos agrícolas con gráficas y análisis interactivos</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -174,11 +248,14 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Vista del dashboard (mapa) -->
-    <Dashboard v-else 
+    <!-- Renderizado condicional basado en el tipo de componente a mostrar -->
+    <Dashboard v-if="!showWelcome && transitionTarget === 'map'" 
                @show-welcome="showWelcome = true"
                @save-success="showNotification('Mapa guardado exitosamente', 'success')"
                @logout="showWelcome = true" />
+    
+    <StatsDashboard v-if="!showWelcome && transitionTarget === 'stats'"
+                   @show-welcome="showWelcome = true" />
     
     <!-- Notificación Toast -->
     <ToastNotification 
@@ -287,29 +364,71 @@ onMounted(() => {
 
 /* Nuevos estilos para la animación de plasma */
 .plasma-bg {
-  background: linear-gradient(125deg, #064e3b, #065f46, #047857, #059669);
-  background-size: 400% 400%;
+  background: linear-gradient(125deg, 
+    rgba(6, 78, 59, 0.9), 
+    rgba(6, 95, 70, 0.9), 
+    rgba(4, 120, 87, 0.9), 
+    rgba(5, 150, 105, 0.9)
+  );
+  background-size: 300% 300%;
   animation: plasma-shift 15s ease infinite;
+  border-radius: 50%;
 }
 
 .plasma-layer1 {
-  background: radial-gradient(circle at 30% 50%, rgba(5, 150, 105, 0.8) 0%, rgba(5, 150, 105, 0) 50%),
-              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.8) 0%, rgba(6, 182, 212, 0) 50%);
+  background: radial-gradient(circle at 30% 50%, rgba(5, 150, 105, 0.6) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.6) 0%, transparent 60%);
   background-size: 200% 200%;
-  mix-blend-mode: screen;
+  mix-blend-mode: soft-light;
   animation: plasma-pulse 10s ease infinite alternate;
-  opacity: 0.7;
+  opacity: 0.8;
+  border-radius: 50%;
 }
 
 .plasma-layer2 {
-  background: radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.8) 0%, rgba(16, 185, 129, 0) 50%),
-              radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.8) 0%, rgba(14, 165, 233, 0) 50%);
+  background: radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.6) 0%, transparent 60%),
+              radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.6) 0%, transparent 60%);
   background-size: 150% 150%;
   mix-blend-mode: screen;
-  animation: plasma-move 8s ease-in-out infinite alternate-reverse;
+  animation: plasma-move 12s ease-in-out infinite alternate-reverse;
   opacity: 0.7;
+  border-radius: 50%;
 }
 
+/* Estilos refinados para el plasma de estadísticas */
+.stats-plasma-bg {
+  background: linear-gradient(125deg, 
+    rgba(30, 64, 175, 0.9), 
+    rgba(59, 130, 246, 0.9), 
+    rgba(96, 165, 250, 0.9), 
+    rgba(147, 197, 253, 0.9)
+  );
+  background-size: 300% 300%;
+  animation: plasma-shift 15s ease infinite;
+  border-radius: 50%;
+}
+
+.stats-plasma-layer1 {
+  background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.6) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.6) 0%, transparent 60%);
+  background-size: 200% 200%;
+  mix-blend-mode: soft-light;
+  animation: plasma-pulse 10s ease infinite alternate;
+  opacity: 0.8;
+  border-radius: 50%;
+}
+
+.stats-plasma-layer2 {
+  background: radial-gradient(circle at 70% 30%, rgba(37, 99, 235, 0.6) 0%, transparent 60%),
+              radial-gradient(circle at 20% 70%, rgba(79, 70, 229, 0.6) 0%, transparent 60%);
+  background-size: 150% 150%;
+  mix-blend-mode: screen;
+  animation: plasma-move 12s ease-in-out infinite alternate-reverse;
+  opacity: 0.7;
+  border-radius: 50%;
+}
+
+/* Animaciones refinadas */
 @keyframes plasma-shift {
   0% {
     background-position: 0% 50%;
@@ -329,7 +448,7 @@ onMounted(() => {
   }
   100% {
     background-position: 100% 100%;
-    transform: scale(1.2);
+    transform: scale(1.05);
   }
 }
 
@@ -340,31 +459,36 @@ onMounted(() => {
   }
   100% {
     background-position: 100% 100%;
-    transform: rotate(10deg);
+    transform: rotate(8deg);
   }
 }
 
-/* Animación de transición al hacer clic en el visor */
-.transition-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: transparent;
-  z-index: 100;
-  pointer-events: none;
-  overflow: hidden;
+/* Animación en dirección contraria más suave */
+.animate-spin-reverse {
+  animation: spin-reverse 20s linear infinite;
 }
 
-.transition-wave {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100vh;
-  height: 100vh;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0);
+@keyframes spin-reverse {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+
+/* Ajustes para la transición */
+.transition-wave.stats-transition {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(219, 234, 254, 0.9) 30%,
+    rgba(147, 197, 253, 0.85) 70%,
+    rgba(37, 99, 235, 0.8) 100%
+  );
+}
+
+.transition-wave.map-transition {
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 0.95) 0%,
@@ -372,49 +496,13 @@ onMounted(() => {
     rgba(147, 197, 253, 0.85) 70%,
     rgba(37, 99, 235, 0.8) 100%
   );
-  animation: wave-expand 1.2s ease-out forwards;
-  opacity: 0.98;
-  box-shadow: 0 0 50px rgba(255, 255, 255, 0.8);
 }
 
-@keyframes wave-expand {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0.4;
-  }
-  40% {
-    opacity: 0.95;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(4);
-    opacity: 1;
-  }
-}
-
-/* Animación para el botón al hacer clic */
-.visor-button:active::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 0.8;
-  animation: button-ripple 0.6s ease-out;
-  z-index: 5;
-}
-
-@keyframes button-ripple {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(50);
-    opacity: 0;
+/* Responsive para pantallas pequeñas */
+@media (max-width: 640px) {
+  .flex.flex-wrap.justify-center {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>
