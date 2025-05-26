@@ -84,7 +84,8 @@ onMounted(() => {
   <div>
     <!-- Animación de transición al hacer clic -->
     <div v-if="isTransitioning" class="transition-overlay">
-      <div class="transition-wave" :class="transitionTarget === 'stats' ? 'stats-transition' : 'map-transition'"></div>
+      <!-- Eliminar la clase que crea el efecto de onda con colores verde y morado -->
+      <div class="transition-wave"></div>
     </div>
     
     <!-- Vista de bienvenida -->
@@ -139,17 +140,6 @@ onMounted(() => {
                     @click="openVisor"
                     class="visor-button relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full p-10 w-72 h-72 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-green-500/20 border border-white/20 overflow-hidden"
                   >
-                    <!-- Fondo animado tipo plasma refinado -->
-                    <div class="absolute inset-0 w-full h-full overflow-hidden rounded-full">
-                      <!-- Capas de gradientes animados para efecto plasma -->
-                      <div class="plasma-bg absolute inset-0 opacity-80"></div>
-                      <div class="plasma-layer1 absolute inset-0"></div>
-                      <div class="plasma-layer2 absolute inset-0"></div>
-                      
-                      <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
-                      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40"></div>
-                    </div>
-                    
                     <!-- Icono de globo terráqueo/mapa -->
                     <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-700">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -192,17 +182,6 @@ onMounted(() => {
                     @click="openStats"
                     class="stats-button relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full p-10 w-72 h-72 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-blue-500/20 border border-white/20 overflow-hidden"
                   >
-                    <!-- Fondo animado tipo plasma azul refinado -->
-                    <div class="absolute inset-0 w-full h-full overflow-hidden rounded-full">
-                      <!-- Capas de gradientes animados para efecto plasma -->
-                      <div class="stats-plasma-bg absolute inset-0 opacity-80"></div>
-                      <div class="stats-plasma-layer1 absolute inset-0"></div>
-                      <div class="stats-plasma-layer2 absolute inset-0"></div>
-                      
-                      <!-- Overlay con gradiente para mejorar la legibilidad del texto -->
-                      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40"></div>
-                    </div>
-                    
                     <!-- Icono de estadísticas -->
                     <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-700">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -518,5 +497,45 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* Eliminar las animaciones de plasma verde y morada de la transición-wave */
+.transition-wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.95);
+  transform: scale(0);
+  transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* Simplificar las transiciones eliminando los gradientes animados */
+.transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Estilos para la transición simple sin el efecto de plasma */
+.transition-wave {
+  transform-origin: center;
+}
+
+/* Estilos básicos para mantener la funcionalidad de transición */
+.map-transition {
+  transform: scale(20);
+  background-color: rgba(230, 250, 240, 0.95);
+}
+
+.stats-transition {
+  transform: scale(20);
+  background-color: rgba(240, 240, 255, 0.95);
 }
 </style>
