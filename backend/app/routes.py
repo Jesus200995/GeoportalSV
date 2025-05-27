@@ -93,9 +93,12 @@ def upload_shapefile():
                 response_data = {
                     'success': True,
                     'message': result['message'],
-                    'table_name': result.get('table_name', ''),
-                    'filepath': extract_dir
+                    'table_name': result.get('table_name', '')
                 }
+                
+                # Solo incluir la ruta si el directorio no se eliminó
+                if not result.get('cleaned_directory', False):
+                    response_data['filepath'] = extract_dir
                 
                 # Agregar información de GeoServer si está disponible
                 if 'geoserver_urls' in result:

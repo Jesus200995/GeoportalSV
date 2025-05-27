@@ -218,6 +218,16 @@ def process_shapefile_zip(extract_dir):
             }
         else:
             result['message'] = f'Capa {table_name} importada con éxito. Advertencia: No se pudo publicar en GeoServer'
+        
+        # Eliminar el directorio del shapefile después de una importación exitosa
+        try:
+            import shutil
+            shutil.rmtree(extract_dir)
+            print(f"🧹 Directorio temporal de shapefile eliminado: {extract_dir}")
+            result['cleaned_directory'] = True
+        except Exception as cleanup_error:
+            print(f"⚠️ No se pudo eliminar el directorio temporal: {str(cleanup_error)}")
+            result['cleaned_directory'] = False
             
         return result
             
