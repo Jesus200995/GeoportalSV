@@ -28,12 +28,14 @@ const backendAvailable = ref(true); // Para rastrear si el backend está disponi
 const newLayerUploaded = ref(false); // Para rastrear si se acaba de subir una nueva capa
 const lastUploadedLayer = ref(null); // Almacenar información de la última capa subida
 
-// Nuevos estados para el progreso de la subida
+// Estados para el progreso y mensajes de carga
 const uploadProgress = ref(0);
 const showProgressBar = ref(false);
 const uploadStartTime = ref(null);
 const estimatedTimeRemaining = ref(null);
 const uploadSpeed = ref(null);
+const processingStep = ref(''); // Nuevo: para mostrar la etapa actual de procesamiento
+const uploadCompleted = ref(false); // Nuevo: para marcar cuando se completa la subida
 
 // Función para formatear el tamaño de archivo
 const formatFileSize = (bytes) => {
@@ -122,67 +124,96 @@ const uploadFile = async () => {
   }
 
   isUploading.value = true;
-  uploadStatus.value = null;
-  statusMessage.value = '';
+  uploadStatus.value = 'uploading'; // Cambiar estado a 'uploading'
+  statusMessage.value = 'Preparando archivo para subir...';
   showProgressBar.value = true;
   uploadProgress.value = 0;
   uploadStartTime.value = Date.now();
+  uploadCompleted.value = false;
+  processingStep.value = 'preparing';
 
   try {
     const formData = new FormData();
-    formData.append('file', selectedFile.value); // Asegurarse que el campo se llama 'file'
+    formData.append('file', selectedFile.value);
+
+    // Simular pequeña espera para inicialización (mejor UX)
+    setTimeout(() => {
+      processingStep.value = 'uploading';
+      statusMessage.value = 'Subiendo archivo al servidor...';
+    }, 500);
 
     console.log(`Enviando solicitud a: ${API_URL}/upload-shapefile`);
     const response = await axios.post(`${API_URL}/upload-shapefile`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      // Aumentar el timeout significativamente para archivos grandes
       timeout: 600000, // 10 minutos
-      // Habilitar el seguimiento del progreso de subida
       onUploadProgress: (progressEvent) => {
-        try {
-          if (progressEvent.total) {
-            // Calcular el porcentaje de progreso
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            uploadProgress.value = percentCompleted;
+        if (progressEvent.total) {
+          // Calcular el porcentaje de la fase de subida (hasta 50% del proceso total)
+          const percentCompleted = Math.round((progressEvent.loaded * 50) / progressEvent.total);
+          uploadProgress.value = percentCompleted;
+          
+          // Calcular velocidad y tiempo restante
+          const currentTime = Date.now();
+          const elapsedTime = (currentTime - uploadStartTime.value) / 1000; // en segundos
+          
+          if (elapsedTime > 0) {
+            uploadSpeed.value = progressEvent.loaded / elapsedTime;
             
-            // Calcular velocidad de subida y tiempo estimado restante
-            const currentTime = Date.now();
-            const elapsedTime = (currentTime - uploadStartTime.value) / 1000; // en segundos
-            
-            if (elapsedTime > 0) {
-              // Velocidad en bytes por segundo
-              uploadSpeed.value = progressEvent.loaded / elapsedTime;
-              
-              // Tiempo estimado en segundos
-              const remainingBytes = progressEvent.total - progressEvent.loaded;
-              if (uploadSpeed.value > 0) {
-                estimatedTimeRemaining.value = remainingBytes / uploadSpeed.value;
-              }
+            const remainingBytes = progressEvent.total - progressEvent.loaded;
+            if (uploadSpeed.value > 0) {
+              estimatedTimeRemaining.value = remainingBytes / uploadSpeed.value;
             }
           }
-        } catch (error) {
-          console.error("Error al calcular el progreso:", error);
+          
+          // Log para depuración
+          console.log(`Progreso de subida: ${percentCompleted}%, Velocidad: ${formatUploadSpeed(uploadSpeed.value)}`);
         }
       }
     });
 
+    // Subida completada, ahora comienza el procesamiento
+    uploadCompleted.value = true;
+    uploadProgress.value = 50; // La subida representa el 50% del proceso
+    processingStep.value = 'processing';
+    statusMessage.value = 'Archivo subido. Procesando shapefile...';
+    
+    // Simular el progreso del procesamiento en el servidor
+    // En un caso real, podríamos usar websockets para recibir actualizaciones reales
+    const simulateServerProcessing = async () => {
+      // Etapa 1: Lectura del shapefile (50% -> 60%)
+      await simulateProgress(50, 60, 1000, 'Leyendo shapefile con GeoPandas...');
+      
+      // Etapa 2: Importación a PostGIS (60% -> 75%)
+      await simulateProgress(60, 75, 1500, 'Importando a PostGIS...');
+      
+      // Etapa 3: Publicación en GeoServer (75% -> 90%)
+      await simulateProgress(75, 90, 2000, 'Publicando en GeoServer...');
+      
+      // Etapa 4: Finalización (90% -> 100%)
+      await simulateProgress(90, 100, 1000, 'Finalizando...');
+    };
+    
+    // Ejecutar la simulación del procesamiento
+    await simulateServerProcessing();
+    
     // Manejar respuesta exitosa
-    uploadProgress.value = 100; // Asegurarse de que llega al 100%
+    uploadProgress.value = 100;
     uploadStatus.value = 'success';
-    statusMessage.value = response.data.message || 'Archivo subido correctamente. La capa estará disponible en breve.';
+    statusMessage.value = response.data.message || 'Archivo subido y procesado correctamente. La capa estará disponible en breve.';
+    processingStep.value = 'completed';
     
     // Marcar que se acaba de subir una nueva capa y guardar sus datos
     newLayerUploaded.value = true;
     lastUploadedLayer.value = {
       name: fileName.value.replace('.zip', ''),
       upload_date: new Date().toISOString(),
-      features_count: Math.floor(Math.random() * 100) + 20, // Datos simulados si no vienen del backend
+      features_count: Math.floor(Math.random() * 100) + 20, // Simulado
       file_size: fileSize.value
     };
     
-    // Resetear el formulario después de 3 segundos en caso de éxito
+    // Resetear el formulario después de un tiempo en caso de éxito
     setTimeout(() => {
       selectedFile.value = null;
       fileName.value = '';
@@ -198,34 +229,22 @@ const uploadFile = async () => {
     await fetchLayers();
   } catch (error) {
     console.error('Error detallado:', error);
+    uploadProgress.value = 100; // Completar la barra para evitar que quede a medias
+    uploadStatus.value = 'error';
+    processingStep.value = 'error';
     
     // Manejar diferentes tipos de errores
     if (error.code === 'ECONNABORTED') {
-      // En caso de timeout, no mostrar error inmediatamente
-      // ya que el servidor podría seguir procesando correctamente
       statusMessage.value = 'La subida está tomando más tiempo de lo esperado. El servidor está procesando su archivo, puede verificar en unos minutos si la capa se ha agregado correctamente.';
-      
-      // Simular una subida completada para evitar errores visibles
-      uploadProgress.value = 100;
-      uploadStatus.value = 'warning';
-      
-      // Intentar recargar las capas después de un tiempo
-      setTimeout(async () => {
-        await fetchLayers();
-      }, 5000);
     } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      uploadStatus.value = 'error';
       statusMessage.value = `Error de conexión: No se pudo conectar al servidor en ${API_URL}. Verifique que el backend esté en ejecución.`;
-      backendAvailable.value = false; // Marcar que el backend no está disponible
+      backendAvailable.value = false;
     } else if (error.response) {
-      uploadStatus.value = 'error';
       statusMessage.value = `Error ${error.response.status}: ${error.response.data.error || 'No se pudo procesar el archivo'}`;
     } else if (error.request) {
-      uploadStatus.value = 'warning';
       statusMessage.value = 'Error: No se recibió respuesta del servidor, pero el archivo podría estar procesándose correctamente. Verifique en unos minutos si la capa se ha agregado.';
-      backendAvailable.value = false; // Marcar que el backend no está disponible
+      backendAvailable.value = false;
     } else {
-      uploadStatus.value = 'error';
       statusMessage.value = `Error: ${error.message}`;
     }
   } finally {
@@ -237,54 +256,62 @@ const uploadFile = async () => {
       setTimeout(() => {
         showProgressBar.value = false;
       }, 3000);
-    } else {
-      showProgressBar.value = false;
     }
   }
 };
 
-// Función para generar datos simulados de capas
-const generateMockLayers = () => {
-  const layerTypes = ['Municipios', 'Territorios', 'Hidrología', 'Vegetación', 'Unidades de Riego', 'Cultivos', 'Vías de Comunicación'];
-  const mockLayers = [];
+// Función auxiliar para simular el progreso en etapas
+const simulateProgress = async (startPercent, endPercent, duration, message) => {
+  processingStep.value = message;
+  statusMessage.value = message;
   
-  // Si se acaba de subir una capa, añadirla primero
-  if (newLayerUploaded.value && lastUploadedLayer.value) {
-    mockLayers.push({
-      id: `layer-new-${Date.now()}`,
-      name: lastUploadedLayer.value.name,
-      description: `Capa de ${lastUploadedLayer.value.name.toLowerCase()} recién subida`,
-      upload_date: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      features_count: lastUploadedLayer.value.features_count || Math.floor(Math.random() * 1000) + 50,
-      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28',
-      file_size: lastUploadedLayer.value.file_size,
-      isNew: true  // Marcarla como nueva
-    });
-  }
+  const startTime = Date.now();
+  const updateInterval = 100; // Actualizar cada 100ms
   
-  // Generar al menos 8 capas simuladas
-  for (let i = 0; i < 8; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i); // Cada capa es un día más antigua
+  return new Promise((resolve) => {
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      uploadProgress.value = startPercent + Math.round(progress * (endPercent - startPercent));
+      
+      if (progress < 1) {
+        setTimeout(updateProgress, updateInterval);
+      } else {
+        resolve();
+      }
+    };
     
-    mockLayers.push({
-      id: `layer-${i + 1}`,
-      name: i === 0 && !newLayerUploaded.value ? 'Mi capa subida.shp' : `${layerTypes[i % layerTypes.length]}_${Math.floor(Math.random() * 100)}`,
-      description: `Capa de ${layerTypes[i % layerTypes.length].toLowerCase()} para análisis espacial`,
-      upload_date: date.toISOString(),
-      created_at: date.toISOString(),
-      features_count: Math.floor(Math.random() * 1000) + 50,
-      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28',
-      file_size: `${(Math.random() * 10 + 1).toFixed(2)} MB`,
-      isNew: i === 0 && !newLayerUploaded.value  // Marcar la primera como nueva si no hay capa recién subida
-    });
-  }
-  
-  return mockLayers;
+    updateProgress();
+  });
 };
 
-// Actualizada - Función para obtener las capas usando la misma fuente que Dashboard
+// Función para formatear velocidad de subida
+function formatUploadSpeed(bytesPerSecond) {
+  if (!bytesPerSecond || isNaN(bytesPerSecond)) return 'Calculando...';
+  
+  if (bytesPerSecond < 1024) {
+    return `${Math.round(bytesPerSecond)} B/s`;
+  } else if (bytesPerSecond < 1048576) {
+    return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+  } else {
+    return `${(bytesPerSecond / 1048576).toFixed(1)} MB/s`;
+  }
+}
+
+// Función para formatear tiempo estimado
+function formatTimeRemaining(seconds) {
+  if (!seconds || isNaN(seconds)) return 'Calculando...';
+  
+  if (seconds < 60) {
+    return `${Math.ceil(seconds)} segundos`;
+  } else {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.ceil(seconds % 60);
+    return `${minutes} min ${remainingSeconds} seg`;
+  }
+}
+
+// Obtener capas disponibles al iniciar
 const fetchLayers = async () => {
   isLoading.value = true;
   loadError.value = null;
@@ -589,37 +616,49 @@ onMounted(async () => {
               </div>
             </div>
             
-            <!-- Barra de progreso de subida simplificada -->
+            <!-- Barra de progreso mejorada con información de etapas -->
             <div v-if="showProgressBar" class="mt-6 space-y-2">
               <div class="flex justify-between items-center">
-                <span class="text-sm font-medium text-gray-700">Progreso de subida</span>
+                <span class="text-sm font-medium" :class="{'text-green-700': uploadStatus === 'success', 'text-blue-700': uploadStatus === 'uploading', 'text-red-700': uploadStatus === 'error'}">
+                  {{ processingStep === 'completed' ? 'Proceso completado' : 
+                     processingStep === 'error' ? 'Error en el proceso' : 
+                     uploadCompleted ? 'Procesando shapefile...' : 'Subiendo archivo' }}
+                </span>
                 <span class="text-sm font-medium text-gray-700">{{ uploadProgress }}%</span>
               </div>
+
+              <!-- Barra de progreso con colores según el estado -->
               <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                 <div 
-                  class="h-2.5 rounded-full transition-all duration-300" 
+                  class="h-2.5 rounded-full transition-all duration-100" 
                   :class="{
-                    'bg-blue-600': uploadProgress < 100,
-                    'bg-green-600': uploadProgress === 100
+                    'bg-blue-600 animate-progress-pulse': uploadStatus === 'uploading' && !uploadCompleted,
+                    'bg-blue-600 bg-stripes': uploadStatus === 'uploading' && uploadCompleted,
+                    'bg-green-600': uploadStatus === 'success',
+                    'bg-red-500': uploadStatus === 'error'
                   }"
                   :style="{ width: `${uploadProgress}%` }"
                 ></div>
               </div>
               
-              <!-- Información adicional de la subida simplificada -->
-              <div v-if="uploadSpeed > 0" class="flex justify-between items-center text-xs text-gray-500 mt-1">
-                <span v-if="uploadSpeed > 0">Velocidad: {{ uploadSpeed < 1024 ? Math.round(uploadSpeed) + ' B/s' : 
-                                            uploadSpeed < 1048576 ? (uploadSpeed / 1024).toFixed(1) + ' KB/s' : 
-                                            (uploadSpeed / 1048576).toFixed(1) + ' MB/s' }}</span>
+              <!-- Mensaje descriptivo del paso actual -->
+              <div class="text-xs text-gray-600 mt-1">
+                {{ statusMessage }}
+              </div>
+              
+              <!-- Información adicional de la subida (solo durante la fase de subida) -->
+              <div v-if="uploadSpeed && !uploadCompleted" class="flex justify-between items-center text-xs text-gray-500 mt-1">
+                <span>Velocidad: {{ formatUploadSpeed(uploadSpeed) }}</span>
                 <span v-if="estimatedTimeRemaining">
-                  {{ estimatedTimeRemaining < 60 ? Math.ceil(estimatedTimeRemaining) + ' segundos' : 
-                     Math.floor(estimatedTimeRemaining / 60) + ' min ' + Math.ceil(estimatedTimeRemaining % 60) + ' seg' }} restante
+                  {{ formatTimeRemaining(estimatedTimeRemaining) }} restante
                 </span>
               </div>
               
               <!-- Nota informativa -->
               <p v-if="uploadProgress > 0 && uploadProgress < 100" class="text-xs text-blue-600 mt-2 italic">
-                La subida de archivos grandes puede tardar varios minutos. Por favor, no cierre esta página.
+                {{ uploadCompleted 
+                    ? "El procesamiento en el servidor puede tardar un tiempo. Por favor espere..." 
+                    : "La subida de archivos grandes puede tardar varios minutos. Por favor, no cierre esta página." }}
               </p>
             </div>
             
@@ -636,7 +675,7 @@ onMounted(async () => {
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m3-3v12" />
                 </svg>
                 <span>{{ isUploading ? 'Subiendo...' : 'Subir capa' }}</span>
               </button>
@@ -887,6 +926,45 @@ onMounted(async () => {
 
 .bg-green-600 {
   animation: pulse 2s infinite;
+}
+
+/* Animación para la barra de progreso durante la subida */
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 1.5s infinite;
+}
+
+/* Patrón de rayas para la fase de procesamiento */
+.bg-stripes {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: stripe-animation 1s linear infinite;
+}
+
+@keyframes stripe-animation {
+  0% {
+    background-position: 1rem 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 
 /* Responsive enhancements */
