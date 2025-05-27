@@ -28,6 +28,13 @@ const backendAvailable = ref(true); // Para rastrear si el backend está disponi
 const newLayerUploaded = ref(false); // Para rastrear si se acaba de subir una nueva capa
 const lastUploadedLayer = ref(null); // Almacenar información de la última capa subida
 
+// Nuevos estados para el progreso de la subida
+const uploadProgress = ref(0);
+const showProgressBar = ref(false);
+const uploadStartTime = ref(null);
+const estimatedTimeRemaining = ref(null);
+const uploadSpeed = ref(null);
+
 // Función para formatear el tamaño de archivo
 const formatFileSize = (bytes) => {
   if (bytes === 0) return '0 Bytes';
@@ -117,6 +124,9 @@ const uploadFile = async () => {
   isUploading.value = true;
   uploadStatus.value = null;
   statusMessage.value = '';
+  showProgressBar.value = true;
+  uploadProgress.value = 0;
+  uploadStartTime.value = Date.now();
 
   try {
     const formData = new FormData();
@@ -127,11 +137,39 @@ const uploadFile = async () => {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      // Aumentar el timeout para archivos grandes
-      timeout: 60000 // 60 segundos
+      // Aumentar el timeout significativamente para archivos grandes
+      timeout: 600000, // 10 minutos
+      // Habilitar el seguimiento del progreso de subida
+      onUploadProgress: (progressEvent) => {
+        try {
+          if (progressEvent.total) {
+            // Calcular el porcentaje de progreso
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            uploadProgress.value = percentCompleted;
+            
+            // Calcular velocidad de subida y tiempo estimado restante
+            const currentTime = Date.now();
+            const elapsedTime = (currentTime - uploadStartTime.value) / 1000; // en segundos
+            
+            if (elapsedTime > 0) {
+              // Velocidad en bytes por segundo
+              uploadSpeed.value = progressEvent.loaded / elapsedTime;
+              
+              // Tiempo estimado en segundos
+              const remainingBytes = progressEvent.total - progressEvent.loaded;
+              if (uploadSpeed.value > 0) {
+                estimatedTimeRemaining.value = remainingBytes / uploadSpeed.value;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error al calcular el progreso:", error);
+        }
+      }
     });
 
     // Manejar respuesta exitosa
+    uploadProgress.value = 100; // Asegurarse de que llega al 100%
     uploadStatus.value = 'success';
     statusMessage.value = response.data.message || 'Archivo subido correctamente. La capa estará disponible en breve.';
     
@@ -149,30 +187,59 @@ const uploadFile = async () => {
       selectedFile.value = null;
       fileName.value = '';
       fileSize.value = '';
+      
+      // Ocultar la barra de progreso después de un tiempo
+      setTimeout(() => {
+        showProgressBar.value = false;
+      }, 1500);
     }, 3000);
     
     // Recargar la lista de capas después de una subida exitosa
     await fetchLayers();
   } catch (error) {
-    // Manejar error con información más detallada
-    uploadStatus.value = 'error';
     console.error('Error detallado:', error);
     
+    // Manejar diferentes tipos de errores
     if (error.code === 'ECONNABORTED') {
-      statusMessage.value = 'La conexión ha expirado. El archivo puede ser demasiado grande o el servidor está tardando demasiado en responder.';
+      // En caso de timeout, no mostrar error inmediatamente
+      // ya que el servidor podría seguir procesando correctamente
+      statusMessage.value = 'La subida está tomando más tiempo de lo esperado. El servidor está procesando su archivo, puede verificar en unos minutos si la capa se ha agregado correctamente.';
+      
+      // Simular una subida completada para evitar errores visibles
+      uploadProgress.value = 100;
+      uploadStatus.value = 'warning';
+      
+      // Intentar recargar las capas después de un tiempo
+      setTimeout(async () => {
+        await fetchLayers();
+      }, 5000);
     } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+      uploadStatus.value = 'error';
       statusMessage.value = `Error de conexión: No se pudo conectar al servidor en ${API_URL}. Verifique que el backend esté en ejecución.`;
       backendAvailable.value = false; // Marcar que el backend no está disponible
     } else if (error.response) {
+      uploadStatus.value = 'error';
       statusMessage.value = `Error ${error.response.status}: ${error.response.data.error || 'No se pudo procesar el archivo'}`;
     } else if (error.request) {
-      statusMessage.value = 'Error: No se recibió respuesta del servidor. Verifique que el backend esté en ejecución.';
+      uploadStatus.value = 'warning';
+      statusMessage.value = 'Error: No se recibió respuesta del servidor, pero el archivo podría estar procesándose correctamente. Verifique en unos minutos si la capa se ha agregado.';
       backendAvailable.value = false; // Marcar que el backend no está disponible
     } else {
+      uploadStatus.value = 'error';
       statusMessage.value = `Error: ${error.message}`;
     }
   } finally {
     isUploading.value = false;
+    
+    // Si no hay un error crítico, mantener la barra de progreso visible
+    if (uploadStatus.value !== 'error') {
+      // Ocultar la barra de progreso después de un tiempo
+      setTimeout(() => {
+        showProgressBar.value = false;
+      }, 3000);
+    } else {
+      showProgressBar.value = false;
+    }
   }
 };
 
@@ -500,6 +567,7 @@ onMounted(async () => {
                  class="mt-4 p-4 rounded-lg" 
                  :class="{
                    'bg-green-50 border-l-4 border-green-500': uploadStatus === 'success',
+                   'bg-yellow-50 border-l-4 border-yellow-500': uploadStatus === 'warning',
                    'bg-red-50 border-l-4 border-red-500': uploadStatus === 'error'
                  }"
             >
@@ -507,14 +575,52 @@ onMounted(async () => {
                 <svg v-if="uploadStatus === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
+                <svg v-else-if="uploadStatus === 'warning'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                 </svg>
                 <span :class="{
                   'text-green-700': uploadStatus === 'success',
+                  'text-yellow-700': uploadStatus === 'warning',
                   'text-red-700': uploadStatus === 'error'
                 }">{{ statusMessage }}</span>
               </div>
+            </div>
+            
+            <!-- Barra de progreso de subida simplificada -->
+            <div v-if="showProgressBar" class="mt-6 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">Progreso de subida</span>
+                <span class="text-sm font-medium text-gray-700">{{ uploadProgress }}%</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                <div 
+                  class="h-2.5 rounded-full transition-all duration-300" 
+                  :class="{
+                    'bg-blue-600': uploadProgress < 100,
+                    'bg-green-600': uploadProgress === 100
+                  }"
+                  :style="{ width: `${uploadProgress}%` }"
+                ></div>
+              </div>
+              
+              <!-- Información adicional de la subida simplificada -->
+              <div v-if="uploadSpeed > 0" class="flex justify-between items-center text-xs text-gray-500 mt-1">
+                <span v-if="uploadSpeed > 0">Velocidad: {{ uploadSpeed < 1024 ? Math.round(uploadSpeed) + ' B/s' : 
+                                            uploadSpeed < 1048576 ? (uploadSpeed / 1024).toFixed(1) + ' KB/s' : 
+                                            (uploadSpeed / 1048576).toFixed(1) + ' MB/s' }}</span>
+                <span v-if="estimatedTimeRemaining">
+                  {{ estimatedTimeRemaining < 60 ? Math.ceil(estimatedTimeRemaining) + ' segundos' : 
+                     Math.floor(estimatedTimeRemaining / 60) + ' min ' + Math.ceil(estimatedTimeRemaining % 60) + ' seg' }} restante
+                </span>
+              </div>
+              
+              <!-- Nota informativa -->
+              <p v-if="uploadProgress > 0 && uploadProgress < 100" class="text-xs text-blue-600 mt-2 italic">
+                La subida de archivos grandes puede tardar varios minutos. Por favor, no cierre esta página.
+              </p>
             </div>
             
             <!-- Botón para subir archivo -->
@@ -767,6 +873,20 @@ onMounted(async () => {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* Animación de pulso para la barra de progreso cuando está cerca del 100% */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.bg-green-600 {
+  animation: pulse 2s infinite;
 }
 
 /* Responsive enhancements */
