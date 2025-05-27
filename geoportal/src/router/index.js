@@ -35,6 +35,15 @@ const router = createRouter({
       meta: { 
         requiresAuth: true 
       }
+    },
+    {
+      path: '/upload-layer',
+      name: 'upload-layer',
+      component: () => import('../views/UploadLayer.vue'),
+      meta: { 
+        requiresAuth: true,
+        title: 'Subir Capas - Geoportal Sembrando Datos'
+      }
     }
   ]
 })

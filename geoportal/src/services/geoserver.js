@@ -265,3 +265,33 @@ export async function checkLayerExists(layerName) {
     return false;
   }
 }
+
+/**
+ * Monitorea la disponibilidad de una capa recién subida
+ * @param {string} layerName - Nombre de la capa (sin el prefijo del workspace)
+ * @param {number} maxAttempts - Número máximo de intentos (por defecto 10)
+ * @param {number} interval - Intervalo entre intentos en ms (por defecto 1000)
+ * @returns {Promise<boolean>} Si la capa está disponible
+ */
+export async function waitForLayerAvailability(layerName, maxAttempts = 10, interval = 1000) {
+  console.log(`Esperando a que la capa ${layerName} esté disponible en GeoServer...`);
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    const exists = await checkLayerExists(layerName);
+    
+    if (exists) {
+      console.log(`Capa ${layerName} disponible en GeoServer después de ${attempts + 1} intentos`);
+      return true;
+    }
+    
+    console.log(`Intento ${attempts + 1}/${maxAttempts}: La capa ${layerName} aún no está disponible`);
+    attempts++;
+    
+    // Esperar el intervalo antes de intentar nuevamente
+    await new Promise(resolve => setTimeout(resolve, interval));
+  }
+  
+  console.warn(`La capa ${layerName} no está disponible después de ${maxAttempts} intentos`);
+  return false;
+}

@@ -215,6 +215,42 @@ onMounted(() => {
                     <p class="text-gray-300 mt-2 max-w-xs">Visualice datos agrícolas con gráficas y análisis interactivos</p>
                   </div>
                 </div>
+                
+                <!-- Nuevo botón de SUBIR CAPAS -->
+                <div class="relative group mb-8">
+                  <!-- Botón de subir capas con efecto de clic -->
+                  <router-link to="/upload-layer" class="upload-button relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full p-10 w-72 h-72 flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-105 group-hover:shadow-xl shadow-emerald-500/20 border border-white/20 overflow-hidden">
+                    <!-- Icono de nube con flecha hacia arriba -->
+                    <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V21h18v-4.5M12 3v15m0 0l-3-3m3 3l3-3" />
+                      </svg>
+                    </div>
+                    
+                    <!-- Texto SUBIR CAPAS mejorado -->
+                    <div class="relative z-10 flex flex-col items-center">
+                      <span class="text-4xl font-bold tracking-widest text-white drop-shadow-lg mb-3">SUBIR CAPAS</span>
+                      <span class="text-xs text-emerald-300 font-medium tracking-wide drop-shadow-md">CARGAR SHAPEFILES</span>
+                    </div>
+                    
+                    <!-- Efecto de brillo al hacer hover mejorado -->
+                    <div class="absolute inset-0 rounded-full overflow-hidden">
+                      <div class="absolute inset-0 bg-gradient-to-br from-emerald-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700"></div>
+                    </div>
+                    
+                    <!-- Anillo exterior adicional -->
+                    <div class="absolute -inset-1.5 rounded-full border border-emerald-400/30 opacity-50 group-hover:opacity-80 transition-opacity"></div>
+                    
+                    <!-- Indicador pulsante para llamar la atención -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-emerald-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
+                  </router-link>
+                  
+                  <!-- Etiqueta descriptiva -->
+                  <div class="mt-6 text-center">
+                    <h3 class="text-xl font-semibold text-white">Subir Capas</h3>
+                    <p class="text-gray-300 mt-2 max-w-xs">Cargue sus archivos shapefile para analizarlos</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
