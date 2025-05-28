@@ -751,7 +751,7 @@ const {
 
 // Función para navegar a la página de subida de mapas
 const goToUploadMaps = () => {
-  router.push('/upload-layer'); // Corregir la ruta para que coincida con la definida en router/index.js
+  router.push('/upload-layer'); // Ruta que coincide con la definida en router/index.js
 };
 </script>
 
@@ -1084,15 +1084,16 @@ const goToUploadMaps = () => {
 
           <!-- Botones de acción redistribuidos -->
           <div class="flex items-center">
-            <!-- Botón de inicio -->
+            <!-- Botón de inicio actualizado sin contorno ni fondo -->
             <button 
               @click="handleGoHome"
-              class="modern-button home-button px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-2"
+              class="px-4 py-2 text-green-600 rounded-lg transition-all duration-300 flex items-center space-x-2 hover:text-green-800 focus:outline-none transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-4"
               aria-label="Volver a la página de inicio"
             >
               <span class="home-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
               </span>
               <span class="hidden sm:inline">Inicio</span>
@@ -1484,7 +1485,7 @@ const goToUploadMaps = () => {
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m3-3v12" />
                   </svg>
                   <span>{{ descargando ? 'Descargando...' : 'Descargar reporte' }}</span>
                 </button>
@@ -1879,22 +1880,6 @@ button:active {
 
 .home-button:hover::after {
   transform: translate(-50%, -50%) scale(2);
-}
-
-/* Animación para el modal */
-@keyframes modal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-modal-in {
-  animation: modal-in 0.3s forwards;
 }
 
 /* Nuevas animaciones para el botón de subir capas */
