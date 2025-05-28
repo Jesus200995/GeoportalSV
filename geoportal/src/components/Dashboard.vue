@@ -516,8 +516,34 @@ const showExitModal = ref(false);
 
 // Función para manejar el clic en el botón de inicio
 const handleGoHome = () => {
-  // Redirigir al inicio usando el router
-  router.push('/');
+  // Limpiar recursos del mapa antes de navegar
+  if (map.value) {
+    try {
+      // Eliminar el marcador si existe
+      removeMarker();
+      
+      // Limpiar listeners y capas
+      const mapLayers = map.value.getLayers().getArray();
+      for (let i = mapLayers.length - 1; i > 0; i--) {
+        map.value.removeLayer(mapLayers[i]);
+      }
+      
+      // Desasociar el mapa del elemento DOM
+      map.value.setTarget(undefined);
+    } catch (error) {
+      console.error("Error al limpiar el mapa:", error);
+    }
+  }
+  
+  // Emitir evento antes de navegar
+  emit('show-welcome');
+  
+  // Navegar a la página principal
+  router.push('/').catch(err => {
+    console.error("Error de navegación:", err);
+    // Recargar la página como fallback
+    window.location.href = '/';
+  });
 };
 
 // Función para confirmar la salida y navegar a la página de inicio
