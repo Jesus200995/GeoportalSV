@@ -9,17 +9,18 @@ import psycopg2
 import os
 import requests
 import glob
-from config import DB_CONFIG
+from app.config import DB_CONFIG
 from packaging import version
 import shapely
 from sqlalchemy import create_engine
 import traceback
+from app.config import GEOSERVER_CONFIG
 
 # Configuración de GeoServer
-GEOSERVER_URL = "http://31.97.8.51:8082/geoserver"
-GEOSERVER_USER = "admin"
-GEOSERVER_PASSWORD = "geoserver"
-WORKSPACE = "sembrando"  # Espacio de trabajo
+GEOSERVER_URL = GEOSERVER_CONFIG['url']
+GEOSERVER_USER = GEOSERVER_CONFIG['user']
+GEOSERVER_PASSWORD = GEOSERVER_CONFIG['password']
+WORKSPACE = GEOSERVER_CONFIG['workspace']
 
 # Crear engine SQLAlchemy para GeoPandas
 def get_sqlalchemy_engine():

@@ -476,6 +476,64 @@ onMounted(async () => {
   // Cargar las capas existentes
   await fetchLayers();
 });
+
+// Función para eliminar una capa
+const deleteLayer = async (layer) => {
+  // Mostrar mensaje de confirmación
+  if (!confirm(`¿Estás seguro de que deseas eliminar la capa "${layer.name}"? Esta acción no se puede deshacer.`)) {
+    return; // El usuario canceló la operación
+  }
+  
+  try {
+    const layerName = layer.name;
+    const response = await axios.delete(`${API_URL}/layers/${layerName}`);
+    
+    if (response.data.success) {
+      // Eliminar la capa de la lista local
+      layers.value = layers.value.filter(l => l.name !== layerName);
+      statusMessage.value = `La capa ${layerName} ha sido eliminada correctamente.`;
+      uploadStatus.value = 'success';
+      
+      // Mostrar el mensaje por unos segundos y luego ocultarlo
+      setTimeout(() => {
+        uploadStatus.value = null;
+        statusMessage.value = '';
+      }, 3000);
+    } else {
+      throw new Error(response.data.message || 'Error al eliminar la capa');
+    }
+  } catch (error) {
+    console.error('Error al eliminar la capa:', error);
+    statusMessage.value = `Error al eliminar la capa: ${error.response?.data?.message || error.message}`;
+    uploadStatus.value = 'error';
+  }
+};
+
+// Función para generar datos simulados (si es necesario)
+const generateMockLayers = () => {
+  return [
+    {
+      id: `mock-1`,
+      name: 'territorios_28',
+      description: 'Capa de territorios sembrando datos',
+      upload_date: new Date(Date.now() - 1000000).toISOString(),
+      features_count: 28,
+      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28',
+      file_size: '1.2 MB',
+      isNew: false
+    },
+    {
+      id: `mock-2`,
+      name: 'unidades_riego',
+      description: 'Unidades de riego en México',
+      upload_date: new Date(Date.now() - 5000000).toISOString(),
+      features_count: 124,
+      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:unidades_riego',
+      file_size: '3.5 MB',
+      isNew: false
+    }
+  ];
+};
 </script>
 
 <template>
@@ -573,7 +631,7 @@ onMounted(async () => {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <div class="ml-4 flex-1 overflow-hidden">
-                    <h4 class="text-md font-medium text-gray-800 truncate">{{ fileName }}</h4>
+                    <h4 class="text-base font-medium text-gray-800 truncate">{{ fileName }}</h4>
                     <p class="text-sm text-gray-500">{{ fileSize }}</p>
                   </div>
                   <!-- Botón para cambiar archivo -->
@@ -619,254 +677,180 @@ onMounted(async () => {
             <!-- Barra de progreso mejorada con información de etapas -->
             <div v-if="showProgressBar" class="mt-6 space-y-2">
               <div class="flex justify-between items-center">
-                <span class="text-sm font-medium" :class="{'text-green-700': uploadStatus === 'success', 'text-blue-700': uploadStatus === 'uploading', 'text-red-700': uploadStatus === 'error'}">
-                  {{ processingStep === 'completed' ? 'Proceso completado' : 
-                     processingStep === 'error' ? 'Error en el proceso' : 
-                     uploadCompleted ? 'Procesando shapefile...' : 'Subiendo archivo' }}
-                </span>
-                <span class="text-sm font-medium text-gray-700">{{ uploadProgress }}%</span>
+                <div class="space-y-1">
+                  <p class="text-sm font-medium text-gray-700">{{ processingStep === 'completed' ? 'Completado' : 'Procesando...' }}</p>
+                  <p class="text-xs text-gray-500">{{ statusMessage }}</p>
+                </div>
+                <div class="text-right text-xs text-gray-500">
+                  <p v-if="uploadProgress < 100">
+                    {{ uploadProgress }}% {{ uploadProgress < 50 ? `(${formatUploadSpeed(uploadSpeed)})` : '' }}
+                  </p>
+                  <p v-if="uploadProgress < 50 && uploadProgress > 0 && estimatedTimeRemaining">
+                    Tiempo restante: {{ formatTimeRemaining(estimatedTimeRemaining) }}
+                  </p>
+                </div>
               </div>
 
               <!-- Barra de progreso con colores según el estado -->
               <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                <div 
-                  class="h-2.5 rounded-full transition-all duration-100" 
-                  :class="{
-                    'bg-blue-600 animate-progress-pulse': uploadStatus === 'uploading' && !uploadCompleted,
-                    'bg-blue-600 bg-stripes': uploadStatus === 'uploading' && uploadCompleted,
-                    'bg-green-600': uploadStatus === 'success',
-                    'bg-red-500': uploadStatus === 'error'
-                  }"
-                  :style="{ width: `${uploadProgress}%` }"
-                ></div>
+                <div class="h-full rounded-full transition-all duration-300" 
+                     :style="{width: `${uploadProgress}%`}" 
+                     :class="{
+                       'bg-green-500': uploadStatus === 'success' || processingStep === 'completed',
+                       'bg-blue-500': uploadStatus === 'uploading' && processingStep !== 'completed',
+                       'bg-red-500': uploadStatus === 'error'
+                     }">
+                </div>
               </div>
-              
-              <!-- Mensaje descriptivo del paso actual -->
-              <div class="text-xs text-gray-600 mt-1">
-                {{ statusMessage }}
-              </div>
-              
-              <!-- Información adicional de la subida (solo durante la fase de subida) -->
-              <div v-if="uploadSpeed && !uploadCompleted" class="flex justify-between items-center text-xs text-gray-500 mt-1">
-                <span>Velocidad: {{ formatUploadSpeed(uploadSpeed) }}</span>
-                <span v-if="estimatedTimeRemaining">
-                  {{ formatTimeRemaining(estimatedTimeRemaining) }} restante
-                </span>
-              </div>
-              
-              <!-- Nota informativa -->
-              <p v-if="uploadProgress > 0 && uploadProgress < 100" class="text-xs text-blue-600 mt-2 italic">
-                {{ uploadCompleted 
-                    ? "El procesamiento en el servidor puede tardar un tiempo. Por favor espere..." 
-                    : "La subida de archivos grandes puede tardar varios minutos. Por favor, no cierre esta página." }}
-              </p>
             </div>
             
             <!-- Botón para subir archivo -->
             <div class="mt-6 flex justify-end">
               <button 
                 @click="uploadFile" 
-                :disabled="!selectedFile || isUploading"
-                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center"
-                :class="{'opacity-50 cursor-not-allowed': !selectedFile || isUploading}"
+                :disabled="isUploading || !selectedFile"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                <svg v-if="isUploading" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg v-if="isUploading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m3-3v12" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
                 </svg>
-                <span>{{ isUploading ? 'Subiendo...' : 'Subir capa' }}</span>
+                {{ isUploading ? 'Subiendo...' : 'Subir capa' }}
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Columna derecha: Panel de capas existentes ACTUALIZADO -->
+        <!-- Columna derecha: Panel de capas existentes -->
         <div class="space-y-6">
           <!-- Título con botón de "mostrar/ocultar" en móviles -->
-          <div class="flex items-center justify-between mb-4 bg-white rounded-lg shadow-md p-4">
-            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-700 flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
-              Capas disponibles
+              <span>Capas disponibles</span>
             </h2>
-
-            <div class="flex items-center space-x-2">
-              <!-- Botón de refrescar -->
-              <button 
-                @click="fetchLayers" 
-                class="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
-                title="Refrescar lista de capas"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              
-              <!-- Botón de mostrar/ocultar en móviles -->
-              <button 
-                @click="toggleLayerPanel" 
-                class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-                :aria-expanded="showLayerPanel"
-                aria-controls="layer-panel"
-              >
-                <svg v-if="showLayerPanel" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-            </div>
+            <button 
+              @click="toggleLayerPanel" 
+              class="lg:hidden p-2 rounded-full text-gray-500 hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button>
           </div>
 
-          <!-- Panel de capas (con transición para mostrar/ocultar en móviles) -->
-          <div 
-            id="layer-panel"
-            v-show="showLayerPanel" 
-            class="bg-white rounded-lg shadow-md p-6 space-y-4 transition-all duration-300"
-          >
-            <!-- Buscador -->
-            <div class="relative">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Buscar capas por nombre..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+          <!-- Panel de búsqueda -->
+          <div v-if="showLayerPanel || !window.matchMedia('(max-width: 1024px)').matches" class="bg-white rounded-lg shadow-md p-6">
+            <!-- Barra de búsqueda -->
+            <div class="relative mb-4">
+              <input 
+                v-model="searchQuery" 
+                type="text" 
+                placeholder="Buscar capas..." 
+                class="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
-              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-
+            
             <!-- Estado de carga -->
-            <div v-if="isLoading" class="flex flex-col items-center justify-center py-10">
-              <div class="w-12 h-12 border-4 border-t-green-500 border-green-200 rounded-full animate-spin mb-4"></div>
-              <p class="text-gray-500">Cargando capas disponibles...</p>
-            </div>
-
-            <!-- Mensaje de error -->
-            <div v-else-if="loadError" class="bg-yellow-50 p-4 rounded-lg">
-              <div class="flex items-start">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mt-0.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p class="text-yellow-700">{{ loadError }}</p>
-                  <button 
-                    @click="fetchLayers"
-                    class="mt-2 text-sm text-yellow-600 hover:text-yellow-800 underline"
-                  >
-                    Reintentar
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Lista de capas vacía -->
-            <div v-else-if="filteredLayers.length === 0 && !isLoading" class="py-10 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div v-if="isLoading" class="py-8 flex justify-center">
+              <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p class="text-gray-500 mb-1">
-                {{ searchQuery ? 'No se encontraron capas que coincidan con la búsqueda' : 'No hay capas disponibles' }}
-              </p>
-              <p v-if="!searchQuery" class="text-sm text-gray-400">
-                Las capas que subas aparecerán aquí
-              </p>
             </div>
-
-            <!-- Lista de capas con diseño mejorado -->
-            <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            
+            <!-- Mensaje de error -->
+            <div v-else-if="loadError" class="py-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-red-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-red-600 mb-2">{{ loadError }}</p>
+              <button @click="fetchLayers" class="text-green-600 hover:text-green-800 font-medium">
+                Intentar nuevamente
+              </button>
+            </div>
+            
+            <!-- Lista de capas -->
+            <div v-else-if="filteredLayers.length > 0" class="space-y-4 max-h-96 overflow-y-auto pr-1">
               <div 
-                v-for="(layer, index) in filteredLayers" 
-                :key="layer.id || index"
-                class="bg-gray-50 rounded-lg p-4 border border-gray-100 hover:border-green-200 hover:shadow-md transition-all duration-300"
+                v-for="layer in filteredLayers" 
+                :key="layer.id" 
+                class="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
+                :class="{'ring-2 ring-green-400': layer.isNew}"
               >
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <div class="flex items-center">
-                      <h4 class="font-medium text-gray-800 mb-1 mr-2 flex items-center">
-                        <svg class="h-5 w-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                        </svg>
+                <!-- Cabecera de la capa -->
+                <div class="p-4 bg-white">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <h3 class="font-medium text-gray-800 flex items-center">
                         {{ layer.name }}
-                      </h4>
-                      <!-- Etiqueta "Nuevo" para la capa más reciente o marcada explícitamente -->
-                      <span v-if="layer.isNew || index === 0" 
-                            class="ml-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full flex items-center">
-                        <svg class="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
-                        Nuevo
-                      </span>
+                        <span v-if="layer.isNew" class="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                          Nueva
+                        </span>
+                      </h3>
+                      <p class="text-sm text-gray-500">
+                        Subido: {{ formatDate(layer.upload_date || layer.created_at) }}
+                      </p>
                     </div>
-                    <p v-if="layer.description" class="text-sm text-gray-600 mb-2">
-                      {{ layer.description }}
-                    </p>
-                    <div class="flex flex-wrap items-center gap-3">
-                      <span class="text-xs text-gray-500 flex items-center">
-                        <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {{ formatDate(layer.upload_date || layer.created_at) }}
-                      </span>
-                      <span v-if="layer.features_count" class="text-xs text-gray-500 flex items-center">
-                        <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        {{ layer.features_count }} elementos
-                      </span>
-                      <span v-if="layer.file_size" class="text-xs text-gray-500 flex items-center">
-                        <svg class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        {{ layer.file_size }}
-                      </span>
+                    
+                    <!-- Botón para eliminar capa (NUEVO) -->
+                    <button 
+                      @click.stop="deleteLayer(layer)"
+                      class="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Eliminar capa"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <!-- Detalles adicionales de la capa -->
+                  <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                    <div class="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span>{{ layer.features_count || 0 }} elementos</span>
+                    </div>
+                    <div class="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      </svg>
+                      <span>{{ layer.file_size }}</span>
                     </div>
                   </div>
                 </div>
                 
-                <!-- Enlaces a la capa -->
-                <div class="flex flex-wrap mt-3 gap-2">
-                  <a 
-                    v-if="layer.preview_url" 
-                    :href="layer.preview_url" 
-                    target="_blank" 
-                    class="px-3 py-1 text-xs flex items-center rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                  >
-                    <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    Vista previa
-                  </a>
-                  <router-link 
-                    to="/" 
-                    class="px-3 py-1 text-xs flex items-center rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
-                  >
-                    <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3m0 0l3 3m-3-3v12m6-2l-3-3m0 0l-3 3m3-3V6" />
-                    </svg>
-                    Ver en mapa
-                  </router-link>
+                <!-- Vista previa si está disponible -->
+                <div v-if="layer.preview_url" class="border-t border-gray-100">
+                  <img 
+                    :src="layer.preview_url" 
+                    :alt="`Vista previa de ${layer.name}`" 
+                    class="w-full h-32 object-cover"
+                    loading="lazy"
+                    @error="$event.target.src = 'https://via.placeholder.com/640x320?text=Vista+previa+no+disponible'"
+                  />
                 </div>
               </div>
             </div>
-
-            <!-- Aviso de backend no disponible -->
-            <div v-if="!backendAvailable && layers.length > 0" class="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 border-l-4 border-blue-400">
-              <div class="flex">
-                <svg class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p>
-                  Mostrando datos locales. El servidor GeoServer o backend no está disponible actualmente.
-                </p>
-              </div>
+            
+            <!-- Mensaje cuando no hay capas -->
+            <div v-else class="py-6 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <p class="text-gray-600">
+                {{ searchQuery ? 'No se encontraron capas que coincidan con la búsqueda.' : 'No hay capas disponibles aún. Sube tu primera capa.' }}
+              </p>
             </div>
           </div>
         </div>
