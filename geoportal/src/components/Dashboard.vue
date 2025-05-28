@@ -748,6 +748,11 @@ const {
   fetchFeatureInfo,
   closePanel: closeFeatureInfoPanel 
 } = useFeatureInfo();
+
+// Función para navegar a la página de subida de mapas
+const goToUploadMaps = () => {
+  router.push('/upload-layer'); // Corregir la ruta para que coincida con la definida en router/index.js
+};
 </script>
 
 <template>
@@ -1082,10 +1087,10 @@ const {
             <!-- Componente de perfil de usuario -->
             <UserProfile />
             
-            <!-- Botón de inicio rediseñado -->
+            <!-- Botón de inicio rediseñado con degradado azul-verde -->
             <button 
               @click="handleGoHome"
-              class="home-button px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0"
+              class="modern-button home-button px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold"
               aria-label="Volver a la página de inicio"
             >
               <span class="home-icon">
@@ -1093,8 +1098,26 @@ const {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
                 </svg>
               </span>
-              <span class="hidden sm:inline font-medium">Inicio</span>
+              <span class="hidden sm:inline">Inicio</span>
               <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
+            </button>
+            
+            <!-- Nuevo botón para subir capas con estilo azul -->
+            <button 
+              @click="goToUploadMaps"
+              class="modern-button upload-button px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold group"
+              aria-label="Subir nuevas capas"
+            >
+              <span class="upload-icon relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform group-hover:scale-110 group-hover:-rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </span>
+              <span class="hidden sm:inline relative overflow-hidden">
+                IR a subir capas
+                <span class="absolute bottom-0 left-0 w-full h-0.5 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+              </span>
+              <span class="absolute inset-0 w-full h-full bg-white/20 rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100"></span>
             </button>
           </div>
         </div>
@@ -1311,13 +1334,14 @@ const {
                         <div class="flex justify-between p-2 bg-white/80 rounded-lg">
                           <span class="text-sm text-gray-600">Riesgo de inundación:</span>
                           <span class="text-sm font-medium">{{ reporteCompleto.riesgo_inundacion }}</span>
-                        </div>
+                                                                      </div>
                       </div>
                     </div>
                     
                     <!-- Ecosistema -->
                     <div class="bg-green-50 rounded-xl p-5 border border-green-100">
                       <h4 class="text-base font-medium text-green-800 mb-4">Ecosistema</h4>
+                      
                       
                       <div class="space-y-2">
                         <div class="flex justify-between p-2 bg-white/80 rounded-lg">
@@ -1465,7 +1489,7 @@ const {
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
                   </svg>
                   <span>{{ descargando ? 'Descargando...' : 'Descargar reporte' }}</span>
                 </button>
@@ -1597,7 +1621,7 @@ button:active {
   height: 100%;
   background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
   transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.5s;
+  transition: transform 0.5s ease;
   pointer-events: none;
 }
 
@@ -1832,10 +1856,10 @@ button:active {
 }
 
 .home-button:hover .home-icon {
-  animation: bounce 0.6s ease infinite alternate;
+  animation: float 1s ease infinite alternate;
 }
 
-@keyframes bounce {
+@keyframes float {
   0% {
     transform: translateY(0);
   }
@@ -1850,31 +1874,19 @@ button:active {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 5px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  border-radius: 100%;
-  transform: scale(1, 1) translate(-50%, -50%);
-  transform-origin: 50% 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s ease;
+  pointer-events: none;
 }
 
-.home-button:active::after {
-  animation: ripple 0.6s ease-out;
+.home-button:hover::after {
+  transform: translate(-50%, -50%) scale(2);
 }
 
-@keyframes ripple {
-  0% {
-    transform: scale(0, 0) translate(-50%, -50%);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(20, 20) translate(-50%, -50%);
-    opacity: 0;
-  }
-}
-
-/* Animación de entrada del modal */
+/* Animación para el modal */
 @keyframes modal-in {
   from {
     opacity: 0;
@@ -1890,46 +1902,41 @@ button:active {
   animation: modal-in 0.3s forwards;
 }
 
-/* Asegurar que el modal de reporte tenga un z-index adecuado */
-.z-\[60\] {
-  z-index: 60;
+/* Nuevas animaciones para el botón de subir capas */
+.upload-button {
+  position: relative;
+  overflow: hidden;
 }
 
-/* Estilos para el marcador personalizado */
-:global(.custom-marker) {
-  background-color: #28a745;
-  border: 3px solid white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  box-shadow: 0 0 8px rgba(40, 167, 69, 0.8);
-  transform-origin: center;
-  animation: pulse 1.5s infinite;
-  pointer-events: none; /* No interferir con los clics del mapa */
+.upload-button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%) rotate(45deg);
+  animation: shimmer 3s infinite;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.6;
-  }
+@keyframes shimmer {
   100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: translateX(100%) rotate(45deg);
   }
 }
 
-/* Animación para el botón de refrescar */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.upload-button:hover .upload-icon {
+  animation: bounce-rotate 1s ease infinite;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+@keyframes bounce-rotate {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-12deg); }
 }
 </style>
