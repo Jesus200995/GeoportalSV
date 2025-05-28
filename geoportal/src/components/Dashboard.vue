@@ -80,6 +80,50 @@ const toggleSidebar = () => {
 
 const changeTab = (tab) => {
   activeTab.value = tab;
+  
+  // Sincronizar estado de capas al cambiar de pestaña
+  // Independientemente de la pestaña a la que cambiemos, debemos actualizar los estados
+  if (map.value) {
+    refreshLayersState();
+  }
+};
+
+// Función para actualizar el estado de visibilidad de las capas desde el mapa
+const refreshLayersState = () => {
+  if (!map.value || !layerGroups.value) return;
+  
+  const mapLayers = map.value.getLayers().getArray();
+  
+  // Actualizar todas las capas en los grupos
+  for (const groupKey in layerGroups.value) {
+    if (Array.isArray(layerGroups.value[groupKey])) {
+      layerGroups.value[groupKey].forEach((layer, index) => {
+        const mapLayer = mapLayers.find(l => l.get('name') === layer.name);
+        if (mapLayer) {
+          // Usar Vue.set o su equivalente para asegurar reactividad
+          layerGroups.value[groupKey][index] = {
+            ...layerGroups.value[groupKey][index],
+            visible: mapLayer.getVisible()
+          };
+          // Actualizar también la opacidad
+          layerOpacity.value[layer.id] = mapLayer.getOpacity();
+        }
+      });
+    }
+  }
+};
+
+// Función para refrescar las capas - para ser usada con el botón de refrescar
+const refreshLayers = () => {
+  loadAvailableLayers();
+  setTimeout(() => {
+    refreshLayersState();
+  }, 300);
+};
+
+// Nuevo método para manejar solicitudes de refresco
+const handleRefreshRequest = () => {
+  refreshLayers();
 };
 
 // Obtener todas las capas para el mapa, asegurándose que existan
@@ -93,20 +137,51 @@ const getAllLayers = () => {
   return [...principal, ...extras, ...dinamicas];
 };
 
+// Versión mejorada de toggleLayerVisibility
 const toggleLayerVisibility = (layer) => {
-  if (map.value) {
-    const mapLayer = map.value.getLayers().getArray()
-      .find(l => l.get('name') === layer.name);
-    if (mapLayer) {
-      const currentVisibility = mapLayer.getVisible();
-      mapLayer.setVisible(!currentVisibility);
-      // Actualizar el estado en layerGroups
-      const groupKey = layer.id <= 1 ? 'principal' : 'extras';
-      const layerIndex = layerGroups.value[groupKey].findIndex(l => l.name === layer.name);
-      if (layerIndex !== -1) {
-        layerGroups.value[groupKey][layerIndex].visible = !currentVisibility;
+  if (!map.value) return;
+  
+  const mapLayer = map.value.getLayers().getArray()
+    .find(l => l.get('name') === layer.name);
+    
+  if (mapLayer) {
+    // Toggle visibilidad en la capa del mapa
+    const currentVisibility = mapLayer.getVisible();
+    const newVisibility = !currentVisibility;
+    mapLayer.setVisible(newVisibility);
+    
+    // Determinar a qué grupo pertenece la capa y actualizarlo
+    let groupFound = false;
+    
+    for (const groupKey in layerGroups.value) {
+      if (Array.isArray(layerGroups.value[groupKey])) {
+        const layerIndex = layerGroups.value[groupKey].findIndex(l => l.name === layer.name);
+        if (layerIndex !== -1) {
+          // Crear un nuevo objeto para asegurar reactividad
+          layerGroups.value[groupKey][layerIndex] = {
+            ...layerGroups.value[groupKey][layerIndex],
+            visible: newVisibility
+          };
+          groupFound = true;
+          break;
+        }
       }
     }
+    
+    // Si no encontramos el grupo, pero sabemos el ID podemos intentar una asignación directa
+    if (!groupFound) {
+      const groupKey = layer.id < 10 ? 'principal' : 'extras';
+      const layerIndex = layerGroups.value[groupKey]?.findIndex(l => l.name === layer.name);
+      if (layerIndex !== -1 && layerIndex !== undefined) {
+        layerGroups.value[groupKey][layerIndex] = {
+          ...layerGroups.value[groupKey][layerIndex],
+          visible: newVisibility
+        };
+      }
+    }
+    
+    // Forzar actualización del UI
+    map.value.render();
   }
 };
 
@@ -118,6 +193,17 @@ const updateLayerOpacity = (layer, opacity) => {
     if (olLayer) {
       olLayer.setOpacity(opacity);
       layerOpacity.value[layer.id] = opacity;
+      
+      // Actualizar también en el modelo de capas
+      for (const groupKey in layerGroups.value) {
+        if (Array.isArray(layerGroups.value[groupKey])) {
+          const layerIndex = layerGroups.value[groupKey].findIndex(l => l.name === layer.name);
+          if (layerIndex !== -1) {
+            layerGroups.value[groupKey][layerIndex].opacity = opacity;
+            break;
+          }
+        }
+      }
     }
   }
 };
@@ -293,6 +379,13 @@ const initializeMap = () => {
     
     // Cargar las capas disponibles después de inicializar el mapa
     loadAvailableLayers();
+    
+    // Agregar listeners para mantener actualizado el estado de las capas
+    map.value.getLayers().on('add', () => setTimeout(refreshLayersState, 100));
+    map.value.getLayers().on('remove', () => setTimeout(refreshLayersState, 100));
+    
+    // Ejecutar una actualización inicial después de que todo se haya cargado
+    setTimeout(refreshLayersState, 1000);
 
     console.log("Mapa inicializado correctamente");
   } catch (error) {
@@ -424,6 +517,10 @@ onMounted(() => {
       window.addEventListener('resize', updateWindowWidth);
       // Asegurarnos de tener el ancho correcto al inicio
       updateWindowWidth();
+      
+      // Establecer un temporizador para refrescar el estado de las capas
+      setTimeout(refreshLayersState, 1000);
+      
       loading.value = false;
     } catch (error) {
       console.error("Error inicializando el mapa:", error);
@@ -447,6 +544,12 @@ onBeforeUnmount(() => {
             });
           });
         }
+      }
+      
+      // Remover observadores de capas
+      if (map.value.getLayers()) {
+        map.value.getLayers().un('add', refreshLayersState);
+        map.value.getLayers().un('remove', refreshLayersState);
       }
       
       // Eliminar el marcador si existe
@@ -973,19 +1076,19 @@ const goToUploadMaps = () => {
                         <div class="relative inline-block w-10 mr-2 align-middle select-none">
                           <input 
                             type="checkbox" 
-                            :id="`layer-${layer.id}`" 
+                            :id="`layer-extras-${layer.id}`" 
                             :checked="layer.visible"
                             @change="toggleLayerVisibility(layer)" 
                             class="opacity-0 absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
                           />
                           <label 
-                            :for="`layer-${layer.id}`" 
+                            :for="`layer-extras-${layer.id}`" 
                             class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
                             :class="{'active': layer.visible}"
                           ></label>
                         </div>
                         <div>
-                          <label :for="`layer-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
+                          <label :for="`layer-extras-${layer.id}`" class="text-sm font-medium text-gray-700 cursor-pointer">
                             {{ layer.name }}
                           </label>
                           <p class="text-xs text-gray-500">{{ layer.description }}</p>
@@ -1201,7 +1304,7 @@ const goToUploadMaps = () => {
                 <p class="font-medium">{{ reporteError }}</p>
                 <button 
                   @click="verReporteCompleto"
-                  class="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                  class="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colores"
                 >
                   Intentar nuevamente
                 </button>
@@ -1292,6 +1395,7 @@ const goToUploadMaps = () => {
                   </div>
                 </section>
                 
+                
                 <!-- Información climática y ambiental -->
                 <section>
                   <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -1330,7 +1434,7 @@ const goToUploadMaps = () => {
                         <div class="flex justify-between p-2 bg-white/80 rounded-lg">
                           <span class="text-sm text-gray-600">Riesgo de inundación:</span>
                           <span class="text-sm font-medium">{{ reporteCompleto.riesgo_inundacion }}</span>
-                                                                      </div>
+                        </div>
                       </div>
                     </div>
                     
@@ -1831,92 +1935,30 @@ button:active {
 }
 
 /* Añadir estilos específicos para las capas */
+.toggle-label {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-label::after {
+  content: '';
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .toggle-label.active {
   background-color: #10B981;
 }
 
 .toggle-label.active::after {
   transform: translateX(1.5rem);
-}
-
-/* Estilos para el botón de inicio */
-.home-button {
-  position: relative;
-  overflow: hidden;
-}
-
-/* Animación del ícono del botón de inicio */
-.home-icon {
-  display: inline-flex;
-  transition: transform 0.3s ease;
-}
-
-.home-button:hover .home-icon {
-  animation: float 1s ease infinite alternate;
-}
-
-@keyframes float {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-3px);
-  }
-}
-
-/* Efecto de onda al hacer clic */
-.home-button::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.5s ease;
-  pointer-events: none;
-}
-
-.home-button:hover::after {
-  transform: translate(-50%, -50%) scale(2);
-}
-
-/* Nuevas animaciones para el botón de subir capas */
-.upload-button {
-  position: relative;
-  overflow: hidden;
-}
-
-.upload-button::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: translateX(-100%) rotate(45deg);
-  animation: shimmer 3s infinite;
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%) rotate(45deg);
-  }
-}
-
-.upload-button:hover .upload-icon {
-  animation: bounce-rotate 1s ease infinite;
-}
-
-@keyframes bounce-rotate {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(-12deg); }
 }
 </style>
