@@ -1082,43 +1082,38 @@ const goToUploadMaps = () => {
             </h1>
           </div>
 
-          <!-- Botones de acción -->
-          <div class="flex items-center space-x-2 sm:space-x-4">
-            <!-- Componente de perfil de usuario -->
-            <UserProfile />
-            
-            <!-- Botón de inicio rediseñado con degradado azul-verde -->
+          <!-- Botones de acción redistribuidos -->
+          <div class="flex items-center">
+            <!-- Botón de inicio -->
             <button 
               @click="handleGoHome"
-              class="modern-button home-button px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold"
+              class="modern-button home-button px-4 py-2 bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-2"
               aria-label="Volver a la página de inicio"
             >
               <span class="home-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
                 </svg>
               </span>
               <span class="hidden sm:inline">Inicio</span>
-              <span class="absolute inset-0 w-full h-full bg-white rounded-lg transition-all duration-300 opacity-0 hover:opacity-20"></span>
             </button>
             
-            <!-- Nuevo botón para subir capas con estilo azul -->
+            <!-- Botón para subir capas -->
             <button 
               @click="goToUploadMaps"
-              class="modern-button upload-button px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold group"
+              class="modern-button upload-button px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold group mr-4"
               aria-label="Subir nuevas capas"
             >
               <span class="upload-icon relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform group-hover:scale-110 group-hover:-rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </span>
-              <span class="hidden sm:inline relative overflow-hidden">
-                IR a subir capas
-                <span class="absolute bottom-0 left-0 w-full h-0.5 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
-              </span>
-              <span class="absolute inset-0 w-full h-full bg-white/20 rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100"></span>
+              <span class="hidden sm:inline">IR a subir capas</span>
             </button>
+
+            <!-- Componente de perfil de usuario -->
+            <UserProfile class="ml-auto" />
           </div>
         </div>
       </header>
@@ -1373,7 +1368,7 @@ const goToUploadMaps = () => {
                 <section>
                   <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2  0 0 012-2h3.064" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
                     </svg>
                     Información agrícola y suelo
                   </h3>
