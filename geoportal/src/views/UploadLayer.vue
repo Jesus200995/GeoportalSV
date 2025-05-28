@@ -477,13 +477,38 @@ onMounted(async () => {
   await fetchLayers();
 });
 
+// Nuevas propiedades y métodos para la gestión de eliminación de capas
+const showDeleteModal = ref(false);
+const layerToDelete = ref(null);
+const showToast = ref(false);
+const toastType = ref('success');
+const toastMessage = ref('');
+
+const confirmDeleteLayer = (layer) => {
+  layerToDelete.value = layer;
+  showDeleteModal.value = true;
+};
+
+const executeDelete = async () => {
+  try {
+    await deleteLayer(layerToDelete.value);
+    showDeleteModal.value = false;
+    showToast.value = true;
+    toastType.value = 'success';
+    toastMessage.value = 'Capa eliminada correctamente';
+  } catch (error) {
+    showToast.value = true;
+    toastType.value = 'error';
+    toastMessage.value = 'No se pudo eliminar la capa';
+  } finally {
+    setTimeout(() => {
+      showToast.value = false;
+    }, 3000);
+  }
+};
+
 // Función para eliminar una capa
 const deleteLayer = async (layer) => {
-  // Mostrar mensaje de confirmación
-  if (!confirm(`¿Estás seguro de que deseas eliminar la capa "${layer.name}"? Esta acción no se puede deshacer.`)) {
-    return; // El usuario canceló la operación
-  }
-  
   try {
     const layerName = layer.name;
     const response = await axios.delete(`${API_URL}/layers/${layerName}`);
@@ -491,21 +516,27 @@ const deleteLayer = async (layer) => {
     if (response.data.success) {
       // Eliminar la capa de la lista local
       layers.value = layers.value.filter(l => l.name !== layerName);
-      statusMessage.value = `La capa ${layerName} ha sido eliminada correctamente.`;
-      uploadStatus.value = 'success';
+      showToast.value = true;
+      toastType.value = 'success';
+      toastMessage.value = `La capa ${layerName} ha sido eliminada correctamente`;
       
-      // Mostrar el mensaje por unos segundos y luego ocultarlo
+      // Ocultar el toast después de 3 segundos
       setTimeout(() => {
-        uploadStatus.value = null;
-        statusMessage.value = '';
+        showToast.value = false;
       }, 3000);
     } else {
       throw new Error(response.data.message || 'Error al eliminar la capa');
     }
   } catch (error) {
     console.error('Error al eliminar la capa:', error);
-    statusMessage.value = `Error al eliminar la capa: ${error.response?.data?.message || error.message}`;
-    uploadStatus.value = 'error';
+    showToast.value = true;
+    toastType.value = 'error';
+    toastMessage.value = `Error al eliminar la capa: ${error.response?.data?.message || error.message}`;
+    
+    // Ocultar el toast después de 3 segundos
+    setTimeout(() => {
+      showToast.value = false;
+    }, 3000);
   }
 };
 
@@ -725,133 +756,113 @@ const generateMockLayers = () => {
         </div>
 
         <!-- Columna derecha: Panel de capas existentes -->
-        <div class="space-y-6">
-          <!-- Título con botón de "mostrar/ocultar" en móviles -->
-          <div class="flex justify-between items-center">
+        <div class="space-y-6 bg-white rounded-lg shadow p-6">
+          <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-gray-700 flex items-center space-x-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
               <span>Capas disponibles</span>
             </h2>
-            <button 
-              @click="toggleLayerPanel" 
-              class="lg:hidden p-2 rounded-full text-gray-500 hover:bg-gray-100"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Panel de búsqueda -->
-          <div v-if="showLayerPanel || !window.matchMedia('(max-width: 1024px)').matches" class="bg-white rounded-lg shadow-md p-6">
-            <!-- Barra de búsqueda -->
-            <div class="relative mb-4">
+            <div class="relative">
               <input 
                 v-model="searchQuery" 
                 type="text" 
                 placeholder="Buscar capas..." 
-                class="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                class="pl-8 pr-4 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 absolute left-2.5 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            
-            <!-- Estado de carga -->
-            <div v-if="isLoading" class="py-8 flex justify-center">
-              <svg class="animate-spin h-10 w-10 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-            
-            <!-- Mensaje de error -->
-            <div v-else-if="loadError" class="py-6 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-red-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p class="text-red-600 mb-2">{{ loadError }}</p>
-              <button @click="fetchLayers" class="text-green-600 hover:text-green-800 font-medium">
-                Intentar nuevamente
-              </button>
-            </div>
-            
-            <!-- Lista de capas -->
-            <div v-else-if="filteredLayers.length > 0" class="space-y-4 max-h-96 overflow-y-auto pr-1">
-              <div 
-                v-for="layer in filteredLayers" 
-                :key="layer.id" 
-                class="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all"
-                :class="{'ring-2 ring-green-400': layer.isNew}"
-              >
-                <!-- Cabecera de la capa -->
-                <div class="p-4 bg-white">
-                  <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                      <h3 class="font-medium text-gray-800 flex items-center">
-                        {{ layer.name }}
-                        <span v-if="layer.isNew" class="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
-                          Nueva
-                        </span>
-                      </h3>
-                      <p class="text-sm text-gray-500">
-                        Subido: {{ formatDate(layer.upload_date || layer.created_at) }}
-                      </p>
-                    </div>
-                    
-                    <!-- Botón para eliminar capa (NUEVO) -->
-                    <button 
-                      @click.stop="deleteLayer(layer)"
-                      class="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                      title="Eliminar capa"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  <!-- Detalles adicionales de la capa -->
-                  <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
+          </div>
+
+          <!-- Lista de capas -->
+          <div class="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2">
+            <div 
+              v-for="layer in filteredLayers" 
+              :key="layer.id" 
+              class="bg-white border border-gray-200 rounded-md shadow-sm p-4 hover:shadow transition-shadow"
+            >
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h3 class="font-medium text-gray-800 flex items-center">
+                    {{ layer.name }}
+                    <span v-if="layer.isNew" class="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                      Nueva
+                    </span>
+                  </h3>
+                  <div class="mt-1 grid grid-cols-2 gap-2 text-xs text-gray-500">
                     <div class="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>{{ layer.features_count || 0 }} elementos</span>
+                      {{ formatDate(layer.upload_date || layer.created_at) }}
                     </div>
                     <div class="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>{{ layer.file_size }}</span>
+                      {{ layer.features_count || 0 }} elementos
+                    </div>
+                    <div class="flex items-center">
+                      <svg class="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      </svg>
+                      {{ layer.file_size }}
                     </div>
                   </div>
                 </div>
-                
-                <!-- Vista previa si está disponible -->
-                <div v-if="layer.preview_url" class="border-t border-gray-100">
-                  <img 
-                    :src="layer.preview_url" 
-                    :alt="`Vista previa de ${layer.name}`" 
-                    class="w-full h-32 object-cover"
-                    loading="lazy"
-                    @error="$event.target.src = 'https://via.placeholder.com/640x320?text=Vista+previa+no+disponible'"
-                  />
-                </div>
+                <button 
+                  @click="confirmDeleteLayer(layer)"
+                  class="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Eliminar capa"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             </div>
-            
-            <!-- Mensaje cuando no hay capas -->
-            <div v-else class="py-6 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              <p class="text-gray-600">
-                {{ searchQuery ? 'No se encontraron capas que coincidan con la búsqueda.' : 'No hay capas disponibles aún. Sube tu primera capa.' }}
+          </div>
+
+          <!-- Modal de confirmación -->
+          <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-xl">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Confirmar eliminación</h3>
+              <p class="text-gray-600 mb-6">
+                ¿Estás seguro de eliminar la capa "{{ layerToDelete?.name }}"?
               </p>
+              <div class="flex justify-end space-x-3">
+                <button 
+                  @click="showDeleteModal = false"
+                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  @click="executeDelete"
+                  class="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+                >
+                  Eliminar capa
+                </button>
+              </div>
             </div>
+          </div>
+
+          <!-- Toast de notificación -->
+          <div 
+            v-if="showToast"
+            class="fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2"
+            :class="toastType === 'success' ? 'bg-green-500' : 'bg-red-500'"
+          >
+            <svg v-if="toastType === 'success'" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg v-else class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span class="text-white">{{ toastMessage }}</span>
           </div>
         </div>
       </div>
