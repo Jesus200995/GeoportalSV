@@ -32,13 +32,21 @@ onMounted(async () => {
       const parsed = JSON.parse(savedActiveLayers);
       activeLayers.value = Array.isArray(parsed) ? parsed : [];
       
-      // Activar las capas guardadas
+      // Activar las capas guardadas sólo si existen
       activeLayers.value.forEach(layerName => {
         const layer = layers.value.find(l => l.name === layerName);
         if (layer) {
           addLayerToMap(layer);
         }
       });
+      
+      // Limpiar activeLayers para que solo contenga capas que realmente existen
+      activeLayers.value = activeLayers.value.filter(layerName => 
+        layers.value.some(l => l.name === layerName)
+      );
+      
+      // Guardar el estado actualizado
+      localStorage.setItem('activeLayers', JSON.stringify(activeLayers.value));
     } catch (e) {
       console.error('Error al cargar capas guardadas:', e);
     }
@@ -54,7 +62,7 @@ const filteredLayers = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return layers.value.filter(layer => 
     layer.name.toLowerCase().includes(query) || 
-    layer.title.toLowerCase().includes(query)
+    layer.title?.toLowerCase().includes(query)
   );
 });
 
@@ -64,13 +72,58 @@ const fetchLayers = async () => {
   error.value = null;
   
   try {
-    layers.value = await getAvailableLayers();
-    console.log('Capas obtenidas de GeoServer:', layers.value);
+    const availableLayers = await getAvailableLayers();
+    console.log('Capas obtenidas de GeoServer:', availableLayers);
+    
+    // Si no hay capas disponibles, mostrar un mensaje claro
+    if (availableLayers.length === 0) {
+      console.log('No se encontraron capas disponibles en GeoServer');
+    }
+    
+    layers.value = availableLayers;
+    
+    // Actualizar referencias de capas en el mapa
+    updateMapLayers();
   } catch (err) {
     console.error('Error al obtener capas:', err);
-    error.value = 'No se pudieron cargar las capas de GeoServer.';
+    error.value = 'No se pudieron cargar las capas de GeoServer. Verifique que el servidor esté disponible.';
   } finally {
     loadingLayers.value = false;
+  }
+};
+
+// Actualiza las capas en el mapa cuando cambia la lista de capas disponibles
+const updateMapLayers = () => {
+  if (!props.map) return;
+  
+  // Obtener nombre de todas las capas disponibles
+  const availableLayerNames = new Set(layers.value.map(l => l.name));
+  
+  // Eliminar capas del mapa que ya no existen en el servidor
+  const layersToRemove = [];
+  props.map.getLayers().forEach(layer => {
+    const layerName = layer.get('name');
+    if (layerName && !availableLayerNames.has(layerName) && layer.get('type') === 'wms') {
+      layersToRemove.push(layer);
+      
+      // Eliminar de activeLayers
+      activeLayers.value = activeLayers.value.filter(name => name !== layerName);
+    }
+  });
+  
+  // Remover las capas obsoletas
+  layersToRemove.forEach(layer => {
+    props.map.removeLayer(layer);
+    const name = layer.get('name');
+    if (name && olLayers.value[name]) {
+      delete olLayers.value[name];
+    }
+  });
+  
+  if (layersToRemove.length > 0) {
+    console.log(`Se eliminaron ${layersToRemove.length} capas obsoletas del mapa`);
+    // Guardar estado actualizado
+    localStorage.setItem('activeLayers', JSON.stringify(activeLayers.value));
   }
 };
 
@@ -170,8 +223,8 @@ const removeLayerFromMap = (layer) => {
 };
 
 // Refrescar las capas
-const refreshLayers = () => {
-  fetchLayers();
+const refreshLayers = async () => {
+  await fetchLayers();
 };
 
 // Observar cambios en el mapa - si el mapa cambia, actualizar las capas
@@ -196,12 +249,14 @@ watch(() => props.map, (newMap) => {
 </script>
 
 <template>
-  <div class="layer-manager p-4 space-y-4">
+  <div class="layer-manager space-y-4">
     <div class="flex items-center justify-between">
       <h3 class="text-lg font-medium text-gray-800">Capas disponibles</h3>
       <button 
         @click="refreshLayers" 
         class="p-1 text-gray-500 hover:text-green-600 rounded-full hover:bg-gray-100"
+        :class="{'animate-spin': loadingLayers}"
+        :disabled="loadingLayers"
         title="Refrescar capas"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -239,8 +294,23 @@ watch(() => props.map, (newMap) => {
     
     <!-- Lista de capas -->
     <div v-else class="space-y-3 max-h-[400px] overflow-y-auto scrollbar-thin">
-      <div v-if="filteredLayers.length === 0" class="text-center py-4 text-gray-500">
-        No se encontraron capas disponibles
+      <div v-if="filteredLayers.length === 0" class="text-center py-8">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+        <p class="text-gray-500 font-medium">No hay capas disponibles</p>
+        <p class="text-gray-400 text-sm mt-2">
+          {{ searchQuery ? 'No se encontraron capas que coincidan con la búsqueda.' : 'No hay capas disponibles en el servidor. Sube una nueva capa para comenzar.' }}
+        </p>
+        <button 
+          @click="refreshLayers" 
+          class="mt-4 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Actualizar</span>
+        </button>
       </div>
       
       <div v-for="layer in filteredLayers" 
@@ -360,5 +430,15 @@ watch(() => props.map, (newMap) => {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #10B981;
   border-radius: 3px;
+}
+
+/* Animación para el botón de refrescar */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>
