@@ -124,7 +124,7 @@ const uploadFile = async () => {
   }
 
   isUploading.value = true;
-  uploadStatus.value = 'uploading'; // Cambiar estado a 'uploading'
+  uploadStatus.value = 'uploading';
   statusMessage.value = 'Preparando archivo para subir...';
   showProgressBar.value = true;
   uploadProgress.value = 0;
@@ -132,43 +132,36 @@ const uploadFile = async () => {
   uploadCompleted.value = false;
   processingStep.value = 'preparing';
 
+  const formData = new FormData();
+  formData.append('file', selectedFile.value);
+
   try {
-    const formData = new FormData();
-    formData.append('file', selectedFile.value);
+    // Asegurarse que la URL no termine en barra
+    const uploadUrl = `${API_URL}/upload-shapefile`.replace(/\/$/, '');
+    console.log(`Enviando solicitud a: ${uploadUrl}`);
 
-    // Simular pequeña espera para inicialización (mejor UX)
-    setTimeout(() => {
-      processingStep.value = 'uploading';
-      statusMessage.value = 'Subiendo archivo al servidor...';
-    }, 500);
-
-    console.log(`Enviando solicitud a: ${API_URL}/upload-shapefile`);
-    const response = await axios.post(`${API_URL}/upload-shapefile`, formData, {
+    const response = await axios.post(uploadUrl, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      timeout: 600000, // 10 minutos
+      withCredentials: true, // Importante para CORS
+      timeout: 600000,
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
-          // Calcular el porcentaje de la fase de subida (hasta 50% del proceso total)
           const percentCompleted = Math.round((progressEvent.loaded * 50) / progressEvent.total);
           uploadProgress.value = percentCompleted;
           
           // Calcular velocidad y tiempo restante
           const currentTime = Date.now();
-          const elapsedTime = (currentTime - uploadStartTime.value) / 1000; // en segundos
+          const elapsedTime = (currentTime - uploadStartTime.value) / 1000;
           
           if (elapsedTime > 0) {
             uploadSpeed.value = progressEvent.loaded / elapsedTime;
-            
             const remainingBytes = progressEvent.total - progressEvent.loaded;
             if (uploadSpeed.value > 0) {
               estimatedTimeRemaining.value = remainingBytes / uploadSpeed.value;
             }
           }
-          
-          // Log para depuración
-          console.log(`Progreso de subida: ${percentCompleted}%, Velocidad: ${formatUploadSpeed(uploadSpeed.value)}`);
         }
       }
     });
@@ -229,24 +222,7 @@ const uploadFile = async () => {
     await fetchLayers();
   } catch (error) {
     console.error('Error detallado:', error);
-    uploadProgress.value = 100; // Completar la barra para evitar que quede a medias
-    uploadStatus.value = 'error';
-    processingStep.value = 'error';
-    
-    // Manejar diferentes tipos de errores
-    if (error.code === 'ECONNABORTED') {
-      statusMessage.value = 'La subida está tomando más tiempo de lo esperado. El servidor está procesando su archivo, puede verificar en unos minutos si la capa se ha agregado correctamente.';
-    } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-      statusMessage.value = `Error de conexión: No se pudo conectar al servidor en ${API_URL}. Verifique que el backend esté en ejecución.`;
-      backendAvailable.value = false;
-    } else if (error.response) {
-      statusMessage.value = `Error ${error.response.status}: ${error.response.data.error || 'No se pudo procesar el archivo'}`;
-    } else if (error.request) {
-      statusMessage.value = 'Error: No se recibió respuesta del servidor, pero el archivo podría estar procesándose correctamente. Verifique en unos minutos si la capa se ha agregado.';
-      backendAvailable.value = false;
-    } else {
-      statusMessage.value = `Error: ${error.message}`;
-    }
+    handleUploadError(error);
   } finally {
     isUploading.value = false;
     
@@ -257,6 +233,24 @@ const uploadFile = async () => {
         showProgressBar.value = false;
       }, 3000);
     }
+  }
+};
+
+// Nueva función para manejar errores de subida
+const handleUploadError = (error) => {
+  uploadProgress.value = 0;
+  uploadStatus.value = 'error';
+  processingStep.value = 'error';
+  
+  if (error.code === 'ECONNABORTED') {
+    statusMessage.value = 'La subida está tomando más tiempo de lo esperado...';
+  } else if (error.response?.status === 308) {
+    statusMessage.value = 'Error de redirección. Intente nuevamente.';
+  } else if (error.code === 'ERR_NETWORK') {
+    statusMessage.value = `Error de conexión: No se pudo conectar al servidor en ${API_URL}`;
+    backendAvailable.value = false;
+  } else {
+    statusMessage.value = `Error: ${error.message || 'No se pudo procesar el archivo'}`;
   }
 };
 

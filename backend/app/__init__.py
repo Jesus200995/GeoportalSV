@@ -15,7 +15,15 @@ def create_app():
         Flask app: Aplicación Flask configurada
     """
     app = Flask(__name__)
-    CORS(app)  # Habilitar CORS para todas las rutas
+    
+    # Configuración mejorada de CORS
+    CORS(app, supports_credentials=True, resources={
+        r"/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Configurar límite de tamaño de archivo subido (100MB)
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024

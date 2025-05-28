@@ -16,22 +16,26 @@ SHAPEFILE_FOLDER = os.path.join(os.getcwd(), 'shapefiles')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
-@upload_bp.route('/', methods=['POST'])
+@upload_bp.route('', methods=['POST', 'OPTIONS'])  # Notar que no hay barra final
 def upload_shapefile():
+    # Manejar solicitudes OPTIONS para CORS
+    if request.method == 'OPTIONS':
+        return '', 204
+        
     try:
-        # Verificar que se ha enviado un archivo
+        # Verificación básica de la solicitud
+        if not request.files:
+            return jsonify({'error': 'No se recibieron archivos'}), 400
+            
         if 'file' not in request.files:
-            return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
-        
+            return jsonify({'error': 'No se encontró el archivo en la solicitud'}), 400
+            
         file = request.files['file']
-        
-        # Verificar que el archivo tiene nombre
-        if file.filename == '':
-            return jsonify({'error': 'Archivo sin nombre'}), 400
-        
-        # Verificar que es un archivo ZIP
+        if not file.filename:
+            return jsonify({'error': 'Nombre de archivo vacío'}), 400
+            
         if not file.filename.lower().endswith('.zip'):
-            return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
+            return jsonify({'error': 'Solo se aceptan archivos ZIP'}), 400
         
         # Crear un nombre único para el archivo
         unique_filename = str(uuid.uuid4()) + ".zip"
@@ -96,4 +100,5 @@ def upload_shapefile():
             return jsonify({'error': 'El archivo ZIP es inválido o está corrupto'}), 400
             
     except Exception as e:
+        print(f"Error al procesar archivo: {str(e)}")
         return jsonify({'error': str(e)}), 500
