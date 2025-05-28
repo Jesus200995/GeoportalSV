@@ -559,6 +559,11 @@ const generateMockLayers = () => {
     }
   ];
 };
+
+// Función para ir al dashboard
+const goToDashboard = () => {
+  router.push('/map'); // Cambiamos /dashboard por /map que es la ruta que muestra el visor
+};
 </script>
 
 <template>
@@ -575,7 +580,34 @@ const generateMockLayers = () => {
           </router-link>
           <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Subir nueva capa</h1>
         </div>
-        <div class="flex items-center">
+        <div class="flex items-center space-x-4">
+          <!-- Nuevo botón para ir al visor -->
+          <button 
+            @click="goToDashboard"
+            class="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 
+                   text-white font-medium rounded-lg shadow-md hover:shadow-lg 
+                   transform hover:-translate-y-0.5 active:translate-y-0 
+                   transition-all duration-300 group"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              class="h-5 w-5 mr-2 group-hover:animate-pulse" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                stroke-width="2" 
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+              />
+            </svg>
+            <span class="relative">
+              Ir al visor
+              <span class="absolute bottom-0 left-0 w-full h-0.5 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+            </span>
+          </button>
           <img 
             src="@/components/images/logotipo.png" 
             alt="Logotipo Sembrando Datos" 
@@ -963,6 +995,22 @@ const generateMockLayers = () => {
   100% {
     background-position: 0 0;
   }
+}
+
+/* Nuevos estilos para el botón del visor */
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+.group-hover\:animate-pulse {
+  animation: gentle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Responsive enhancements */

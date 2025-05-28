@@ -516,16 +516,8 @@ const showExitModal = ref(false);
 
 // Función para manejar el clic en el botón de inicio
 const handleGoHome = () => {
-  // Verificar si hay cambios no guardados (puedes personalizar esta lógica)
-  const hasUnsavedChanges = false; // Ejemplo: establecer en true si hay cambios sin guardar
-  
-  if (hasUnsavedChanges) {
-    // Mostrar modal de confirmación si hay cambios no guardados
-    showExitModal.value = true;
-  } else {
-    // Navegar directamente a la página de inicio si no hay cambios sin guardar
-    navigateToHome();
-  }
+  // Redirigir al inicio usando el router
+  router.push('/');
 };
 
 // Función para confirmar la salida y navegar a la página de inicio
@@ -536,16 +528,7 @@ const confirmExit = () => {
 
 // Función de navegación a la página de inicio
 const navigateToHome = () => {
-  // Aplicar una animación de transición antes de navegar
-  document.body.classList.add('page-transitioning');
-  
-  // Emitir evento para mostrar la vista de bienvenida
-  emit('show-welcome');
-  
-  // Pequeño retraso para permitir que la animación comience
-  setTimeout(() => {
-    document.body.classList.remove('page-transitioning');
-  }, 500);
+  router.push('/');
 };
 
 // Función para cerrar sesión
@@ -1340,7 +1323,7 @@ const {
                 <section>
                   <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2  0 0 012-2h3.064" />
                     </svg>
                     Información agrícola y suelo
                   </h3>

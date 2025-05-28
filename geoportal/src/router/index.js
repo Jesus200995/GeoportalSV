@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import MapView from '../views/MapView.vue'
 import LoginView from '../views/LoginView.vue'
 import LoadingPlant from '../components/animations/LoadingPlant.vue'
 
@@ -31,7 +30,7 @@ const router = createRouter({
     {
       path: '/map',
       name: 'map',
-      component: MapView,
+      component: () => import('../views/MapView.vue'),
       meta: { 
         requiresAuth: true 
       }
@@ -53,16 +52,11 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('authenticated') === 'true';
   
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Si la ruta requiere autenticación y el usuario no está autenticado
     next('/login');
   } else if (to.path === '/login' && isAuthenticated) {
-    // Si el usuario ya está autenticado e intenta acceder a login
     next('/');
-  } else if (from.path === '/login' && to.path === '/' && !from.params.skipLoading) {
-    // Si viene de login y va a home, mostrar la pantalla de carga intermedia
-    next('/loading');
   } else {
-    // En cualquier otro caso, continuar
+    // Eliminar la redirección forzada a /loading
     next();
   }
 })
