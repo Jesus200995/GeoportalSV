@@ -21,8 +21,15 @@ const searchQuery = ref('');
 // Estado para guardar referencias a las capas de OpenLayers
 const olLayers = ref({});
 
+// Añadir ref para almacenar opacidades
+const layerOpacities = ref({});
+
 // Obtener las capas de GeoServer al montar el componente
 onMounted(async () => {
+  // Cargar opacidades guardadas
+  const savedOpacities = JSON.parse(localStorage.getItem('layerOpacities') || '{}');
+  layerOpacities.value = { ...savedOpacities };
+  
   await fetchLayers();
   
   // Cargamos estado guardado de localStorage si existe
@@ -150,11 +157,47 @@ const toggleLayer = (layer) => {
   localStorage.setItem('activeLayers', JSON.stringify(activeLayers.value));
 };
 
+// Función modificada para actualizar la opacidad
+const updateOpacity = (layer, opacity) => {
+  if (!props.map) return;
+  
+  // Convertir a número si viene como string
+  const opacityValue = parseFloat(opacity);
+  
+  // Validar que sea un número válido entre 0 y 1
+  if (isNaN(opacityValue) || opacityValue < 0 || opacityValue > 1) {
+    console.error('Valor de opacidad inválido:', opacity);
+    return;
+  }
+  
+  // Actualizar el estado local
+  layerOpacities.value[layer.name] = opacityValue;
+  
+  // Actualizar la opacidad en el mapa
+  const olLayer = olLayers.value[layer.name];
+  if (olLayer) {
+    olLayer.setOpacity(opacityValue);
+    
+    // Forzar actualización del mapa
+    props.map.render();
+  }
+  
+  // Guardar estado en localStorage para persistencia
+  const opacityState = JSON.parse(localStorage.getItem('layerOpacities') || '{}');
+  opacityState[layer.name] = opacityValue;
+  localStorage.setItem('layerOpacities', JSON.stringify(opacityState));
+};
+
 // Añadir la capa al mapa
 const addLayerToMap = (layer) => {
   if (!props.map || !layer) {
     console.error('No se puede añadir capa: Mapa o capa no definidos');
     return;
+  }
+  
+  // Establecer opacidad inicial si no existe
+  if (!(layer.name in layerOpacities.value)) {
+    layerOpacities.value[layer.name] = 1;
   }
   
   // Si la capa ya existe en el mapa, solo hacerla visible
@@ -200,6 +243,15 @@ const addLayerToMap = (layer) => {
   
   // Guardar referencia a la capa
   olLayers.value[layer.name] = wmsLayer;
+  
+  // Cargar opacidad guardada o usar valor por defecto
+  const savedOpacities = JSON.parse(localStorage.getItem('layerOpacities') || '{}');
+  if (!(layer.name in layerOpacities.value)) {
+    layerOpacities.value[layer.name] = savedOpacities[layer.name] || 1;
+  }
+  
+  // Asignar opacidad al crear la capa
+  wmsLayer.setOpacity(layerOpacities.value[layer.name]);
   
   console.log(`Capa ${layer.name} añadida al mapa correctamente`);
 };
@@ -292,7 +344,7 @@ watch(() => props.map, (newMap) => {
       <button @click="fetchLayers" class="ml-2 underline">Reintentar</button>
     </div>
     
-    <!-- Lista de capas -->
+    <!-- Lista de capas modificada -->
     <div v-else class="space-y-3 max-h-[400px] overflow-y-auto scrollbar-thin">
       <div v-if="filteredLayers.length === 0" class="text-center py-8">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -315,8 +367,9 @@ watch(() => props.map, (newMap) => {
       
       <div v-for="layer in filteredLayers" 
            :key="layer.name"
-           class="bg-white border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-all">
-        <div class="flex items-center justify-between">
+           class="bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-all">
+        <!-- Contenedor principal de la capa -->
+        <div class="p-3">
           <div class="flex items-center space-x-3">
             <!-- Switch para activar/desactivar capa -->
             <div class="relative inline-block w-10 mr-2 align-middle select-none">
@@ -335,35 +388,31 @@ watch(() => props.map, (newMap) => {
             </div>
             
             <!-- Información de la capa -->
-            <div>
+            <div class="flex-1">
               <h4 class="text-sm font-medium text-gray-800">{{ layer.title || layer.name }}</h4>
               <p v-if="layer.abstract" class="text-xs text-gray-500 truncate">{{ layer.abstract }}</p>
             </div>
           </div>
-          
-          <!-- Botón para ver leyenda -->
-          <button 
-            @click="layer.showLegend = !layer.showLegend" 
-            class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-            title="Ver leyenda"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0v3H7V4h6z" clip-rule="evenodd" />
-            </svg>
-          </button>
         </div>
         
-        <!-- Leyenda expandible -->
-        <div v-if="layer.showLegend" class="mt-2 p-2 bg-gray-50 rounded">
-          <img 
-            :src="layer.legendUrl" 
-            :alt="`Leyenda ${layer.title}`" 
-            class="mx-auto max-h-32" 
-            @error="$event.target.src = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23CCC\' d=\'M21.9,21.9l-8.9-8.9l-9,9H3v-1l9-9L3,3V2h1l9,9l8.9-8.9L21.9,21.9z M21.9,2H21l-9,9L3,2H2v1l9,9l-9,9v1h1l9-9l9,9h1L21.9,2z\'/%3E%3C/svg%3E';"
-          />
-          <p v-if="isLayerActive(layer.name)" class="text-xs text-green-600 text-center mt-2">
-            ✅ Capa activa y visible en el mapa
-          </p>
+        <!-- Control de opacidad - Solo visible cuando la capa está activa -->
+        <div v-if="isLayerActive(layer.name)" 
+             class="px-3 pb-3 pt-1 border-t border-gray-100 animate-fade-in">
+          <div class="flex items-center space-x-3">
+            <label :for="`opacity-${layer.name}`" class="text-xs text-gray-500 w-16 select-none">
+              {{ Math.round((layerOpacities[layer.name] || 1) * 100) }}%
+            </label>
+            <input 
+              type="range"
+              :id="`opacity-${layer.name}`"
+              :value="layerOpacities[layer.name] || 1"
+              @input="updateOpacity(layer, $event.target.value)"
+              min="0"
+              max="1"
+              step="0.1"
+              class="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-600"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -440,5 +489,41 @@ watch(() => props.map, (newMap) => {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* Estilos para el control de opacidad */
+input[type="range"] {
+  -webkit-appearance: none;
+  @apply bg-gray-200 h-1.5 rounded-lg;
+  background-image: linear-gradient(to right, #10B981, #10B981);
+  background-size: calc(var(--value, 0) * 100%) 100%;
+  background-repeat: no-repeat;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  @apply w-3 h-3 bg-green-500 rounded-full cursor-pointer transition-all;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+  @apply transform scale-125 bg-green-600;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Ajustar animación de aparición */
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
