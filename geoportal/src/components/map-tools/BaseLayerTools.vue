@@ -1,5 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import TileLayer from 'ol/layer/Tile';
+import XYZ from 'ol/source/XYZ';
 
 const props = defineProps({
   map: {
@@ -8,34 +10,75 @@ const props = defineProps({
   }
 });
 
-const baseLayerVisible = ref(true);
+const osmVisible = ref(true);
+const satelliteVisible = ref(false);
 const baseLayerOpacity = ref(100);
 const osmLayer = ref(null);
+const satelliteLayer = ref(null);
 
 onMounted(() => {
-  // Obtener la capa base OSM del mapa
+  // Obtener la capa OSM
   osmLayer.value = props.map.getLayers().getArray().find(layer => 
     layer.get('name') === 'OpenStreetMap'
   );
-  
+
+  // Crear y añadir capa satelital si no existe
+  if (!props.map.getLayers().getArray().find(layer => layer.get('name') === 'Satellite')) {
+    satelliteLayer.value = new TileLayer({
+      source: new XYZ({
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 19
+      }),
+      visible: false,
+      properties: {
+        name: 'Satellite'
+      },
+      zIndex: 0
+    });
+    props.map.addLayer(satelliteLayer.value);
+  } else {
+    satelliteLayer.value = props.map.getLayers().getArray().find(layer => 
+      layer.get('name') === 'Satellite'
+    );
+  }
+
+  // Sincronizar estados iniciales
   if (osmLayer.value) {
-    // Sincronizar estado inicial
-    baseLayerVisible.value = osmLayer.value.getVisible();
+    osmVisible.value = osmLayer.value.getVisible();
     baseLayerOpacity.value = Math.round(osmLayer.value.getOpacity() * 100);
+  }
+  if (satelliteLayer.value) {
+    satelliteVisible.value = satelliteLayer.value.getVisible();
   }
 });
 
-const toggleBaseLayer = () => {
+const toggleOSM = () => {
   if (osmLayer.value) {
-    baseLayerVisible.value = !baseLayerVisible.value;
-    osmLayer.value.setVisible(baseLayerVisible.value);
+    osmVisible.value = !osmVisible.value;
+    osmLayer.value.setVisible(osmVisible.value);
+    if (osmVisible.value && satelliteLayer.value) {
+      satelliteVisible.value = false;
+      satelliteLayer.value.setVisible(false);
+    }
+  }
+};
+
+const toggleSatellite = () => {
+  if (satelliteLayer.value) {
+    satelliteVisible.value = !satelliteVisible.value;
+    satelliteLayer.value.setVisible(satelliteVisible.value);
+    if (satelliteVisible.value && osmLayer.value) {
+      osmVisible.value = false;
+      osmLayer.value.setVisible(false);
+    }
   }
 };
 
 const updateOpacity = (event) => {
   const opacity = parseInt(event.target.value) / 100;
-  if (osmLayer.value) {
-    osmLayer.value.setOpacity(opacity);
+  const activeLayer = osmVisible.value ? osmLayer.value : satelliteLayer.value;
+  if (activeLayer) {
+    activeLayer.setOpacity(opacity);
     baseLayerOpacity.value = event.target.value;
   }
 };
@@ -43,39 +86,67 @@ const updateOpacity = (event) => {
 
 <template>
   <div class="p-4 space-y-4">
-    <!-- Título de la sección -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-medium text-gray-900">Capas base</h3>
     </div>
 
-    <!-- Tarjeta de OpenStreetMap -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <div class="space-y-4">
-        <!-- Cabecera con título y switch -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <!-- Alternativa usando una URL externa -->
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Openstreetmap_logo.svg/256px-Openstreetmap_logo.svg.png" alt="OSM" class="w-8 h-8 rounded"/>
-            <div>
-              <h4 class="text-sm font-medium text-gray-900">OpenStreetMap</h4>
-              <p class="text-xs text-gray-500">Mapa base estándar</p>
+    <!-- Tarjetas de mapas base -->
+    <div class="space-y-4">
+      <!-- OpenStreetMap -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <div>
+                <h4 class="text-sm font-medium text-gray-900">OpenStreetMap</h4>
+                <p class="text-xs text-gray-500">Mapa base estándar</p>
+              </div>
             </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox"
+                :checked="osmVisible"
+                @change="toggleOSM"
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            </label>
           </div>
-
-          <!-- Switch mejorado -->
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox"
-              :checked="baseLayerVisible"
-              @change="toggleBaseLayer"
-              class="sr-only peer"
-            />
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-          </label>
         </div>
+      </div>
 
-        <!-- Control de opacidad mejorado -->
-        <div v-if="baseLayerVisible" class="space-y-2">
+      <!-- Mapa Satelital -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+              <div>
+                <h4 class="text-sm font-medium text-gray-900">Satelital</h4>
+                <p class="text-xs text-gray-500">Vista satelital ESRI</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox"
+                :checked="satelliteVisible"
+                @change="toggleSatellite"
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control de opacidad -->
+      <div v-if="osmVisible || satelliteVisible" class="bg-gray-50 rounded-lg p-4">
+        <div class="space-y-2">
           <div class="flex items-center justify-between">
             <label class="text-xs text-gray-500">Opacidad</label>
             <span class="text-xs font-medium text-gray-700">{{ baseLayerOpacity }}%</span>
@@ -90,16 +161,6 @@ const updateOpacity = (event) => {
           />
         </div>
       </div>
-    </div>
-
-    <!-- Información adicional -->
-    <div class="bg-blue-50 rounded-lg p-3 text-xs text-blue-700">
-      <p class="flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Ajusta la visibilidad y opacidad del mapa base
-      </p>
     </div>
   </div>
 </template>
