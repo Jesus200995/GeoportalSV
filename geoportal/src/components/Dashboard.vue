@@ -27,6 +27,7 @@ import Overlay from 'ol/Overlay';
 // Importar nuevo componente y composable
 import FeatureInfoPanel from './FeatureInfoPanel.vue';
 import { useFeatureInfo } from '../composables/useFeatureInfo';
+import BaseLayerTools from './map-tools/BaseLayerTools.vue';
 
 // Unificar definición de emisiones - combinar 'save-success', 'logout' y 'show-welcome'
 const emit = defineEmits(['save-success', 'logout', 'show-welcome']);
@@ -886,7 +887,7 @@ const goToUploadMaps = () => {
           :class="sidebarOpen ? '' : 'rotate-180'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l5-5-5-5" />
           </svg>
         </button>
       </div>
@@ -1245,7 +1246,7 @@ const goToUploadMaps = () => {
         
         <!-- Panel de capas -->
         <div v-if="activeToolPanel === 'layers'">
-          <LayersTool :map="map" :layers="getAllLayers()" />
+          <BaseLayerTools :map="map" />
         </div>
       </div>
 

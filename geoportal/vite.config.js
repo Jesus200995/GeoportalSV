@@ -19,9 +19,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['chart.js']
   },
-  // Añadir configuración para imágenes estáticas
+  publicDir: 'public',
   assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.svg'],
-  // Configurar el manejo de archivos estáticos
   build: {
     assetsDir: 'assets',
     rollupOptions: {
@@ -29,6 +28,5 @@ export default defineConfig({
         assetFileNames: 'assets/[name][extname]'
       }
     }
-  },
-  publicDir: 'public'
+  }
 })
