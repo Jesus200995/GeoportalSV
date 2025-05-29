@@ -12,6 +12,7 @@ const props = defineProps({
 
 const osmVisible = ref(true);
 const satelliteVisible = ref(false);
+const labelLayer = ref(null);
 const baseLayerOpacity = ref(100);
 const osmLayer = ref(null);
 const satelliteLayer = ref(null);
@@ -42,6 +43,29 @@ onMounted(() => {
     );
   }
 
+  // Crear y añadir capa de etiquetas si no existe
+  if (!props.map.getLayers().getArray().find(layer => layer.get('name') === 'Labels')) {
+    labelLayer.value = new TileLayer({
+      source: new XYZ({
+        url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}.png',
+        maxZoom: 20,
+        attributions: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> ' +
+                     '&copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> ' +
+                     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }),
+      visible: false,
+      properties: {
+        name: 'Labels'
+      },
+      zIndex: 2  // Asegura que las etiquetas estén por encima del satélite
+    });
+    props.map.addLayer(labelLayer.value);
+  } else {
+    labelLayer.value = props.map.getLayers().getArray().find(layer => 
+      layer.get('name') === 'Labels'
+    );
+  }
+
   // Sincronizar estados iniciales
   if (osmLayer.value) {
     osmVisible.value = osmLayer.value.getVisible();
@@ -59,6 +83,10 @@ const toggleOSM = () => {
     if (osmVisible.value && satelliteLayer.value) {
       satelliteVisible.value = false;
       satelliteLayer.value.setVisible(false);
+      // Ocultar etiquetas cuando se muestra OSM
+      if (labelLayer.value) {
+        labelLayer.value.setVisible(false);
+      }
     }
   }
 };
@@ -67,6 +95,10 @@ const toggleSatellite = () => {
   if (satelliteLayer.value) {
     satelliteVisible.value = !satelliteVisible.value;
     satelliteLayer.value.setVisible(satelliteVisible.value);
+    // Mostrar/ocultar etiquetas junto con el satélite
+    if (labelLayer.value) {
+      labelLayer.value.setVisible(satelliteVisible.value);
+    }
     if (satelliteVisible.value && osmLayer.value) {
       osmVisible.value = false;
       osmLayer.value.setVisible(false);
@@ -79,6 +111,10 @@ const updateOpacity = (event) => {
   const activeLayer = osmVisible.value ? osmLayer.value : satelliteLayer.value;
   if (activeLayer) {
     activeLayer.setOpacity(opacity);
+    // Mantener las etiquetas siempre visibles con opacidad completa
+    if (labelLayer.value && satelliteVisible.value) {
+      labelLayer.value.setOpacity(1);
+    }
     baseLayerOpacity.value = event.target.value;
   }
 };
