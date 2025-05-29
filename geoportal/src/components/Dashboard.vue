@@ -921,72 +921,13 @@ const goToUploadMaps = () => {
         <!-- Contenido según la pestaña activa -->
         <div class="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-green-500">
           <transition name="fade" mode="out-in">
-            <!-- Pestaña Capas con el nuevo LayerManager y botón de refrescar -->
+            <!-- Pestaña Capas con el LayerManager -->
             <div v-if="activeTab === 'principal' && sidebarOpen" class="p-4 animate-fade-in">
-              <!-- Cabecera con título y botón de refrescar -->
-              <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-gray-800">Capas disponibles</h2>
-                <button 
-                  @click="handleRefreshRequest" 
-                  class="p-1.5 text-gray-500 hover:text-green-600 rounded-full hover:bg-gray-100 transition-colors"
-                  :class="{'animate-spin': isLoadingLayers}"
-                  :disabled="isLoadingLayers"
-                  title="Refrescar capas"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-              
-              <!-- Mostrar estado de carga o error -->
-              <div v-if="isLoadingLayers" class="flex items-center justify-center py-4 bg-gray-50 rounded-lg mb-4">
-                <div class="flex flex-col items-center">
-                  <div class="w-8 h-8 border-2 border-t-green-500 border-green-200 rounded-full animate-spin mb-2"></div>
-                  <p class="text-sm text-gray-600">Actualizando capas...</p>
-                </div>
-              </div>
-              
-              <div v-else-if="loadError" class="bg-red-50 border-l-4 border-red-500 p-4 mb-4 text-sm text-red-700">
-                <p>{{ loadError }}</p>
-                <button @click="refreshLayers" class="mt-1 text-red-600 underline hover:text-red-800">
-                  Reintentar
-                </button>
-              </div>
-              
-              <!-- Mensaje si no hay capas -->
-              <div v-else-if="getAllLayers().length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5-5 5-5m6 10l5-5-5-5" />
-                </svg>
-                <p class="text-gray-600 font-medium">No hay capas disponibles</p>
-                <p class="text-gray-500 text-sm mt-2">
-                  No se encontraron capas en el servidor. Sube una nueva capa desde el panel de "Subir Capas".
-                </p>
-                <button 
-                  @click="refreshLayers" 
-                  class="mt-4 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors flex items-center space-x-2 mx-auto"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Actualizar capas</span>
-                </button>
-              </div>
-              
-              <!-- Componente LayerManager cuando hay capas disponibles -->
-              <div v-else>
-                <!-- Tiempo de última actualización -->
-                <div v-if="lastUpdated" class="text-xs text-gray-500 mb-3 italic">
-                  Actualizado: {{ lastUpdated.toLocaleTimeString() }}
-                </div>
-                
-                <!-- Componente de gestión de capas -->
-                <LayerManager :map="map" />
-              </div>
+              <!-- Usamos solo el LayerManager component -->
+              <LayerManager :map="map" />
             </div>
 
-            <!-- Contenido de la pestaña Extras con iconos solo en modo colapsado -->
+            <!-- Contenido de la pestaña Extras -->
             <div v-else-if="activeTab === 'extras'" class="animate-fade-in">
               <!-- Contenido detallado cuando la sidebar está expandida -->
               <div v-if="sidebarOpen" class="p-4 space-y-4">
