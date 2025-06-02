@@ -96,6 +96,12 @@ const handleLayerSelect = async (layer) => {
   }
 };
 
+// Función para volver al inicio - versión con navegación directa
+const goToHome = () => {
+  // Usar window.location.href para navegación directa y confiable
+  window.location.href = '/';
+};
+
 onMounted(() => {
   loadLayers();
   
@@ -104,11 +110,6 @@ onMounted(() => {
     fadeIn.value = true;
   }, 100);
 });
-
-// Función para volver al inicio
-const goToHome = () => {
-  router.push('/');
-};
 </script>
 
 <template>
@@ -128,17 +129,17 @@ const goToHome = () => {
         </div>
 
         <div class="flex items-center">
-          <!-- Botón para volver al inicio -->
-          <button 
-            @click="goToHome"
-            class="px-4 py-2 mr-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold"
+          <!-- Reemplazar el botón con un componente dual botón/enlace para garantizar la navegación -->
+          <a 
+            href="/"
+            class="px-4 py-2 mr-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold no-underline"
             aria-label="Volver a la página de inicio"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
             <span class="hidden sm:inline">Volver al inicio</span>
-          </button>
+          </a>
           
           <!-- Componente de perfil de usuario -->
           <UserProfile />
@@ -381,5 +382,10 @@ button:hover {
 
 button:active {
   transform: scale(0.98);
+}
+
+/* Asegurar que el enlace no tenga subrayado */
+.no-underline {
+  text-decoration: none !important;
 }
 </style>
