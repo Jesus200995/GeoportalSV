@@ -24,6 +24,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Style, Circle as CircleStyle, Fill, Stroke } from 'ol/style';
 import Overlay from 'ol/Overlay';
+import GeoJSON from 'ol/format/GeoJSON'; // Añadimos esta importación para la consulta
 // Importar nuevo componente y composable
 import FeatureInfoPanel from './FeatureInfoPanel.vue';
 import { useFeatureInfo } from '../composables/useFeatureInfo';
@@ -67,6 +68,14 @@ const descargando = ref(false);
 const markerSource = ref(null);
 const markerLayer = ref(null);
 const markerOverlay = ref(null);
+
+// Estado para el panel de consulta
+const showQueryPanel = ref(false);
+const queryResults = ref([]);
+const isQuerying = ref(false);
+const queryError = ref(null);
+const selectedLayerForQuery = ref(null);
+const searchTermQuery = ref('');
 
 // Importar configuración de capas desde el composable con sus funciones extendidas
 const { layerGroups, isLoadingLayers, loadError, loadAvailableLayers, lastUpdated } = useLayers();
@@ -857,6 +866,100 @@ const {
 const goToUploadMaps = () => {
   router.push('/upload-layer'); // Ruta que coincide con la definida en router/index.js
 };
+
+// Función para alternar el panel de consulta
+const toggleQueryPanel = () => {
+  showQueryPanel.value = !showQueryPanel.value;
+  if (!showQueryPanel.value) {
+    // Limpiar resultados al cerrar
+    queryResults.value = [];
+    queryError.value = null;
+  }
+};
+
+// Función para realizar la consulta
+const performQuery = async () => {
+  if (!selectedLayerForQuery.value) {
+    queryError.value = "Por favor seleccione una capa para consultar";
+    return;
+  }
+  
+  isQuerying.value = true;
+  queryError.value = null;
+  queryResults.value = [];
+  
+  try {
+    const layerName = selectedLayerForQuery.value.name;
+    const searchFilter = searchTermQuery.value ? 
+      `&CQL_FILTER=nombre ILIKE '%${searchTermQuery.value}%' OR nombre_territorio ILIKE '%${searchTermQuery.value}%'` : '';
+    
+    // Realizar consulta a GeoServer
+    const response = await fetch(
+      `http://31.97.8.51:8082/geoserver/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Error al consultar la capa: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.features || data.features.length === 0) {
+      queryResults.value = [];
+      return;
+    }
+    
+    // Transformar los datos en un formato más amigable
+    queryResults.value = data.features.map(feature => ({
+      id: feature.id,
+      name: feature.properties.nombre || feature.properties.nombre_territorio || feature.id,
+      description: feature.properties.descripcion || `Entidad en capa ${layerName}`,
+      properties: feature.properties,
+      geometry: feature.geometry
+    }));
+    
+  } catch (error) {
+    console.error('Error al realizar la consulta:', error);
+    queryError.value = `Error al realizar la consulta: ${error.message}`;
+  } finally {
+    isQuerying.value = false;
+  }
+};
+
+// Función para hacer zoom a un resultado de consulta
+const zoomToQueryResult = (result) => {
+  if (!result || !result.geometry || !map.value) return;
+  
+  try {
+    // Convertir la geometría a una característica de OpenLayers
+    const format = new GeoJSON();
+    const feature = format.readFeature({
+      type: 'Feature',
+      geometry: result.geometry,
+      properties: result.properties
+    }, {
+      featureProjection: 'EPSG:3857'
+    });
+    
+    // Obtener la extensión de la característica y hacer zoom
+    const extent = feature.getGeometry().getExtent();
+    map.value.getView().fit(extent, {
+      padding: [50, 50, 50, 50],
+      duration: 1000
+    });
+    
+    // Opcionalmente, añadir un marcador o resaltar la característica
+    if (markerSource.value) {
+      markerSource.value.clear();
+      markerSource.value.addFeature(feature);
+    }
+    
+    // Cerrar el panel después de hacer zoom
+    showQueryPanel.value = false;
+  } catch (error) {
+    console.error('Error al hacer zoom al resultado:', error);
+  }
+};
 </script>
 
 <template>
@@ -1014,7 +1117,7 @@ const goToUploadMaps = () => {
                   <ul class="space-y-2">
                     <li v-for="layer in layerGroups.extras" :key="layer.id" 
                         class="transform transition-all duration-300 hover:translate-x-1">
-                      <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colors">
+                      <div class="flex items-center p-2 rounded-lg hover:bg-green-50 transition-colores">
                         <div class="relative inline-block w-10 mr-2 align-middle select-none">
                           <input 
                             type="checkbox" 
@@ -1142,6 +1245,20 @@ const goToUploadMaps = () => {
                 </svg>
               </span>
               <span class="hidden sm:inline">Inicio</span>
+            </button>
+            
+            <!-- Botón para consultar (NUEVO) -->
+            <button 
+              @click="toggleQueryPanel"
+              class="modern-button query-button px-4 py-2 bg-gradient-to-r from-purple-400 to-purple-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-4"
+              aria-label="Consultar información"
+            >
+              <span class="query-icon relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <span class="hidden sm:inline">Consultar</span>
             </button>
             
             <!-- Botón para subir capas -->
@@ -1320,7 +1437,7 @@ const goToUploadMaps = () => {
                           <span class="text-sm text-gray-500">Población:</span>
                           <span class="text-sm font-medium">{{ reporteCompleto.poblacion?.toLocaleString() }}</span>
                         </div>
-                        <div class="flex justify-between">
+                                               <div class="flex justify-between">
                           <span class="text-sm text-gray-500">Densidad poblacional:</span>
                           <span class="text-sm font-medium">{{ reporteCompleto.densidad_poblacion }} hab/ha</span>
                         </div>
@@ -1337,12 +1454,11 @@ const goToUploadMaps = () => {
                   </div>
                 </section>
                 
-                
                 <!-- Información climática y ambiental -->
                 <section>
                   <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0  4 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                     </svg>
                     Información climática y ambiental
                   </h3>
@@ -1530,7 +1646,7 @@ const goToUploadMaps = () => {
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m3-3v12" />
                   </svg>
                   <span>{{ descargando ? 'Descargando...' : 'Descargar reporte' }}</span>
@@ -1615,6 +1731,112 @@ const goToUploadMaps = () => {
                   <span class="text-xl">→</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <!-- Panel de consulta -->
+      <Transition name="slide-right">
+        <div v-if="showQueryPanel" 
+             class="fixed top-20 right-0 bottom-0 w-80 sm:w-96 bg-white shadow-lg z-50 overflow-hidden flex flex-col">
+          <!-- Encabezado del panel -->
+          <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4 text-white flex justify-between items-center">
+            <h3 class="font-medium flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Consultar información</span>
+            </h3>
+            <button @click="toggleQueryPanel" class="p-1 hover:bg-white/20 rounded-full transition-colores">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <!-- Contenido del panel -->
+          <div class="flex-1 overflow-y-auto p-4">
+            <!-- Seleccionar capa para consultar -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar capa</label>
+              <select 
+                v-model="selectedLayerForQuery"
+                class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option :value="null">-- Seleccionar una capa --</option>
+                <option v-for="layer in getAllLayers()" :key="layer.name" :value="layer">
+                  {{ layer.title || layer.name }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Buscar en la capa seleccionada -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Término de búsqueda (opcional)</label>
+              <div class="relative">
+                <input 
+                  v-model="searchTermQuery"
+                  type="text" 
+                  placeholder="Buscar..."
+                  class="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Botón para realizar consulta -->
+            <button 
+              @click="performQuery"
+              :disabled="!selectedLayerForQuery || isQuerying"
+              class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg v-if="isQuerying" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span>{{ isQuerying ? 'Consultando...' : 'Consultar' }}</span>
+            </button>
+
+            <!-- Mensaje de error -->
+            <div v-if="queryError" class="mt-4 p-3 bg-red-50 rounded-lg text-red-600 text-sm">
+              {{ queryError }}
+            </div>
+            
+            <!-- Resultados -->
+            <div v-if="queryResults.length > 0" class="mt-6">
+              <h4 class="font-medium text-gray-800 mb-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Resultados ({{ queryResults.length }})
+              </h4>
+              
+              <ul class="space-y-3 max-h-[50vh] overflow-y-auto">
+                <li v-for="result in queryResults" :key="result.id" 
+                    class="bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-lg p-3 transition-colores cursor-pointer"
+                    @click="zoomToQueryResult(result)">
+                  <div class="font-medium text-purple-700">{{ result.name || 'Elemento sin nombre' }}</div>
+                  <p class="text-sm text-gray-500">{{ result.description || 'Sin descripción' }}</p>
+                  <div class="mt-2 text-xs text-gray-400 flex justify-end">
+                    <span>Haga clic para hacer zoom</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            
+            <!-- Mensaje cuando no hay resultados -->
+            <div v-else-if="queryResults.length === 0 && !queryError && !isQuerying && selectedLayerForQuery" 
+                 class="mt-6 text-center py-6 bg-gray-50 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="text-gray-500">No se encontraron resultados</p>
             </div>
           </div>
         </div>
@@ -1815,6 +2037,33 @@ button:active {
 /* Animación para elementos deslizados desde la derecha */
 @keyframes slide-in-right {
   from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.slide-right-enter-active {
+  animation: slide-in-right 0.3s forwards;
+}
+
+.slide-right-leave-active {
+  animation: slide-out-right 0.3s forwards;
+}
+
+/* Animación para el panel lateral que entra por la derecha */
+@keyframes slide-in-right {
+  from {
     transform: translateX(20px);
     opacity: 0;
   }
@@ -1879,8 +2128,17 @@ button:active {
 /* Añadir estilos específicos para las capas */
 .toggle-label {
   position: relative;
+  display: block;
+  width: 3rem;
+  height: 1.5rem;
+  border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease;
+  background-color: #D1D5DB;
+}
+
+.toggle-label.active {
+  background-color: #10B981;
 }
 
 .toggle-label::after {
@@ -1888,16 +2146,12 @@ button:active {
   position: absolute;
   top: 0.25rem;
   left: 0.25rem;
+  background-color: white;
   width: 1rem;
   height: 1rem;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.toggle-label.active {
-  background-color: #10B981;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-in-out;
 }
 
 .toggle-label.active::after {
