@@ -747,7 +747,7 @@ const destroyCharts = () => {
   }
 };
 
-// Renderizar gráficas - versión mejorada con reseteo de canvas y layout optimizado
+// Renderizar gráficas - versión mejorada con reseteo de canvas
 const renderCharts = async () => {
   // Evitar múltiples renders simultáneos
   if (isRendering.value) {
@@ -771,17 +771,23 @@ const renderCharts = async () => {
       // Vaciar el contenedor
       chartsContainer.innerHTML = '';
       
-      // Determinar la mejor disposición para las gráficas
-      // Crear layout optimizado basado en el tipo de gráficas
-      const layout = optimizeChartsLayout(chartConfigs.value);
-      
-      // Crear nuevos canvas para cada gráfica según su layout
-      layout.forEach((config, index) => {
+      // Crear nuevos canvas para cada gráfica
+      chartConfigs.value.forEach((config, index) => {
         const chartWrapper = document.createElement('div');
-        chartWrapper.className = `chart-card ${config.className || ''}`;
-        chartWrapper.style.gridColumn = config.gridColumn || 'auto';
-        chartWrapper.style.gridRow = config.gridRow || 'auto';
+        chartWrapper.className = 'chart-card';
         
+        // Añadir título de la gráfica antes del contenedor
+        const titleContainer = document.createElement('div');
+        titleContainer.className = 'chart-title-container';
+        
+        const title = document.createElement('h4');
+        title.className = 'chart-title';
+        title.textContent = config.title;
+        
+        titleContainer.appendChild(title);
+        chartWrapper.appendChild(titleContainer);
+        
+        // Contenedor para la gráfica
         const chartContainer = document.createElement('div');
         chartContainer.className = 'chart-container';
         
@@ -790,12 +796,6 @@ const renderCharts = async () => {
         
         chartContainer.appendChild(canvas);
         chartWrapper.appendChild(chartContainer);
-        
-        // Añadir título de la gráfica
-        const title = document.createElement('p');
-        title.className = 'chart-title';
-        title.textContent = config.title;
-        chartWrapper.appendChild(title);
         
         chartsContainer.appendChild(chartWrapper);
       });
@@ -1026,18 +1026,31 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* Estilos base para las tarjetas de gráficas */
+/* Estilos para las tarjetas de gráficas */
 .chart-card {
   background-color: white;
   border-radius: 0.75rem;
-  padding: 0.75rem;
+  padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e5e7eb;
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: 100%;
+  margin-bottom: 1rem;
+  animation: fadeUp 0.5s ease-out forwards;
+}
+
+/* Animación de entrada para las tarjetas */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chart-card:hover {
@@ -1053,55 +1066,50 @@ onBeforeUnmount(() => {
   width: 100%;
 }
 
-/* Tamaño de contenedor de gráfico ajustado según importancia */
+/* Tamaño de contenedor de gráfico ajustado */
 .chart-container {
   position: relative;
-  flex: 1;
-  min-height: 180px;
+  height: 200px;
   width: 100%;
+  margin-top: 0.5rem;
 }
 
-/* Estilos para el título de la gráfica */
-.chart-title {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
+/* Contenedor del título con mejor alineación */
+.chart-title-container {
+  width: 100%;
   text-align: center;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0.5rem;
+}
+
+/* Estilo mejorado para el título de la gráfica */
+.chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0;
+  padding: 0.25rem 0;
+  text-align: center;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 0.5rem;
+  position: relative;
+  transition: color 0.3s ease;
 }
 
-/* Variantes de tamaño para las gráficas */
-.chart-full {
-  grid-column: span 2;
-}
-
-.chart-wide {
-  grid-column: span 2;
-}
-
-.chart-medium-wide {
-  grid-column: span 2;
-}
-
-.chart-medium {
-  grid-column: span 1;
-}
-
-.chart-small {
-  grid-column: span 1;
-}
-
-.chart-standard {
-  grid-column: span 1;
+/* Efecto hover en el título */
+.chart-card:hover .chart-title {
+  color: #3b82f6;
 }
 
 /* Asegurar que el canvas ocupe todo el espacio disponible */
 canvas {
   width: 100% !important;
   height: 100% !important;
+  border-radius: 0.25rem;
 }
 
 /* Ajustes responsivos */
@@ -1110,29 +1118,18 @@ canvas {
     grid-template-columns: 1fr;
   }
   
-  /* En móvil todas las gráficas ocupan el ancho completo */
-  .chart-full, .chart-wide, .chart-medium-wide, 
-  .chart-medium, .chart-small, .chart-standard {
-    grid-column: span 1;
+  .chart-container {
+    height: 220px; /* Un poco más alto en móviles para mejor visualización */
   }
   
-  .chart-container {
-    min-height: 200px;
+  .chart-title {
+    font-size: 0.9rem; /* Ligeramente más grande en móviles */
   }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
   .charts-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  
-  /* Ajustar span en tablets */
-  .chart-full, .chart-wide {
-    grid-column: span 2;
-  }
-  
-  .chart-medium-wide, .chart-medium, .chart-small, .chart-standard {
-    grid-column: span 1;
   }
 }
 
@@ -1146,14 +1143,14 @@ canvas {
   .charts-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-  
-  /* En pantallas muy grandes, las gráficas anchas pueden ocupar 2 de 3 columnas */
-  .chart-full {
-    grid-column: span 3;
-  }
-  
-  .chart-wide, .chart-medium-wide {
-    grid-column: span 2;
-  }
 }
+
+/* Efecto de animación escalonada para las tarjetas */
+.chart-card:nth-child(1) { animation-delay: 0.1s; }
+.chart-card:nth-child(2) { animation-delay: 0.2s; }
+.chart-card:nth-child(3) { animation-delay: 0.3s; }
+.chart-card:nth-child(4) { animation-delay: 0.4s; }
+.chart-card:nth-child(5) { animation-delay: 0.5s; }
+.chart-card:nth-child(6) { animation-delay: 0.6s; }
+.chart-card:nth-child(n+7) { animation-delay: 0.7s; }
 </style>
