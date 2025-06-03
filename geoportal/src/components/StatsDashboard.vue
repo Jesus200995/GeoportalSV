@@ -374,12 +374,14 @@ select {
 /* Nuevo contenedor para las gráficas con mejor manejo de espacio */
 .chart-container-wrapper {
   width: 100%;
-  height: calc(100vh - 220px);
+  height: auto;
+  max-height: 75vh; /* Altura máxima relativa al viewport */
   overflow-y: auto;
-  padding-right: 0.5rem;
-  padding-bottom: 2rem;
+  padding: 0.75rem;
+  padding-bottom: 1.5rem;
   overscroll-behavior: contain;
   border-radius: 0.5rem;
+  background-color: #f9fafb;
 }
 
 /* Scrollbar personalizado para el contenedor de gráficas */
@@ -401,37 +403,6 @@ select {
   background: #94a3b8;
 }
 
-/* Transiciones suaves */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-
-/* Animaciones y transiciones */
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Efecto de hover para botones */
-button:hover {
-  filter: brightness(1.05);
-}
-
-button:active {
-  transform: scale(0.98);
-}
-
-/* Asegurar que el enlace no tenga subrayado */
-.no-underline {
-  text-decoration: none !important;
-}
-
 /* Para mantener el panel izquierdo siempre visible en pantallas grandes */
 @media (min-width: 1024px) {
   .sticky-panel {
@@ -441,30 +412,32 @@ button:active {
     overflow-y: auto;
   }
   
-  /* Ajuste para pantallas grandes con altura limitada */
+  /* Ajuste para pantallas grandes */
   .chart-container-wrapper {
-    height: calc(100vh - 180px);
+    max-height: calc(100vh - 220px);
+    min-height: 500px; /* Altura mínima para contenido suficiente */
   }
 }
 
 /* Mejoras de responsividad */
 @media (max-width: 640px) {
   .chart-container-wrapper {
-    height: auto;
-    max-height: none;
-    padding-bottom: 1rem;
+    max-height: none; /* Sin altura máxima en móvil */
+    min-height: 400px; /* Altura mínima para mostrar al menos una gráfica */
+    padding: 0.5rem;
   }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
   .chart-container-wrapper {
-    grid-template-columns: repeat(2, 1fr);
+    max-height: 70vh;
+    min-height: 450px;
   }
 }
 
 @media (min-width: 1536px) {
   .chart-container-wrapper {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    max-height: calc(100vh - 180px);
   }
 }
 </style>

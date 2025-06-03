@@ -747,6 +747,32 @@ const destroyCharts = () => {
   }
 };
 
+// Función para optimizar el layout de las gráficas
+const optimizeGridLayout = (configs) => {
+  // Clonar para no modificar el original
+  const layoutConfigs = [...configs];
+  
+  // Determinar qué gráficas deberían tener más importancia
+  layoutConfigs.forEach((config, index) => {
+    // Evaluar importancia por tipo de gráfico
+    if (config.type === 'pie' || config.type === 'doughnut') {
+      config.importance = 'medium';
+    } else if (config.type === 'scatter' || config.type === 'line') {
+      config.importance = 'high';
+    } else {
+      config.importance = 'normal';
+    }
+    
+    // Evaluar por título para encontrar gráficas principales
+    const title = config.title.toLowerCase();
+    if (title.includes('distribución') || title.includes('distribution')) {
+      config.importance = 'high';
+    }
+  });
+  
+  return layoutConfigs;
+};
+
 // Renderizar gráficas - versión mejorada con reseteo de canvas
 const renderCharts = async () => {
   // Evitar múltiples renders simultáneos
@@ -771,12 +797,15 @@ const renderCharts = async () => {
       // Vaciar el contenedor
       chartsContainer.innerHTML = '';
       
+      // Determinar si algunas gráficas deberían ser más grandes
+      const layoutConfig = optimizeGridLayout(chartConfigs.value);
+      
       // Crear nuevos canvas para cada gráfica
-      chartConfigs.value.forEach((config, index) => {
+      layoutConfig.forEach((config, index) => {
         const chartWrapper = document.createElement('div');
         chartWrapper.className = 'chart-card';
         
-        // Añadir título de la gráfica antes del contenedor
+        // Añadir título de la gráfica
         const titleContainer = document.createElement('div');
         titleContainer.className = 'chart-title-container';
         
@@ -871,107 +900,6 @@ const renderCharts = async () => {
   }
 };
 
-// Función para optimizar la disposición de las gráficas
-const optimizeChartsLayout = (configs) => {
-  if (!configs || configs.length === 0) return [];
-  
-  // Clonar las configuraciones para no modificar las originales
-  const layoutConfigs = [...configs].map((config, index) => ({
-    ...config,
-    originalIndex: index
-  }));
-  
-  // Identificar gráficas más importantes que merecen más espacio
-  layoutConfigs.forEach(config => {
-    // Pie charts y gráficas de línea generalmente necesitan menos espacio horizontal
-    if (config.type === 'pie') {
-      config.importance = 'small';
-    } 
-    // Scatter plots y gráficas de barras horizontales necesitan más espacio
-    else if (config.type === 'scatter' || config.type === 'horizontalBar') {
-      config.importance = 'large';
-    }
-    // Por defecto, tamaño mediano
-    else {
-      config.importance = 'medium';
-    }
-    
-    // Determinar si el título es corto o largo
-    config.titleLength = config.title.length < 25 ? 'short' : 'long';
-  });
-  
-  // Ordenar para poner primero las gráficas más importantes
-  layoutConfigs.sort((a, b) => {
-    // Priorizar por tipo de gráfica
-    const importanceOrder = { large: 0, medium: 1, small: 2 };
-    return importanceOrder[a.importance] - importanceOrder[b.importance];
-  });
-  
-  // Asignar clases CSS y posición en la cuadrícula según importancia
-  let layout = [];
-  
-  // Si hay pocas gráficas (1-2), darles más espacio
-  if (layoutConfigs.length <= 2) {
-    layoutConfigs.forEach((config, i) => {
-      layout.push({
-        ...config,
-        className: 'chart-full',
-        gridColumn: 'span 2',
-        gridRow: 'span 1'
-      });
-    });
-  }
-  // Si hay una cantidad media (3-5), algunas pueden ser más grandes
-  else if (layoutConfigs.length <= 5) {
-    layoutConfigs.forEach((config, i) => {
-      if (i === 0 && config.importance === 'large') {
-        // La primera gráfica importante ocupa todo el ancho
-        layout.push({
-          ...config,
-          className: 'chart-wide',
-          gridColumn: 'span 2',
-          gridRow: 'span 1'
-        });
-      } else {
-        // Las demás gráficas ocupan la mitad del ancho
-        layout.push({
-          ...config,
-          className: config.importance === 'small' ? 'chart-small' : 'chart-medium',
-          gridColumn: 'span 1',
-          gridRow: 'span 1'
-        });
-      }
-    });
-  }
-  // Para muchas gráficas, optimizar el espacio
-  else {
-    layoutConfigs.forEach((config, i) => {
-      if (i === 0 && config.importance === 'large') {
-        // Solo la primera gráfica importante podría ser un poco más grande
-        layout.push({
-          ...config,
-          className: 'chart-medium-wide',
-          gridColumn: 'span 2',
-          gridRow: 'span 1'
-        });
-      } else {
-        // El resto con tamaño estándar
-        layout.push({
-          ...config,
-          className: 'chart-standard',
-          gridColumn: 'span 1',
-          gridRow: 'span 1'
-        });
-      }
-    });
-  }
-  
-  // Restaurar el orden original de índices
-  layout.sort((a, b) => a.originalIndex - b.originalIndex);
-  
-  return layout;
-};
-
 // Observar cambios en los datos y en la capa seleccionada
 watch([() => props.data, () => props.layer.name], async () => {
   console.log('Datos o capa actualizados, regenerando gráficas específicas para:', props.layer.name);
@@ -1017,7 +945,7 @@ onBeforeUnmount(() => {
       <p class="text-gray-500">Analizando datos de "{{ layer.title || layer.name }}" para generar gráficas específicas...</p>
     </div>
     
-    <!-- Contenedor para gráficas que se llenará dinámicamente, con nuevo sistema de grid -->
+    <!-- Contenedor para gráficas que se llenará dinámicamente -->
     <div id="charts-container" class="charts-grid"></div>
     
     <!-- Elemento invisible para crear espacio adicional al final -->
@@ -1026,23 +954,36 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Contenedor de gráficas con sistema de grid mejorado */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
 /* Estilos para las tarjetas de gráficas */
 .chart-card {
-  background-color: white;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  margin-bottom: 1rem;
-  animation: fadeUp 0.5s ease-out forwards;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeIn 0.5s ease-out forwards;
+  height: 100%;
+  min-height: 250px; /* Altura mínima para cada tarjeta */
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
 }
 
 /* Animación de entrada para las tarjetas */
-@keyframes fadeUp {
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -1053,39 +994,18 @@ onBeforeUnmount(() => {
   }
 }
 
-.chart-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transform: translateY(-2px);
-}
-
-/* Contenedor de gráficas con sistema de grid mejorado */
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  width: 100%;
-}
-
-/* Tamaño de contenedor de gráfico ajustado */
-.chart-container {
-  position: relative;
-  height: 200px;
-  width: 100%;
-  margin-top: 0.5rem;
-}
-
 /* Contenedor del título con mejor alineación */
 .chart-title-container {
   width: 100%;
   text-align: center;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.75rem 0.5rem;
   border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Estilo mejorado para el título de la gráfica */
 .chart-title {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #4b5563;
   margin: 0;
@@ -1096,61 +1016,70 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  position: relative;
   transition: color 0.3s ease;
 }
 
-/* Efecto hover en el título */
-.chart-card:hover .chart-title {
-  color: #3b82f6;
+/* Tamaño de contenedor de gráfico ajustado */
+.chart-container {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  min-height: 180px;
 }
 
 /* Asegurar que el canvas ocupe todo el espacio disponible */
 canvas {
   width: 100% !important;
   height: 100% !important;
-  border-radius: 0.25rem;
+  border-radius: 8px;
 }
 
 /* Ajustes responsivos */
 @media (max-width: 640px) {
   .charts-grid {
     grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .chart-card {
+    min-height: 220px;
   }
   
   .chart-container {
-    height: 220px; /* Un poco más alto en móviles para mejor visualización */
-  }
-  
-  .chart-title {
-    font-size: 0.9rem; /* Ligeramente más grande en móviles */
+    min-height: 150px;
   }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
   .charts-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1024px) and (max-width: 1535px) {
   .charts-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 }
 
 @media (min-width: 1536px) {
   .charts-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
   }
 }
 
 /* Efecto de animación escalonada para las tarjetas */
-.chart-card:nth-child(1) { animation-delay: 0.1s; }
-.chart-card:nth-child(2) { animation-delay: 0.2s; }
-.chart-card:nth-child(3) { animation-delay: 0.3s; }
-.chart-card:nth-child(4) { animation-delay: 0.4s; }
-.chart-card:nth-child(5) { animation-delay: 0.5s; }
-.chart-card:nth-child(6) { animation-delay: 0.6s; }
-.chart-card:nth-child(n+7) { animation-delay: 0.7s; }
+.chart-card:nth-child(1) { animation-delay: 0.05s; }
+.chart-card:nth-child(2) { animation-delay: 0.1s; }
+.chart-card:nth-child(3) { animation-delay: 0.15s; }
+.chart-card:nth-child(4) { animation-delay: 0.2s; }
+.chart-card:nth-child(5) { animation-delay: 0.25s; }
+.chart-card:nth-child(6) { animation-delay: 0.3s; }
+.chart-card:nth-child(n+7) { animation-delay: 0.35s; }
 </style>
