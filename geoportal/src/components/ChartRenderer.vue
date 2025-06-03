@@ -155,17 +155,20 @@ onBeforeUnmount(() => {
     <p class="text-gray-500">Analizando datos para generar gráficas...</p>
   </div>
   
-  <!-- Contenedores para cada gráfica -->
+  <!-- Contenedores para cada gráfica - Con mayor espaciado inferior -->
   <template v-for="(config, index) in chartConfigs" :key="`chart-container-${index}`">
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 flex flex-col">
-      <div class="h-[300px] relative">
+    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 flex flex-col chart-card">
+      <div class="chart-container">
         <canvas :id="`chart-${index}`"></canvas>
       </div>
-      <p class="text-xs text-gray-500 mt-3 text-center">
+      <p class="text-xs text-gray-500 mt-2 text-center">
         {{ config.title }}
       </p>
     </div>
   </template>
+  
+  <!-- Elemento invisible para crear espacio adicional al final -->
+  <div class="invisible py-6 w-full" aria-hidden="true"></div>
 </template>
 
 <style scoped>
@@ -173,15 +176,44 @@ onBeforeUnmount(() => {
 .bg-white {
   position: relative;
   overflow: hidden;
+  margin-bottom: 8px; /* Aumentado el margen inferior entre gráficas */
 }
 
 .bg-white:hover {
   transform: translateY(-2px);
 }
 
+/* Tamaño de contenedor de gráfico ajustado para ser más compacto */
+.chart-container {
+  position: relative;
+  height: 200px; /* Reducida ligeramente para mostrar más gráficas en vertical */
+  width: 100%;
+}
+
+.chart-card {
+  min-width: 0; /* Permite que las tarjetas se reduzcan correctamente */
+}
+
 /* Asegurar que el canvas ocupe todo el espacio disponible */
 canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* Ajustes responsivos para tamaños de pantalla específicos */
+@media (max-width: 640px) {
+  .chart-container {
+    height: 190px;
+  }
+  
+  .bg-white {
+    margin-bottom: 16px; /* Mayor espacio en móviles */
+  }
+}
+
+@media (min-width: 1536px) {
+  .chart-container {
+    height: 230px;
+  }
 }
 </style>

@@ -280,8 +280,8 @@ onMounted(() => {
         <div class="w-full lg:w-2/3 animate-fade-in">
           <!-- Contenedor de gráficas mejorado -->
           <div v-if="selectedLayer && layerData" 
-               class="bg-white rounded-xl p-5 shadow-lg border border-gray-200">
-            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+               class="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
+            <div class="mb-3 flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div>
                 <h3 class="text-lg font-bold text-gray-800 mb-1">
                   {{ selectedLayer.title || selectedLayer.name }}
@@ -296,11 +296,12 @@ onMounted(() => {
               </div>
             </div>
             
-            <!-- Contenedor para los gráficos -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Contenedor para los gráficos con altura ajustada y mejor organización -->
+            <div class="chart-grid">
               <ChartRenderer 
                 :data="layerData" 
                 :layer="selectedLayer"
+                class="w-full"
               />
             </div>
           </div>
@@ -371,11 +372,35 @@ select {
   appearance: none;
 }
 
-/* Estilos para el contenedor de gráficas */
-.grid {
+/* Estilos para el contenedor de gráficas - Mejorado para garantizar visibilidad completa */
+.chart-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  padding-bottom: 4rem; /* Aumentado el padding inferior significativamente */
+  overscroll-behavior: contain;
+}
+
+/* Scrollbar personalizado para el contenedor de gráficas */
+.chart-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chart-grid::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.chart-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.chart-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* Transiciones suaves */
@@ -413,16 +438,35 @@ button:active {
 @media (min-width: 1024px) {
   .sticky-panel {
     position: sticky;
-    top: 60px; /* Ajustado para el header más pequeño */
+    top: 60px;
     max-height: calc(100vh - 80px);
     overflow-y: auto;
+  }
+  
+  /* Ajuste para pantallas grandes con altura limitada */
+  .chart-grid {
+    max-height: calc(100vh - 200px); /* Reducida aún más para asegurar visibilidad completa */
   }
 }
 
 /* Mejoras de responsividad */
 @media (max-width: 640px) {
-  .grid {
+  .chart-grid {
     grid-template-columns: 1fr;
+    max-height: none; /* No limitamos altura en móviles para permitir scroll natural */
+    padding-bottom: 0; /* No necesitamos padding adicional cuando no hay scroll interno */
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .chart-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1536px) {
+  .chart-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
 </style>
