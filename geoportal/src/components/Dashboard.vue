@@ -909,11 +909,50 @@ const performQuery = async () => {
       return;
     }
     
+    // Función para obtener el nombre legible de un feature
+    const getFeatureDisplayName = (properties, layerName) => {
+      // Lista de posibles campos de nombre, en orden de preferencia
+      const nameFields = [
+        'nombre',
+        'nombre_municipio',
+        'nombre_up',
+        'territorio',
+        'entidad',
+        'nombre_territorio',
+        'description',
+        'titulo',
+        'identificador'
+      ];
+
+      // Buscar el primer campo que exista y tenga un valor
+      for (const field of nameFields) {
+        if (properties[field] && typeof properties[field] === 'string' && properties[field].trim() !== '') {
+          return properties[field];
+        }
+      }
+
+      // Si no se encuentra ningún campo de nombre válido, usar el fallback
+      return `Entidad en capa ${layerName}`;
+    };
+
     // Transformar los datos en un formato más amigable
     queryResults.value = data.features.map(feature => ({
       id: feature.id,
-      name: feature.properties.nombre || feature.properties.nombre_territorio || feature.id,
-      description: feature.properties.descripcion || `Entidad en capa ${layerName}`,
+      name: getFeatureDisplayName(feature.properties, layerName),
+      // Crear una descripción más informativa usando otros campos disponibles
+      description: feature.properties.descripcion || 
+                  Object.entries(feature.properties)
+                    .filter(([key, value]) => 
+                      typeof value === 'string' && 
+                      !key.includes('id') && 
+                      !key.includes('fid') &&
+                      key !== 'nombre' &&
+                      value.trim() !== ''
+                    )
+                    .slice(0, 2)  // Tomar solo los primeros 2 campos como descripción
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(' | ') || 
+                  `Entidad en capa ${layerName}`,
       properties: feature.properties,
       geometry: feature.geometry
     }));
@@ -1807,24 +1846,43 @@ const zoomToQueryResult = (result) => {
             <div v-if="queryError" class="mt-4 p-3 bg-red-50 rounded-lg text-red-600 text-sm">
               {{ queryError }}
             </div>
-            
-            <!-- Resultados -->
+              <!-- Resultados -->
             <div v-if="queryResults.length > 0" class="mt-6">
-              <h4 class="font-medium text-gray-800 mb-3 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Resultados ({{ queryResults.length }})
-              </h4>
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-medium text-gray-800 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Resultados ({{ queryResults.length }})
+                </h4>
+                <span class="text-sm text-gray-500">Capa: {{ selectedLayerForQuery?.title || selectedLayerForQuery?.name }}</span>
+              </div>
               
               <ul class="space-y-3 max-h-[50vh] overflow-y-auto">
                 <li v-for="result in queryResults" :key="result.id" 
-                    class="bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-lg p-3 transition-colores cursor-pointer"
+                    class="bg-white hover:bg-purple-50 border border-gray-200 rounded-lg p-4 transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 hover:shadow-md"
                     @click="zoomToQueryResult(result)">
-                  <div class="font-medium text-purple-700">{{ result.name || 'Elemento sin nombre' }}</div>
-                  <p class="text-sm text-gray-500">{{ result.description || 'Sin descripción' }}</p>
-                  <div class="mt-2 text-xs text-gray-400 flex justify-end">
-                    <span>Haga clic para hacer zoom</span>
+                  <div class="flex items-start justify-between">
+                    <div class="flex-grow">
+                      <div class="font-semibold text-purple-700 text-base mb-1">
+                        {{ result.name || 'Elemento sin nombre' }}
+                      </div>
+                      <div class="text-sm text-gray-600 space-y-1">
+                        <template v-if="result.description && result.description !== `Entidad en capa ${selectedLayerForQuery?.name}`">
+                          <p>{{ result.description }}</p>
+                        </template>
+                        <div class="text-xs text-gray-400 mt-2">
+                          ID: {{ result.id }}
+                        </div>
+                      </div>
+                    </div>
+                    <button class="ml-4 p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors" 
+                            title="Hacer zoom a este elemento"
+                            @click.stop="zoomToQueryResult(result)">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
                   </div>
                 </li>
               </ul>
