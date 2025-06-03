@@ -165,6 +165,13 @@ const toggleLayerVisibility = (layer) => {
     const newVisibility = !currentVisibility;
     mapLayer.setVisible(newVisibility);
     
+    // Si estamos desactivando la capa y es la misma que está mostrando información, cerrar el panel
+    if (!newVisibility && activeFeatureLayer.value && 
+        activeFeatureLayer.value.get('name') === mapLayer.get('name')) {
+      closeFeatureInfoPanel();
+      removeMarker();
+    }
+    
     // Determinar a qué grupo pertenece la capa y actualizarlo
     let groupFound = false;
     
@@ -454,8 +461,7 @@ const handleMapClick = async (event) => {
       removeMarker();
     }
   } else {
-    // Si no hay capas visibles que soporten la consulta, no hacer nada
-    // y asegurarse de que el panel esté cerrado y no haya marcador
+    // Si no hay capas visibles que soporten la consulta, cerrar el panel y quitar el marcador
     closeFeatureInfoPanel();
     removeMarker();
   }

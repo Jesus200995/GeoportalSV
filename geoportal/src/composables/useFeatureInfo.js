@@ -31,6 +31,13 @@ export function useFeatureInfo() {
       return;
     }
 
+    // Configurar el listener de visibilidad si no se ha hecho antes
+    // Usar un flag para evitar múltiples configuraciones
+    if (!map.get('featureInfoListenerSet')) {
+      setupLayerVisibilityListener(map);
+      map.set('featureInfoListenerSet', true);
+    }
+
     loading.value = true;
     error.value = null;
     clickCoordinate.value = coordinate;
@@ -98,6 +105,43 @@ export function useFeatureInfo() {
     if (feature) {
       selectedFeature.value = feature;
     }
+  };
+
+  // Añadir un watcher para detectar cambios en las capas del mapa
+  const setupLayerVisibilityListener = (map) => {
+    if (!map) return;
+
+    // Función para verificar si hay alguna capa WMS visible
+    const checkVisibleLayers = () => {
+      const hasVisibleWmsLayers = map.getLayers().getArray().some(layer => {
+        return layer.getVisible() && 
+               layer.getSource() && 
+               typeof layer.getSource().getFeatureInfoUrl === 'function';
+      });
+
+      // Si no hay capas visibles, cerrar el panel
+      if (!hasVisibleWmsLayers) {
+        showPanel.value = false;
+        selectedFeature.value = null;
+        featureInfo.value = null;
+      }
+    };
+
+    // Observar cambios en la visibilidad de las capas
+    map.getLayers().forEach(layer => {
+      layer.on('change:visible', checkVisibleLayers);
+    });
+
+    // Observar cuando se añaden o eliminan capas
+    map.getLayers().on('add', (event) => {
+      const layer = event.element;
+      layer.on('change:visible', checkVisibleLayers);
+    });
+
+    map.getLayers().on('remove', checkVisibleLayers);
+
+    // Verificar estado inicial
+    checkVisibleLayers();
   };
 
   return {

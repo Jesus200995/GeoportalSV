@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import FeatureDetailModal from './FeatureDetailModal.vue';
 
 const props = defineProps({
@@ -401,10 +401,24 @@ const hasFeatureInfo = computed(() => {
          props.featureInfo.features.length > 0 &&
          props.selectedFeature;
 });
+
+// Computed para verificar si la capa activa está visible
+const isLayerVisible = computed(() => {
+  if (!props.activeLayer) return false;
+  return props.activeLayer.getVisible();
+});
+
+// Observar cambios en la capa activa para verificar su visibilidad
+watch(() => props.activeLayer, (newLayer) => {
+  if (!newLayer || !newLayer.getVisible()) {
+    // Si la capa se desactiva o cambia a una inactiva, cerrar el panel
+    emit('close');
+  }
+}, { immediate: true });
 </script>
 
 <template>
-  <div v-if="showPanel && (hasFeatureInfo || (loading && !error))" 
+  <div v-if="showPanel && (hasFeatureInfo || (loading && !error)) && isLayerVisible" 
        class="feature-info-panel absolute top-20 right-0 bottom-8 w-80 sm:w-96 bg-white shadow-lg rounded-l-xl z-30 overflow-hidden flex flex-col transition-all duration-300 transform">
     
     <!-- Encabezado del panel -->
@@ -504,7 +518,7 @@ const hasFeatureInfo = computed(() => {
   
   <!-- Usar el componente modal -->
   <FeatureDetailModal 
-    :show="showDetailModal"
+    :show="showDetailModal && isLayerVisible"
     :feature="selectedFeature"
     :activeLayer="activeLayer"
     :attributeLabels="attributeLabels"
