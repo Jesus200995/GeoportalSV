@@ -61,17 +61,27 @@ export function useFeatureInfo() {
       } else {
         if (result.error) {
           error.value = result.error;
+          // Modificado: No mostrar el panel si hay un error como "No hay capas visibles"
+          if (result.error.includes("No hay capas visibles") || 
+              result.error.includes("No se encontraron características")) {
+            showPanel.value = false;
+          } else {
+            // Solo mantener el panel abierto para otros errores que sean informativos
+            showPanel.value = true;
+          }
         } else {
           error.value = 'No hay información disponible en esta ubicación';
+          // Modificado: No mostrar el panel cuando no hay información
+          showPanel.value = false;
         }
-        // Mantener el panel abierto incluso si no hay datos, para mostrar el error
-        showPanel.value = true;
       }
     } catch (err) {
       console.error('Error al obtener información:', err);
       error.value = 'Error al consultar la información';
       featureInfo.value = null;
       selectedFeature.value = null;
+      // Modificado: No mostrar el panel si hay un error crítico
+      showPanel.value = false;
     } finally {
       loading.value = false;
     }

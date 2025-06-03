@@ -435,13 +435,28 @@ const initializeMap = () => {
 
 // Función para manejar clics en el mapa y obtener información de la característica
 const handleMapClick = async (event) => {
-  // Usar el nuevo sistema de obtención de información
-  await fetchFeatureInfo(map.value, event.coordinate);
-  
-  // Si se encontró información, añadir marcador en la posición del clic
-  if (showFeatureInfoPanel.value) {
-    addMarkerAtCoordinate(event.coordinate);
+  // Verificar primero si hay capas WMS visibles que soporten GetFeatureInfo
+  const hasVisibleWmsLayers = map.value.getLayers().getArray().some(layer => {
+    return layer.getVisible() && 
+           layer.getSource() && 
+           typeof layer.getSource().getFeatureInfoUrl === 'function';
+  });
+
+  // Solo realizar la consulta si hay capas visibles que la soporten
+  if (hasVisibleWmsLayers) {
+    // Usar el nuevo sistema de obtención de información
+    await fetchFeatureInfo(map.value, event.coordinate);
+    
+    // Si se encontró información, añadir marcador en la posición del clic
+    if (showFeatureInfoPanel.value) {
+      addMarkerAtCoordinate(event.coordinate);
+    } else {
+      removeMarker();
+    }
   } else {
+    // Si no hay capas visibles que soporten la consulta, no hacer nada
+    // y asegurarse de que el panel esté cerrado y no haya marcador
+    closeFeatureInfoPanel();
     removeMarker();
   }
 };

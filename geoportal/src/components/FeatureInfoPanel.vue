@@ -392,10 +392,19 @@ const openDetailModal = () => {
 const closeDetailModal = () => {
   showDetailModal.value = false;
 };
+
+// Añadir propiedad computada para verificar si hay información de características
+const hasFeatureInfo = computed(() => {
+  return props.featureInfo && 
+         props.featureInfo.success && 
+         props.featureInfo.features && 
+         props.featureInfo.features.length > 0 &&
+         props.selectedFeature;
+});
 </script>
 
 <template>
-  <div v-if="showPanel" 
+  <div v-if="showPanel && (hasFeatureInfo || (loading && !error))" 
        class="feature-info-panel absolute top-20 right-0 bottom-8 w-80 sm:w-96 bg-white shadow-lg rounded-l-xl z-30 overflow-hidden flex flex-col transition-all duration-300 transform">
     
     <!-- Encabezado del panel -->
@@ -419,8 +428,9 @@ const closeDetailModal = () => {
         <p class="text-gray-500 text-sm">Cargando información...</p>
       </div>
       
-      <!-- Mensaje de error -->
-      <div v-else-if="error" class="bg-red-50 p-4 rounded-lg text-red-600 my-4">
+      <!-- Mensaje de error - Solo se muestra para errores informativos, no para "No hay capas visibles" -->
+      <div v-else-if="error && !error.includes('No hay capas visibles') && !error.includes('No se encontraron características')" 
+           class="bg-red-50 p-4 rounded-lg text-red-600 my-4">
         <p class="flex items-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -471,7 +481,7 @@ const closeDetailModal = () => {
         </div>
       </div>
       
-      <!-- Caso sin datos -->
+      <!-- Caso sin datos - No debería mostrarse debido a la condición v-if del componente -->
       <div v-else class="flex flex-col items-center justify-center h-full">
         <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
