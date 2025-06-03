@@ -297,11 +297,10 @@ onMounted(() => {
             </div>
             
             <!-- Contenedor para los gráficos con altura ajustada y mejor organización -->
-            <div class="chart-grid">
+            <div class="chart-container-wrapper">
               <ChartRenderer 
                 :data="layerData" 
                 :layer="selectedLayer"
-                class="w-full"
               />
             </div>
           </div>
@@ -372,34 +371,33 @@ select {
   appearance: none;
 }
 
-/* Estilos para el contenedor de gráficas - Mejorado para garantizar visibilidad completa */
-.chart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  max-height: calc(100vh - 220px);
+/* Nuevo contenedor para las gráficas con mejor manejo de espacio */
+.chart-container-wrapper {
+  width: 100%;
+  height: calc(100vh - 220px);
   overflow-y: auto;
   padding-right: 0.5rem;
-  padding-bottom: 4rem; /* Aumentado el padding inferior significativamente */
+  padding-bottom: 2rem;
   overscroll-behavior: contain;
+  border-radius: 0.5rem;
 }
 
 /* Scrollbar personalizado para el contenedor de gráficas */
-.chart-grid::-webkit-scrollbar {
+.chart-container-wrapper::-webkit-scrollbar {
   width: 6px;
 }
 
-.chart-grid::-webkit-scrollbar-track {
+.chart-container-wrapper::-webkit-scrollbar-track {
   background: #f1f5f9;
   border-radius: 10px;
 }
 
-.chart-grid::-webkit-scrollbar-thumb {
+.chart-container-wrapper::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
 
-.chart-grid::-webkit-scrollbar-thumb:hover {
+.chart-container-wrapper::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
@@ -444,28 +442,28 @@ button:active {
   }
   
   /* Ajuste para pantallas grandes con altura limitada */
-  .chart-grid {
-    max-height: calc(100vh - 200px); /* Reducida aún más para asegurar visibilidad completa */
+  .chart-container-wrapper {
+    height: calc(100vh - 180px);
   }
 }
 
 /* Mejoras de responsividad */
 @media (max-width: 640px) {
-  .chart-grid {
-    grid-template-columns: 1fr;
-    max-height: none; /* No limitamos altura en móviles para permitir scroll natural */
-    padding-bottom: 0; /* No necesitamos padding adicional cuando no hay scroll interno */
+  .chart-container-wrapper {
+    height: auto;
+    max-height: none;
+    padding-bottom: 1rem;
   }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
-  .chart-grid {
+  .chart-container-wrapper {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (min-width: 1536px) {
-  .chart-grid {
+  .chart-container-wrapper {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
