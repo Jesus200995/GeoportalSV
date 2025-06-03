@@ -17,6 +17,7 @@ const errorMessage = ref('');
 const vectorSource = ref(null);
 const vectorLayer = ref(null);
 const selectedFeature = ref(null);
+const showInstructions = ref(true); // Para mostrar instrucciones cuando no hay búsqueda
 
 // Inicializar capa vectorial para resultados
 onMounted(() => {
@@ -42,47 +43,26 @@ onMounted(() => {
   props.map.addLayer(vectorLayer.value);
 });
 
-// Función de búsqueda con debounce
+// Función de búsqueda con debounce - modificada para priorizar lugares globales
 const performSearch = async () => {
-  if (!searchQuery.value.trim()) {
+  if (!searchQuery.value.trim() || searchQuery.value.trim().length < 3) {
     searchResults.value = [];
+    showInstructions.value = true;
     return;
   }
 
+  showInstructions.value = false;
   loading.value = true;
   errorMessage.value = '';
   vectorSource.value.clear();
 
   try {
-    // Búsqueda en GeoServer
-    const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
-    const geoserverResponse = await fetch(
-      `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
-    );
-
-    if (!geoserverResponse.ok) {
-      throw new Error('Error en la conexión con GeoServer');
-    }
-    
-    const geoserverData = await geoserverResponse.json();
-    const features = new GeoJSON().readFeatures(geoserverData, {
-      featureProjection: 'EPSG:3857'
-    });
-
-    vectorSource.value.addFeatures(features);
-    
-    const geoserverResults = features.map(feature => ({
-      id: feature.getId() || `geoserver-${Math.random().toString(36)}`,
-      name: feature.get('nombre_territorio') || 'Territorio sin nombre',
-      type: 'territory',
-      feature: feature
-    }));
-
-    // Búsqueda en Nominatim (OpenStreetMap) como respaldo
+    // Primero buscamos en OpenStreetMap (Nominatim) para lugares de todo el mundo
     let nominatimResults = [];
     try {
+      // Usamos parámetros que favorecen lugares específicos, no direcciones
       const nominatimResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value)}&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value)}&limit=8&addressdetails=1`
       );
       
       if (nominatimResponse.ok) {
@@ -91,40 +71,86 @@ const performSearch = async () => {
           id: `osm-${place.place_id}`,
           name: place.display_name,
           type: 'location',
-          coordinates: [parseFloat(place.lon), parseFloat(place.lat)]
+          category: place.type || place.class,
+          countryCode: place.address?.country_code,
+          countryName: place.address?.country,
+          city: place.address?.city || place.address?.town || place.address?.village,
+          coordinates: [parseFloat(place.lon), parseFloat(place.lat)],
+          importance: place.importance || 0.5,
+          bbox: place.boundingbox ? [
+            parseFloat(place.boundingbox[2]), 
+            parseFloat(place.boundingbox[0]), 
+            parseFloat(place.boundingbox[3]), 
+            parseFloat(place.boundingbox[1])
+          ] : null
         }));
+          
+        // Ordenar por importancia para mostrar primero los lugares más relevantes
+        nominatimResults.sort((a, b) => b.importance - a.importance);
       }
     } catch (error) {
       console.log('Error en búsqueda OpenStreetMap:', error);
-      // No mostrar error ya que es un respaldo
+      // No mostrar error ya que intentaremos con GeoServer
     }
     
-    searchResults.value = [...geoserverResults, ...nominatimResults];
+    // Luego buscamos en GeoServer para entidades territoriales locales
+    let geoserverResults = [];
+    try {
+      const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
+      const geoserverResponse = await fetch(
+        `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
+      );
+
+      if (geoserverResponse.ok) {
+        const geoserverData = await geoserverResponse.json();
+        const features = new GeoJSON().readFeatures(geoserverData, {
+          featureProjection: 'EPSG:3857'
+        });
+
+        // Añadir características al mapa
+        vectorSource.value.addFeatures(features);
+        
+        geoserverResults = features.map(feature => ({
+          id: feature.getId() || `geoserver-${Math.random().toString(36)}`,
+          name: feature.get('nombre_territorio') || 'Territorio sin nombre',
+          type: 'territory',
+          feature: feature,
+          importance: 0.7 // Darles buena prioridad pero no más que países/ciudades grandes
+        }));
+      }
+    } catch (error) {
+      console.error('Error en búsqueda GeoServer:', error);
+      // Continuar con los resultados de Nominatim si GeoServer falla
+    }
+    
+    // Combinamos los resultados - primero lugares globales, luego territorios locales
+    searchResults.value = [...nominatimResults, ...geoserverResults];
 
   } catch (error) {
-    console.error('Error en búsqueda:', error);
+    console.error('Error general en búsqueda:', error);
     errorMessage.value = 'Error al realizar la búsqueda. Intente nuevamente.';
   } finally {
     loading.value = false;
   }
 };
 
-// Implementación del debounce manualmente
+// Implementación del debounce - reducido a 200ms para sentirse más en tiempo real
 let timeoutId = null;
 const debouncedSearch = () => {
   clearTimeout(timeoutId);
   timeoutId = setTimeout(() => {
     performSearch();
-  }, 300);
+  }, 200); // Tiempo reducido para mejor respuesta
 };
 
-// Función para hacer zoom al resultado
+// Función para hacer zoom al resultado - mejorada para ir a la ubicación exacta
 const zoomToResult = (result) => {
   selectedFeature.value = result;
   vectorSource.value.clear();
 
   let coordinates;
   let extent;
+  let zoomLevel = 15; // Zoom predeterminado
 
   if (result.type === 'territory' && result.feature) {
     // Para características de GeoServer
@@ -132,22 +158,63 @@ const zoomToResult = (result) => {
     coordinates = getCenter(extent);
     vectorSource.value.addFeature(result.feature);
   } else if (result.type === 'location' && result.coordinates) {
-    // Para resultados de Nominatim
+    // Para resultados de Nominatim (lugares del mundo)
     coordinates = fromLonLat(result.coordinates);
+    
+    // Crear un punto para marcar la ubicación
     const pointGeom = new Point(coordinates);
     const feature = new Feature({
       geometry: pointGeom,
       name: result.name
     });
     vectorSource.value.addFeature(feature);
+    
+    // Ajustar zoom según el tipo de lugar
+    if (result.category === 'country') {
+      zoomLevel = 6; // Zoom para países
+    } else if (result.category === 'state' || result.category === 'region') {
+      zoomLevel = 8; // Zoom para estados/regiones
+    } else if (result.category === 'city' || result.category === 'administrative') {
+      zoomLevel = 12; // Zoom para ciudades
+    } else if (result.category === 'town' || result.category === 'village') {
+      zoomLevel = 14; // Zoom para pueblos
+    }
+    
+    // Si hay un bounding box disponible, úsalo para un mejor encuadre
+    if (result.bbox) {
+      try {
+        const transformedBBox = [
+          fromLonLat([result.bbox[0], result.bbox[1]]),
+          fromLonLat([result.bbox[2], result.bbox[3]])
+        ].flat();
+        
+        // Calcular extent desde el bbox transformado
+        extent = [
+          transformedBBox[0], transformedBBox[1],
+          transformedBBox[2], transformedBBox[3]
+        ];
+      } catch (error) {
+        console.error('Error al transformar bbox:', error);
+        // En caso de error, usar las coordenadas del punto
+      }
+    }
   }
 
   if (coordinates) {
-    props.map.getView().animate({
-      center: coordinates,
-      zoom: 15,
-      duration: 1000
-    });
+    if (extent && extent[0] !== extent[2] && extent[1] !== extent[3]) {
+      // Si tenemos un extent válido, hacer zoom al extent con padding
+      props.map.getView().fit(extent, {
+        padding: [50, 50, 50, 50],
+        duration: 1000
+      });
+    } else {
+      // Si solo tenemos un punto, hacer zoom a las coordenadas
+      props.map.getView().animate({
+        center: coordinates,
+        zoom: zoomLevel,
+        duration: 1000
+      });
+    }
   }
 };
 
@@ -157,6 +224,7 @@ const clearSearch = () => {
   searchResults.value = [];
   vectorSource.value.clear();
   errorMessage.value = '';
+  showInstructions.value = true;
 };
 
 // Limpiar recursos cuando se desmonte
@@ -166,14 +234,56 @@ onBeforeUnmount(() => {
   }
 });
 
-// Observar cambios en la consulta
+// Observar cambios en la consulta - se ejecuta en tiempo real
 watch(searchQuery, () => {
   if (searchQuery.value.length >= 3) {
     debouncedSearch();
   } else if (searchQuery.value.length === 0) {
     clearSearch();
+  } else {
+    // Mostrar instrucciones cuando hay menos de 3 caracteres
+    searchResults.value = [];
+    showInstructions.value = true;
   }
 });
+
+// Obtener el icono según el tipo de lugar
+const getLocationIcon = (result) => {
+  if (result.type === 'territory') {
+    return 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7';
+  }
+  
+  if (result.category === 'country') {
+    return 'M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9';
+  }
+  
+  if (result.category === 'city' || result.category === 'town' || result.category === 'administrative') {
+    return 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4';
+  }
+  
+  if (result.category === 'natural' || result.category === 'leisure') {
+    return 'M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25';
+  }
+  
+  return 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z';
+};
+
+// Obtener descripción más detallada del resultado
+const getLocationDescription = (result) => {
+  if (result.type === 'territory') {
+    return 'Territorio local';
+  }
+  
+  let description = result.category ? result.category.charAt(0).toUpperCase() + result.category.slice(1) : 'Lugar';
+  
+  if (result.city && result.countryName) {
+    return `${description} en ${result.city}, ${result.countryName}`;
+  } else if (result.countryName) {
+    return `${description} en ${result.countryName}`;
+  }
+  
+  return description;
+};
 </script>
 
 <template>
@@ -207,6 +317,17 @@ watch(searchQuery, () => {
       </button>
     </div>
 
+    <!-- Instrucciones de búsqueda -->
+    <div v-if="showInstructions" class="bg-blue-50 p-4 rounded-xl text-sm text-blue-700">
+      <h3 class="font-medium mb-2">Instrucciones de búsqueda:</h3>
+      <ul class="space-y-2 ml-5 list-disc">
+        <li>Escriba al menos 3 caracteres para buscar</li>
+        <li>Puede buscar lugares de todo el mundo</li>
+        <li>Los resultados aparecen en tiempo real</li>
+        <li>Haga clic en un resultado para ir a esa ubicación exacta</li>
+      </ul>
+    </div>
+
     <!-- Estado de carga -->
     <div v-if="loading" class="flex justify-center py-4">
       <div class="animate-spin rounded-full h-6 w-6 border-2 border-green-500 border-t-transparent"></div>
@@ -220,9 +341,10 @@ watch(searchQuery, () => {
     <!-- Resultados -->
     <div v-if="searchResults.length && !loading" 
          class="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto rounded-lg">
-      <div v-for="result in searchResults" 
+      <div v-for="(result, index) in searchResults" 
            :key="result.id"
            @click="zoomToResult(result)"
+           :style="`--i: ${index}`"
            :class=" [
              'p-3 rounded-lg cursor-pointer transition-all',
              selectedFeature?.id === result.id 
@@ -234,96 +356,81 @@ watch(searchQuery, () => {
           <!-- Icono según tipo -->
           <div :class=" [
             'p-2 rounded-full',
-            result.type === 'territory' ? 'bg-green-100' : 'bg-blue-100'
+            result.type === 'territory' ? 'bg-green-100' : 
+            result.category === 'country' ? 'bg-purple-100' : 
+            result.category === 'city' || result.category === 'administrative' ? 'bg-blue-100' : 
+            'bg-amber-100'
           ]">
-            <svg v-if="result.type === 'territory'" class="w-4 h-4 text-green-600" 
+            <svg class="w-4 h-4" 
+                 :class="result.type === 'territory' ? 'text-green-600' : 
+                         result.category === 'country' ? 'text-purple-600' : 
+                         result.category === 'city' || result.category === 'administrative' ? 'text-blue-600' : 
+                         'text-amber-600'"
                  viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <svg v-else class="w-4 h-4 text-blue-600" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    :d="getLocationIcon(result)" />
             </svg>
           </div>
           
+          <!-- Información del resultado -->
           <div class="flex-1">
-            <h4 class="text-sm font-medium text-gray-900">{{ result.name }}</h4>
-            <p class="text-xs text-gray-500">
-              {{ result.type === 'territory' ? 'Territorio' : 'Ubicación' }}
-            </p>
+            <div class="text-sm font-medium text-gray-900">{{ result.name }}</div>
+            <div class="text-xs text-gray-500">
+              {{ getLocationDescription(result) }}
+            </div>
           </div>
           
-          <button 
-            class="p-1 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-all"
-            @click.stop="zoomToResult(result)"
-            title="Ir a ubicación"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-            </svg>
-          </button>
+          <!-- Indicador de resultado seleccionado -->
+          <svg v-if="selectedFeature?.id === result.id" 
+               class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13l4 4L19 7" />
+          </svg>
         </div>
       </div>
     </div>
-
-    <!-- Sin resultados -->
-    <div v-else-if="searchQuery && !loading && !searchResults.length" 
-         class="text-center py-8 text-gray-500">
-      <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" 
-           viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <p>No se encontraron resultados</p>
-    </div>
     
-    <!-- Instrucciones de búsqueda -->
-    <div v-if="!searchQuery && !searchResults.length" class="text-center py-6">
-      <div class="bg-blue-50 rounded-lg p-4 text-blue-800 text-sm">
-        <p class="mb-2">Instrucciones de búsqueda:</p>
-        <ul class="text-xs text-left list-disc pl-5 space-y-1">
-          <li>Escriba al menos 3 caracteres para buscar</li>
-          <li>Puede buscar por nombres de territorios</li>
-          <li>También se mostrarán resultados de OpenStreetMap</li>
-          <li>Haga clic en un resultado para ver su ubicación en el mapa</li>
-        </ul>
-      </div>
+    <!-- Mensaje de no resultados -->
+    <div v-if="searchQuery.length >= 3 && !loading && searchResults.length === 0" 
+         class="py-8 text-center text-gray-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <p>No se encontraron resultados para "{{ searchQuery }}"</p>
+      <p class="text-sm mt-2">Intente con otro término de búsqueda</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Estilos para el scrollbar */
-.max-h-\[calc\(100vh-300px\)\] {
+/* Estilizar scrollbar */
+.overflow-y-auto {
   scrollbar-width: thin;
   scrollbar-color: #10B981 #E5E7EB;
 }
 
-.max-h-\[calc\(100vh-300px\)\]::-webkit-scrollbar {
+.overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
 
-.max-h-\[calc\(100vh-300px\)\]::-webkit-scrollbar-track {
+.overflow-y-auto::-webkit-scrollbar-track {
   background: #E5E7EB;
   border-radius: 3px;
 }
 
-.max-h-\[calc\(100vh-300px\)\]::-webkit-scrollbar-thumb {
+.overflow-y-auto::-webkit-scrollbar-thumb {
   background-color: #10B981;
   border-radius: 3px;
 }
 
-/* Animaciones */
-.search-tool {
-  animation: slideIn 0.3s ease-out;
+/* Animación para los resultados */
+div[v-for] {
+  animation: fadeIn 0.3s ease-out forwards;
+  opacity: 0;
+  animation-delay: calc(var(--i, 0) * 0.05s);
 }
 
-@keyframes slideIn {
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -332,5 +439,44 @@ watch(searchQuery, () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Estilos para las instrucciones */
+.bg-blue-50 {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animación de pulsación para el resultado seleccionado */
+[class*="bg-green-50"] {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* Efecto hover mejorado */
+div[v-for]:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
 }
 </style>
