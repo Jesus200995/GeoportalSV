@@ -77,6 +77,11 @@ const queryError = ref(null);
 const selectedLayerForQuery = ref(null);
 const searchTermQuery = ref('');
 
+// Estado para el marcador de consulta (añadir esta variable junto a otros estados)
+const queryMarkerSource = ref(null);
+const queryMarkerLayer = ref(null);
+const activeQueryResult = ref(null);
+
 // Importar configuración de capas desde el composable con sus funciones extendidas
 const { layerGroups, isLoadingLayers, loadError, loadAvailableLayers, lastUpdated } = useLayers();
 
@@ -384,6 +389,30 @@ const initializeMap = () => {
     
     map.value.addLayer(markerLayer.value);
 
+    // Inicializar la capa para los marcadores de consulta
+    queryMarkerSource.value = new VectorSource();
+    queryMarkerLayer.value = new VectorLayer({
+      source: queryMarkerSource.value,
+      zIndex: 1001, // Un nivel más alto que markerLayer para asegurar visibilidad
+      style: new Style({
+        image: new CircleStyle({
+          radius: 10,
+          fill: new Fill({ color: '#A855F7' }), // Color morado
+          stroke: new Stroke({ color: '#ffffff', width: 3 })
+        }),
+        // Estilo para geometrías de tipo polígono o línea
+        stroke: new Stroke({
+          color: '#A855F7',
+          width: 3
+        }),
+        fill: new Fill({
+          color: 'rgba(168, 85, 247, 0.2)' // Morado semi-transparente
+        })
+      })
+    });
+    
+    map.value.addLayer(queryMarkerLayer.value);
+
     // Agregar event listener para capturar clics en el mapa
     map.value.on('singleclick', handleMapClick);
     
@@ -564,6 +593,9 @@ onBeforeUnmount(() => {
       
       // Eliminar el marcador si existe
       removeMarker();
+      
+      // Limpiar también el marcador de consulta
+      clearQueryMarker();
       
       map.value.setTarget(undefined);
       map.value = null;
@@ -868,12 +900,15 @@ const goToUploadMaps = () => {
 };
 
 // Función para alternar el panel de consulta
+// Versión combinada que incluye la limpieza de marcadores
 const toggleQueryPanel = () => {
   showQueryPanel.value = !showQueryPanel.value;
   if (!showQueryPanel.value) {
-    // Limpiar resultados al cerrar
+    // Limpiar resultados y marcadores al cerrar
     queryResults.value = [];
     queryError.value = null;
+    clearQueryMarker();
+    activeQueryResult.value = null;
   }
 };
 
@@ -887,6 +922,10 @@ const performQuery = async () => {
   isQuerying.value = true;
   queryError.value = null;
   queryResults.value = [];
+  
+  // Limpiar marcador previo al realizar una nueva consulta
+  clearQueryMarker();
+  activeQueryResult.value = null;
   
   try {
     const layerName = selectedLayerForQuery.value.name;
@@ -970,6 +1009,12 @@ const zoomToQueryResult = (result) => {
   if (!result || !result.geometry || !map.value) return;
   
   try {
+    // Guardar referencia al resultado activo
+    activeQueryResult.value = result;
+    
+    // Limpiar marcador anterior
+    clearQueryMarker();
+    
     // Convertir la geometría a una característica de OpenLayers
     const format = new GeoJSON();
     const feature = format.readFeature({
@@ -987,17 +1032,379 @@ const zoomToQueryResult = (result) => {
       duration: 1000
     });
     
-    // Opcionalmente, añadir un marcador o resaltar la característica
-    if (markerSource.value) {
-      markerSource.value.clear();
-      markerSource.value.addFeature(feature);
-    }
+    // Añadir marcador para resaltar la entidad
+    addQueryMarker(feature);
     
     // Cerrar el panel después de hacer zoom
     showQueryPanel.value = false;
   } catch (error) {
     console.error('Error al hacer zoom al resultado:', error);
   }
+};
+
+// Función para añadir un marcador al resultado consultado
+const addQueryMarker = (feature) => {
+  if (!queryMarkerSource.value || !feature) return;
+  
+  // Limpiar marcadores existentes primero
+  clearQueryMarker();
+  
+  // Determinar el tipo de geometría
+  const geomType = feature.getGeometry().getType();
+  
+  if (geomType === 'Point') {
+    // Si es un punto, usar directamente
+    queryMarkerSource.value.addFeature(feature);
+  } else {
+    // Si es un polígono o línea, crear dos elementos:
+    // 1. La geometría original para mostrar el área/línea
+    queryMarkerSource.value.addFeature(feature);
+    
+    // 2. Un punto en el centro para marcar visualmente
+    const extent = feature.getGeometry().getExtent();
+    const center = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
+    
+    const centerPoint = new Feature({
+      geometry: new Point(center),
+      properties: {
+        isQueryCenter: true
+      }
+    });
+    
+    // Establecer estilo específico para el punto central
+    centerPoint.setStyle(new Style({
+      image: new CircleStyle({
+        radius: 10,
+        fill: new Fill({ color: '#A855F7' }),
+        stroke: new Stroke({ color: '#ffffff', width: 3 })
+      })
+    }));
+    
+    queryMarkerSource.value.addFeature(centerPoint);
+  }
+  
+  // Efecto de pulso para el marcador (opcional)
+  setTimeout(() => {
+    if (!map.value) return;
+    map.value.render(); // Forzar actualización del mapa
+  }, 100);
+};
+
+// Función para limpiar los marcadores de consulta
+const clearQueryMarker = () => {
+  if (queryMarkerSource.value) {
+    queryMarkerSource.value.clear();
+  }
+};
+
+// Función para cambiar el estado del panel de detalles del territorio
+const toggleDetailsPanel = () => {
+  detailsPanelOpen.value = !detailsPanelOpen.value;
+  
+  if (detailsPanelOpen.value) {
+    // Cargar detalles del territorio seleccionado si el panel se abre
+    if (territorioSeleccionado.value && territorioSeleccionado.value.fid) {
+      obtenerDetallesTerritorio(territorioSeleccionado.value.fid);
+    }
+  } else {
+    // Limpiar detalles y cerrar el panel
+    territorioDetalles.value = null;
+    errorDetails.value = null;
+    loadingDetails.value = false;
+  }
+};
+
+// Nueva función para forzar la actualización del mapa
+const forceMapUpdate = () => {
+  if (map.value) {
+    map.value.render();
+  }
+};
+
+// Función para guardar el estado del mapa en el almacenamiento local
+const guardarEstadoMapa = () => {
+  const estadoMapa = {
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      name: layer.name,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+  
+  localStorage.setItem('estadoMapa', JSON.stringify(estadoMapa));
+};
+
+// Función para restaurar el estado del mapa desde el almacenamiento local
+const restaurarEstadoMapa = () => {
+  const estadoMapa = JSON.parse(localStorage.getItem('estadoMapa'));
+  
+  if (estadoMapa && map.value) {
+    // Restaurar centro y zoom
+    map.value.getView().setCenter(estadoMapa.center);
+    map.value.getView().setZoom(estadoMapa.zoom);
+    
+    // Restaurar visibilidad y opacidad de capas
+    estadoMapa.layers.forEach(layerState => {
+      const layer = getAllLayers().find(l => l.name === layerState.name);
+      if (layer) {
+        layer.visible = layerState.visible;
+        layerOpacity.value[layer.id] = layerState.opacity;
+      }
+    });
+    
+    // Forzar actualización del mapa
+    forceMapUpdate();
+  }
+};
+
+// Nueva función para cargar capas desde el almacenamiento local
+const cargarCapasDesdeStorage = () => {
+  const capasGuardadas = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  
+  // Limpiar capas actuales en el mapa
+  if (map.value) {
+    const capasMapa = map.value.getLayers().getArray();
+    capasMapa.forEach(capa => {
+      if (capa.get('name') !== 'OpenStreetMap') {
+        map.value.removeLayer(capa);
+      }
+    });
+  }
+  
+  // Agregar capas guardadas al mapa
+  capasGuardadas.forEach(capa => {
+    const nuevaCapa = new TileLayer({
+      source: new OSM(),
+      visible: capa.visible,
+      properties: {
+        name: capa.name,
+        group: 'base'
+      },
+      zIndex: 0  // Asegurar que esté en el fondo
+    });
+    
+    if (map.value) {
+      map.value.addLayer(nuevaCapa);
+    }
+  });
+  
+  // Forzar actualización del mapa
+  forceMapUpdate();
+};
+
+// Lógica para el botón de carga de capas
+const handleLayerUpload = (newLayer) => {
+  if (!newLayer || !map.value) return;
+  
+  // Crear nueva capa en el mapa
+  const capaNueva = new TileLayer({
+    source: new OSM(),
+    visible: true,
+    properties: {
+      name: newLayer.name,
+      group: 'base'
+    },
+    zIndex: 0  // Asegurar que esté en el fondo
+  });
+  
+  map.value.addLayer(capaNueva);
+  
+  // Guardar estado del mapa
+  guardarEstadoMapa();
+};
+
+// Nueva función para manejar la carga de mapas desde el almacenamiento local
+const cargarMapaDesdeStorage = (mapState) => {
+  if (!mapState || !map.value) return;
+  
+  // Restaurar centro y zoom
+  map.value.getView().setCenter(mapState.center);
+  map.value.getView().setZoom(mapState.zoom);
+  
+  // Limpiar capas actuales en el mapa
+  const capasMapa = map.value.getLayers().getArray();
+  capasMapa.forEach(capa => {
+    if (capa.get('name') !== 'OpenStreetMap') {
+      map.value.removeLayer(capa);
+    }
+  });
+  
+  // Agregar capas desde el estado del mapa
+  mapState.layers.forEach(layerState => {
+    const layer = new TileLayer({
+      source: new OSM(),
+      visible: layerState.visible,
+      properties: {
+        name: layerState.name,
+        group: 'base'
+      },
+      zIndex: 0  // Asegurar que esté en el fondo
+    });
+    
+    map.value.addLayer(layer);
+  });
+  
+  // Forzar actualización del mapa
+  forceMapUpdate();
+};
+
+// Nueva función para manejar la selección de un mapa guardado
+const handleMapSelect = (mapId) => {
+  // Buscar el mapa por ID en el almacenamiento local
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  const mapToLoad = savedMaps.find(map => map.id === mapId);
+  
+  if (mapToLoad) {
+    // Cargar el mapa encontrado
+    cargarMapaDesdeStorage(mapToLoad);
+  }
+};
+
+// Nueva función para eliminar un mapa guardado
+const eliminarMapaGuardado = (mapId) => {
+  // Obtener mapas guardados
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  
+  // Filtrar el mapa a eliminar
+  const updatedMaps = savedMaps.filter(map => map.id !== mapId);
+  
+  // Guardar la lista actualizada en el almacenamiento local
+  localStorage.setItem('savedMaps', JSON.stringify(updatedMaps));
+};
+
+// Nueva función para abrir el diálogo de carga de mapas
+const abrirDialogoCarga = () => {
+  // Limpiar selección anterior
+  selectedMapToLoad.value = null;
+  
+  // Abrir diálogo
+  showLoadDialog.value = true;
+};
+
+// Nueva función para cerrar el diálogo de carga de mapas
+const cerrarDialogoCarga = () => {
+  showLoadDialog.value = false;
+};
+
+// Nueva función para confirmar la carga de un mapa guardado
+const confirmarCargaMapa = () => {
+  if (selectedMapToLoad.value) {
+    // Cargar el mapa seleccionado
+    handleMapSelect(selectedMapToLoad.value);
+    
+    // Cerrar diálogo
+    cerrarDialogoCarga();
+  }
+};
+
+// Nueva función para manejar el cambio de nombre de un mapa guardado
+const manejarCambioNombreMapa = (nuevoNombre) => {
+  if (!nuevoNombre.trim() || !map.value) return;
+  
+  // Obtener el estado actual del mapa
+  const mapState = {
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      name: layer.name,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+  
+  // Obtener mapas guardados
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  
+  // Buscar el mapa actual por su estado (puede no ser 100% preciso si hay cambios en las capas)
+  const mapToUpdate = savedMaps.find(map => 
+    map.center.toString() === mapState.center.toString() && 
+    map.zoom === mapState.zoom &&
+    map.layers.length === mapState.layers.length
+  );
+  
+  if (mapToUpdate) {
+    // Actualizar el nombre del mapa encontrado
+    mapToUpdate.name = nuevoNombre.trim();
+    
+    // Guardar la lista actualizada en el almacenamiento local
+    localStorage.setItem('savedMaps', JSON.stringify(savedMaps));
+  }
+};
+
+// Nueva función para eliminar el mapa actual (si es que está guardado)
+const eliminarMapaActual = () => {
+  // Obtener el estado actual del mapa
+  const mapState = {
+    center: map.value.getView().getCenter(),
+    zoom: map.value.getView().getZoom(),
+    layers: getAllLayers().map(layer => ({
+      name: layer.name,
+      visible: layer.visible,
+      opacity: layerOpacity.value[layer.id] || 1
+    }))
+  };
+  
+  // Obtener mapas guardados
+  const savedMaps = JSON.parse(localStorage.getItem('savedMaps')) || [];
+  
+  // Filtrar el mapa actual (si es que está guardado)
+  const updatedMaps = savedMaps.filter(map => 
+    !(map.center.toString() === mapState.center.toString() && 
+      map.zoom === mapState.zoom &&
+      map.layers.length === mapState.layers.length)
+  );
+  
+  // Guardar la lista actualizada en el almacenamiento local
+  localStorage.setItem('savedMaps', JSON.stringify(updatedMaps));
+};
+
+// Nueva función para abrir el modal de ayuda
+const abrirModalAyuda = () => {
+  // Aquí puedes definir el contenido del modal de ayuda
+  const contenidoAyuda = `
+    <div class="p-4">
+      <h2 class="text-lg font-semibold mb-2">Ayuda Rápida</h2>
+      <p class="text-sm text-gray-700 mb-2">
+        Este geoportal te permite visualizar y analizar datos geoespaciales de manera interactiva.
+      </p>
+      <h3 class="text-md font-medium text-green-800 mb-1">Navegación</h3>
+      <ul class="list-disc list-inside mb-2">
+        <li class="text-sm text-gray-700">Usa la rueda del ratón o los botones de zoom para acercar o alejar.</li>
+        <li class="text-sm text-gray-700">Arrastra el mapa para moverlo.</li>
+      </ul>
+      <h3 class="text-md font-medium text-green-800 mb-1">Capas</h3>
+      <p class="text-sm text-gray-700 mb-2">
+        Activa o desactiva capas en la barra lateral. Ajusta la opacidad de las capas según sea necesario.
+      </p>
+      <h3 class="text-md font-medium text-green-800 mb-1">Herramientas</h3>
+      <p class="text-sm text-gray-700 mb-2">
+        Utiliza las herramientas de medición, dibujo y búsqueda para interactuar con los datos.
+      </p>
+      <h3 class="text-md font-medium text-green-800 mb-1">Consulta de Datos</h3>
+      <p class="text-sm text-gray-700 mb-2">
+        Selecciona una entidad en el mapa o usa la herramienta de búsqueda para encontrar datos específicos.
+      </p>
+      <h3 class="text-md font-medium text-green-800 mb-1">Reportes</h3>
+      <p class="text-sm text-gray-700 mb-2">
+        Genera reportes completos de los territorios en diferentes formatos (PDF, CSV, JSON).
+      </p>
+      <p class="text-sm text-gray-500">
+        Para más información, consulta la documentación completa o contacta al administrador del sistema.
+      </p>
+    </div>
+  `;
+  
+  // Mostrar el modal con el contenido de ayuda
+  mostrarModalPersonalizado('Ayuda Rápida', contenidoAyuda);
+};
+
+// Nueva función para mostrar un modal personalizado
+const mostrarModalPersonalizado = (titulo, contenido) => {
+  // Aquí puedes implementar la lógica para mostrar un modal con el título y contenido dados
+  // Por simplicidad, este ejemplo solo usará un alert, pero se recomienda implementar un componente de modal real
+  alert(`${titulo}\n\n${contenido}`);
 };
 </script>
 
@@ -1861,6 +2268,7 @@ const zoomToQueryResult = (result) => {
               <ul class="space-y-3 max-h-[50vh] overflow-y-auto">
                 <li v-for="result in queryResults" :key="result.id" 
                     class="bg-white hover:bg-purple-50 border border-gray-200 rounded-lg p-4 transition-all duration-200 cursor-pointer transform hover:-translate-y-0.5 hover:shadow-md"
+                    :class="{'bg-purple-50 border-purple-300': activeQueryResult && activeQueryResult.id === result.id}"
                     @click="zoomToQueryResult(result)">
                   <div class="flex items-start justify-between">
                     <div class="flex-grow">
@@ -1876,7 +2284,7 @@ const zoomToQueryResult = (result) => {
                         </div>
                       </div>
                     </div>
-                    <button class="ml-4 p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors" 
+                    <button class="ml-4 p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colores" 
                             title="Hacer zoom a este elemento"
                             @click.stop="zoomToQueryResult(result)">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2017,7 +2425,6 @@ button:active {
   opacity: 0;
   transition: all 0.3s ease;
   transform: scale(0);
-  border-radius: inherit;
 }
 
 .tool-btn:hover .tool-background {
@@ -2214,5 +2621,25 @@ button:active {
 
 .toggle-label.active::after {
   transform: translateX(1.5rem);
+}
+
+/* Estilos para el marcador de consulta animado */
+:global(.query-marker-pulse) {
+  animation: pulse-purple 2s infinite;
+}
+
+@keyframes pulse-purple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+    transform: scale(0.95);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(168, 85, 247, 0);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+    transform: scale(0.95);
+  }
 }
 </style>
