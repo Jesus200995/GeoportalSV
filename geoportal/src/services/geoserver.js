@@ -3,7 +3,7 @@
  */
 
 // URL base del servidor GeoServer
-const GEOSERVER_URL = 'http://31.97.8.51:8082/geoserver';
+const GEOSERVER_URL = import.meta.env.VITE_GEOSERVER_URL;
 const WORKSPACE = 'sembrando';
 
 // Credenciales de autenticación para GeoServer

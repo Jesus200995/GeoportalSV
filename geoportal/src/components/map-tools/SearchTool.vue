@@ -96,7 +96,7 @@ const performSearch = async () => {
     // Luego buscamos en GeoServer para entidades territoriales locales
     let geoserverResults = [];
     try {
-      const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
+      const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL;
       const geoserverResponse = await fetch(
         `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
       );

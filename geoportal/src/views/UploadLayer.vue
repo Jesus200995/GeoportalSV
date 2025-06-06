@@ -543,7 +543,7 @@ const generateMockLayers = () => {
       description: 'Capa de territorios sembrando datos',
       upload_date: new Date(Date.now() - 1000000).toISOString(),
       features_count: 28,
-      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28',
+      preview_url: `${import.meta.env.VITE_GEOSERVER_URL}/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28`,
       file_size: '1.2 MB',
       isNew: false
     },
@@ -553,7 +553,7 @@ const generateMockLayers = () => {
       description: 'Unidades de riego en México',
       upload_date: new Date(Date.now() - 5000000).toISOString(),
       features_count: 124,
-      preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:unidades_riego',
+      preview_url: `${import.meta.env.VITE_GEOSERVER_URL}/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:unidades_riego`,
       file_size: '3.5 MB',
       isNew: false
     }
