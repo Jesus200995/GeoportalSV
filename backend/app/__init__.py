@@ -28,9 +28,9 @@ def create_app():
     # Configurar límite de tamaño de archivo subido (100MB)
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
     
-    # Registrar blueprints
-    app.register_blueprint(upload_bp, url_prefix='/upload-shapefile')
-    app.register_blueprint(layers_bp, url_prefix='/layers')  # Registrar el nuevo blueprint
+    # Registrar blueprints con el prefijo /api
+    app.register_blueprint(upload_bp, url_prefix='/api/upload-shapefile')
+    app.register_blueprint(layers_bp, url_prefix='/api/layers')  # Registrar el nuevo blueprint con prefijo /api
     
     @app.route('/')
     def hello():

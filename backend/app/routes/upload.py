@@ -16,7 +16,8 @@ SHAPEFILE_FOLDER = os.path.join(os.getcwd(), 'shapefiles')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
-@upload_bp.route('', methods=['POST', 'OPTIONS'])  # Notar que no hay barra final
+# Cambiar la ruta a '' (vacía) ya que el prefijo completo se define en __init__.py
+@upload_bp.route('', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
     # Manejar solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':

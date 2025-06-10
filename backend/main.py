@@ -21,7 +21,9 @@ os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 def index():
     return jsonify({"message": "Backend del Geoportal funcionando correctamente"})
 
-@app.route('/upload-shapefile', methods=['POST'])
+# Añadimos la ruta solicitada para que funcione tanto con la aplicación Flask creada por create_app()
+# como cuando se ejecuta directamente este archivo main.py
+@app.route('/api/upload-shapefile', methods=['POST'])
 def upload_shapefile():
     try:
         # Verificar que se ha enviado un archivo
