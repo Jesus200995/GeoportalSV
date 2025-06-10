@@ -17,7 +17,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
 # Cambiar el comportamiento para que coincida exactamente con lo solicitado
-@upload_bp.route('', methods=['POST', 'OPTIONS'])
+@upload_bp.route('/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
     # Manejar solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':
@@ -30,6 +30,11 @@ def upload_shapefile():
     filename = file.filename
 
     return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
+
+# Añadir ruta alternativa con 'F' mayúscula
+@upload_bp.route('/upload-shapeFile', methods=['POST', 'OPTIONS'])
+def upload_shapefile_alt():
+    return upload_shapefile()
 
 # Mantener la ruta para el procesamiento avanzado bajo otro nombre
 @upload_bp.route('/process', methods=['POST', 'OPTIONS'])

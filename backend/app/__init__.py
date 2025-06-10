@@ -29,11 +29,10 @@ def create_app():
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
     
     # Registrar blueprints con el prefijo /api y nombres en minúsculas
-    app.register_blueprint(upload_bp, url_prefix='/api/upload-shapefile')
+    app.register_blueprint(upload_bp, url_prefix='/api')
     app.register_blueprint(layers_bp, url_prefix='/api/layers')
     
-    # Agregar la misma ruta directamente en la aplicación principal 
-    # para mayor compatibilidad
+    # Agregar rutas directas en la aplicación principal para mayor compatibilidad
     @app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
     def upload_shapefile_root():
         if request.method == 'OPTIONS':
@@ -47,9 +46,9 @@ def create_app():
 
         return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
     
-    # Agregar una ruta con la 'F' mayúscula para retrocompatibilidad
+    # Añadir ruta alternativa con 'F' mayúscula
     @app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
-    def upload_shapefile_capital_f():
+    def upload_shapefile_alt_root():
         return upload_shapefile_root()
     
     @app.route('/')

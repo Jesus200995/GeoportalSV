@@ -138,7 +138,8 @@ const uploadFile = async () => {
 
   try {
     console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
-
+    
+    // Asegúrate de usar la URL correcta del servicio de configuración
     const response = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -221,7 +222,19 @@ const uploadFile = async () => {
     await fetchLayers();
   } catch (error) {
     console.error('Error detallado:', error);
-    handleUploadError(error);
+    
+    // Mejorar el manejo de errores para mostrar más detalles
+    console.log("Error detallado:", error);
+    
+    // Verificar si es un error 405 y mostrar un mensaje más claro
+    if (error.response && error.response.status === 405) {
+      statusMessage.value = 'Error: El método no está permitido. Por favor contacte al administrador.';
+      uploadStatus.value = 'error';
+    } else {
+      // Manejo general de errores
+      statusMessage.value = `Error: ${error.message || 'No se pudo subir el archivo'}`;
+      uploadStatus.value = 'error';
+    }
   } finally {
     isUploading.value = false;
     
