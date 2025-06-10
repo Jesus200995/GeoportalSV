@@ -211,7 +211,7 @@ const addLayerToMap = (layer) => {
   
   // Crear la fuente WMS
   const wmsSource = new TileWMS({
-    url: layer.wmsUrl || 'http://31.97.8.51:8082/geoserver/sembrando/wms',
+    url: layer.wmsUrl || 'https://geoportal.sembrandodatos.com/geoserver/sembrando/wms',
     params: {
       'LAYERS': layer.fullName || `sembrando:${layer.name}`,
       'TILED': true,

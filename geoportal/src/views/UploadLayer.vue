@@ -5,7 +5,7 @@ import axios from 'axios';
 import { getAvailableLayers } from '../services/geoserver'; // Importar el servicio para cargar capas
 
 // Obtener URL del backend desde variables de entorno si está disponible, o usar valores por defecto
-const API_URL = import.meta.env.VITE_API_URL || 'http://31.97.8.51:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://geoportal.sembrandodatos.com/api';
 
 const router = useRouter();
 const selectedFile = ref(null);

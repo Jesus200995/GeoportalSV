@@ -253,7 +253,7 @@ const searchFeatures = async () => {
   
   // Implementar búsqueda WFS aquí
   try {
-    const geoserverUrl = 'http://31.97.8.51:8082/geoserver'; // URL actualizada
+    const geoserverUrl = 'https://geoportal.sembrandodatos.com/geoserver'; // URL actualizada
     const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
     const data = await response.json();
     searchResults.value = data.features;
@@ -955,7 +955,7 @@ const performQuery = async () => {
     
     // Realizar consulta a GeoServer
     const response = await fetch(
-      `http://31.97.8.51:8082/geoserver/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
+      `https://geoportal.sembrandodatos.com/geoserver/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
     );
     
     if (!response.ok) {
