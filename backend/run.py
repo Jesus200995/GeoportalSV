@@ -2,9 +2,7 @@
 """
 Script para ejecutar la aplicación Flask del GeoportalSV
 """
-from app import create_app
-
-app = create_app()
+from main import app  # Importar la aplicación desde main.py
 
 if __name__ == '__main__':
     print("Iniciando servidor Flask en http://localhost:5000")
