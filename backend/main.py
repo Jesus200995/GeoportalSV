@@ -35,6 +35,12 @@ def upload_shapefile():
 
     return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
 
+# Agregar una ruta alternativa con la 'F' mayúscula para retrocompatibilidad
+@app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
+def upload_shapefile_capital_f():
+    # Simplemente redirigir a la función principal
+    return upload_shapefile()
+
 # Mantener la ruta de procesamiento avanzado con otro nombre
 @app.route('/api/process-shapefile', methods=['POST'])
 def process_shapefile():

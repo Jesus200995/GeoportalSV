@@ -47,6 +47,11 @@ def create_app():
 
         return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
     
+    # Agregar una ruta con la 'F' mayúscula para retrocompatibilidad
+    @app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
+    def upload_shapefile_capital_f():
+        return upload_shapefile_root()
+    
     @app.route('/')
     def hello():
         return {"message": "API Backend para GeoportalSV"}
