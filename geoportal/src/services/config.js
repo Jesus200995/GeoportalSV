@@ -5,10 +5,10 @@
 // Obtener URL base de la API desde variables de entorno o usar un valor por defecto
 export const API_URL = import.meta.env.VITE_API_URL || 'https://geoportal.sembrandodatos.com/api';
 
-// Rutas específicas de API
+// Rutas específicas de API - todas en minúsculas para evitar problemas
 export const API_ROUTES = {
-  // Asegúrate de que coincida exactamente con la ruta en el backend (con la F mayúscula)
-  UPLOAD_SHAPEFILE: `${API_URL}/upload-shapeFile`,
+  // Usamos la ruta en minúsculas para que coincida con el backend
+  UPLOAD_SHAPEFILE: `${API_URL}/upload-shapefile`,
   LAYERS: `${API_URL}/layers`,
   PROCESS_SHAPEFILE: `${API_URL}/process-shapefile`,
 };

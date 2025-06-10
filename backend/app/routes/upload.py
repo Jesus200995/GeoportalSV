@@ -16,9 +16,24 @@ SHAPEFILE_FOLDER = os.path.join(os.getcwd(), 'shapefiles')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
-# Cambiar la ruta a '' (vacía) ya que el prefijo completo se define en __init__.py
+# Cambiar el comportamiento para que coincida exactamente con lo solicitado
 @upload_bp.route('', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
+    # Manejar solicitudes OPTIONS para CORS
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se encontró el archivo'}), 400
+
+    file = request.files['file']
+    filename = file.filename
+
+    return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
+
+# Mantener la ruta para el procesamiento avanzado bajo otro nombre
+@upload_bp.route('/process', methods=['POST', 'OPTIONS'])
+def process_shapefile():
     # Manejar solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':
         return '', 204
