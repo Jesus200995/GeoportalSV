@@ -350,7 +350,7 @@ const fetchLayers = async () => {
               upload_date: new Date().toISOString(),
               created_at: new Date().toISOString(),
               features_count: lastUploadedLayer.value.features_count || Math.floor(Math.random() * 1000) + 50,
-              preview_url: `${import.meta.env.VITE_GEOSERVER_URL}/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28`,
+              preview_url: 'http://31.97.8.51:8082/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=sembrando:territorios_28',
               file_size: lastUploadedLayer.value.file_size,
               isNew: true
             });
