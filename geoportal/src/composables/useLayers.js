@@ -3,7 +3,7 @@ import { getAvailableLayers } from '../services/geoserver';
 
 // Configuración de grupos de capas 
 export function useLayers() {
-  const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL;
+  const geoserverUrl = 'http://31.97.8.51:8082/geoserver';
   
   // Lista de capas predefinidas que queremos mostrar si existen
   const predefinedLayerNames = {

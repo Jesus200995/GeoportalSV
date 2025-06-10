@@ -953,9 +953,9 @@ const performQuery = async () => {
     const searchFilter = searchTermQuery.value ? 
       `&CQL_FILTER=nombre ILIKE '%${searchTermQuery.value}%' OR nombre_territorio ILIKE '%${searchTermQuery.value}%'` : '';
     
-    // Reemplazar la URL hardcodeada en la consulta
+    // Realizar consulta a GeoServer
     const response = await fetch(
-      `${geoserverUrl}/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
+      `http://31.97.8.51:8082/geoserver/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
     );
     
     if (!response.ok) {

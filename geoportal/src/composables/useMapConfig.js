@@ -4,10 +4,10 @@ import { fromLonLat } from 'ol/proj';
 export function useMapConfig() {
   // Configuración de servidor GeoServer
   const geoServerConfig = ref({
-    baseUrl: import.meta.env.VITE_GEOSERVER_URL,
+    baseUrl: 'http://31.97.8.51:8082/geoserver',
     workspace: 'sembrando',
-    wmsUrl: `${import.meta.env.VITE_GEOSERVER_URL}/sembrando/wms`,
-    wfsUrl: `${import.meta.env.VITE_GEOSERVER_URL}/ows`
+    wmsUrl: 'http://31.97.8.51:8082/geoserver/sembrando/wms',
+    wfsUrl: 'http://31.97.8.51:8082/geoserver/ows'
   });
   
   // Configuración inicial del mapa
