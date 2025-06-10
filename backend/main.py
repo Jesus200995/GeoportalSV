@@ -1,13 +1,19 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import os
 import uuid
 import zipfile
 import shutil
-from app.utils import process_shapefile_zip  # Importar la nueva función
+from app.utils import process_shapefile_zip
 
 app = Flask(__name__)
-CORS(app)  # Permite conexiones desde tu frontend en Vue
+
+# Configurar CORS correctamente
+CORS(app, resources={r"/*": {
+    "origins": "*", 
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+}})
 
 # Directorio para almacenar archivos subidos
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -21,11 +27,16 @@ os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 def index():
     return jsonify({"message": "Backend del Geoportal funcionando correctamente"})
 
-# Definir la ruta exactamente como se solicitó (todo en minúsculas)
+# Definir la ruta correctamente con methods=['POST', 'OPTIONS']
 @app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
+    # Manejar solicitudes OPTIONS para CORS explícitamente
     if request.method == 'OPTIONS':
-        return '', 200
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        return response, 200
 
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo'}), 400
@@ -33,7 +44,9 @@ def upload_shapefile():
     file = request.files['file']
     filename = file.filename
 
-    return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
+    response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response, 200
 
 # Añadir una ruta alternativa con 'F' mayúscula para mayor compatibilidad
 @app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
@@ -123,5 +136,13 @@ def process_shapefile():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Interceptor para añadir headers CORS a todas las respuestas
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+    return response
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)

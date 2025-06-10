@@ -2,7 +2,11 @@
 """
 Script para ejecutar la aplicación Flask del GeoportalSV
 """
-from main import app  # Importar la aplicación desde main.py
+from main import app  
+from cors_middleware import setup_cors_middleware
+
+# Configurar middleware CORS personalizado
+app = setup_cors_middleware(app)
 
 if __name__ == '__main__':
     print("Iniciando servidor Flask en http://localhost:5000")

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 import os
 import uuid
 import zipfile
@@ -16,33 +16,43 @@ SHAPEFILE_FOLDER = os.path.join(os.getcwd(), 'shapefiles')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
-# Cambiar el comportamiento para que coincida exactamente con lo solicitado
+# Implementar el endpoint principal con manejo explícito de CORS
 @upload_bp.route('/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
-    # Manejar solicitudes OPTIONS para CORS
+    # Manejar solicitudes OPTIONS para CORS de manera explícita
     if request.method == 'OPTIONS':
-        return '', 200
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        return response, 200
     
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo'}), 400
 
     file = request.files['file']
     filename = file.filename
-
-    return jsonify({'message': f'Archivo {filename} recibido correctamente'}), 200
+    
+    response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response, 200
 
 # Añadir ruta alternativa con 'F' mayúscula
 @upload_bp.route('/upload-shapeFile', methods=['POST', 'OPTIONS'])
 def upload_shapefile_alt():
     return upload_shapefile()
 
-# Mantener la ruta para el procesamiento avanzado bajo otro nombre
-@upload_bp.route('/process', methods=['POST', 'OPTIONS'])
+# Ruta para procesamiento avanzado
+@upload_bp.route('/process-shapefile', methods=['POST', 'OPTIONS'])
 def process_shapefile():
     # Manejar solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':
-        return '', 204
-        
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        return response, 200
+    
     try:
         # Verificación básica de la solicitud
         if not request.files:

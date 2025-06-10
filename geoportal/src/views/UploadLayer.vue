@@ -139,12 +139,12 @@ const uploadFile = async () => {
   try {
     console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
     
-    // Asegúrate de usar la URL correcta del servicio de configuración
+    // Utilizar axios con configuración manual de CORS
     const response = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      withCredentials: API_CONFIG.WITH_CREDENTIALS,
+      withCredentials: false, // Cambiar a false para evitar problemas de CORS
       timeout: API_CONFIG.DEFAULT_TIMEOUT,
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
@@ -223,12 +223,13 @@ const uploadFile = async () => {
   } catch (error) {
     console.error('Error detallado:', error);
     
-    // Mejorar el manejo de errores para mostrar más detalles
-    console.log("Error detallado:", error);
-    
     // Verificar si es un error 405 y mostrar un mensaje más claro
     if (error.response && error.response.status === 405) {
       statusMessage.value = 'Error: El método no está permitido. Por favor contacte al administrador.';
+      uploadStatus.value = 'error';
+      console.error('Error 405: La ruta no acepta métodos POST o el servidor está configurado incorrectamente.');
+    } else if (error.code === 'ERR_NETWORK') {
+      statusMessage.value = `Error de red: No se pudo conectar con el servidor ${API_URL}`;
       uploadStatus.value = 'error';
     } else {
       // Manejo general de errores

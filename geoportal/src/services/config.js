@@ -7,7 +7,7 @@ export const API_URL = import.meta.env.VITE_API_URL || 'https://geoportal.sembra
 
 // Rutas específicas de API - todas en minúsculas para evitar problemas
 export const API_ROUTES = {
-  // Usamos la ruta en minúsculas para que coincida con el backend
+  // Asegurarse que todas las rutas estén en minúsculas
   UPLOAD_SHAPEFILE: `${API_URL}/upload-shapefile`,
   LAYERS: `${API_URL}/layers`,
   PROCESS_SHAPEFILE: `${API_URL}/process-shapefile`,
@@ -17,4 +17,9 @@ export const API_ROUTES = {
 export const API_CONFIG = {
   DEFAULT_TIMEOUT: 600000,
   WITH_CREDENTIALS: true,
+  // Añadir configuración CORS explícita para axios
+  HEADERS: {
+    'Content-Type': 'multipart/form-data',
+    'Accept': 'application/json'
+  }
 };
