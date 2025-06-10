@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { getAvailableLayers } from '../services/geoserver'; // Importar el servicio para cargar capas
+import { API_ROUTES, API_CONFIG } from '../services/config';
 
 // Obtener URL del backend desde variables de entorno si está disponible, o usar valores por defecto
 const API_URL = import.meta.env.VITE_API_URL || 'https://geoportal.sembrandodatos.com/api';
@@ -136,16 +137,14 @@ const uploadFile = async () => {
   formData.append('file', selectedFile.value);
 
   try {
-    // Asegurarse que la URL no termine en barra
-    const uploadUrl = `${API_URL}/upload-shapefile`.replace(/\/$/, '');
-    console.log(`Enviando solicitud a: ${uploadUrl}`);
+    console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
 
-    const response = await axios.post(uploadUrl, formData, {
+    const response = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      withCredentials: true, // Importante para CORS
-      timeout: 600000,
+      withCredentials: API_CONFIG.WITH_CREDENTIALS,
+      timeout: API_CONFIG.DEFAULT_TIMEOUT,
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 50) / progressEvent.total);
