@@ -4,8 +4,8 @@ Inicialización de la aplicación Flask para GeoportalSV
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import os
-from .routes.upload import upload_bp
-from .routes.layers import layers_bp
+from app.upload import upload_bp  # Importar el blueprint de upload
+from app.routes.layers import layers_bp  # Mantener importación de layers
 
 def create_app():
     """
@@ -28,7 +28,7 @@ def create_app():
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
     
     # Registrar blueprints con el prefijo /api apropiado
-    app.register_blueprint(upload_bp, url_prefix='/api')
+    app.register_blueprint(upload_bp, url_prefix='/api')  # Registrar blueprint de upload
     app.register_blueprint(layers_bp, url_prefix='/api/layers')
     
     # Rutas directas en la aplicación principal para mayor compatibilidad
