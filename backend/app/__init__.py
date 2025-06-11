@@ -27,48 +27,9 @@ def create_app():
     # Configurar límite de tamaño de archivo subido (100MB)
     app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
     
-    # Registrar blueprints con el prefijo /api apropiado
-    app.register_blueprint(upload_bp, url_prefix='/api')  # Registrar blueprint de upload
+    # Registrar blueprints - upload_bp sin prefijo ya que ya define la ruta completa
+    app.register_blueprint(upload_bp)  # Sin url_prefix, el blueprint ya usa /api/upload-shapefile
     app.register_blueprint(layers_bp, url_prefix='/api/layers')
-    
-    # Rutas directas en la aplicación principal para mayor compatibilidad
-    @app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
-    def upload_shapefile_root():
-        # Manejar OPTIONS para CORS preflight
-        if request.method == 'OPTIONS':
-            response = make_response()
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-            return response, 200
-
-        if 'file' not in request.files:
-            return jsonify({'error': 'No se encontró el archivo'}), 400
-
-        file = request.files['file']
-        if not file or file.filename == '':
-            return jsonify({'error': 'Archivo no válido'}), 400
-            
-        # Verificar que es un archivo ZIP
-        if not file.filename.lower().endswith('.zip'):
-            return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
-        
-        # Puedes guardar el archivo aquí si es necesario
-        # unique_filename = str(uuid.uuid4()) + ".zip"
-        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-        
-        response = jsonify({
-            'success': True,
-            'message': f'Archivo {file.filename} recibido correctamente',
-            'filename': file.filename
-        })
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 200
-    
-    # Ruta alternativa con 'F' mayúscula
-    @app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
-    def upload_shapefile_alt_root():
-        return upload_shapefile_root()
     
     # Endpoint para verificar CORS
     @app.route('/api/cors-test', methods=['GET', 'OPTIONS'])
@@ -99,6 +60,3 @@ def create_app():
     app.config['JSON_SORT_KEYS'] = False
     
     return app
-
-# Añadir la importación para el módulo upload
-from app import upload

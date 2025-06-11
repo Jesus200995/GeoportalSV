@@ -2,13 +2,17 @@ from flask import Blueprint, request, jsonify
 
 upload_bp = Blueprint('upload', __name__)
 
-@upload_bp.route('/upload-shapefile', methods=['POST', 'OPTIONS'])
+@upload_bp.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
-    # Manejar preflight OPTIONS
     if request.method == 'OPTIONS':
-        return '', 204
-    
-    # Manejar POST
+        response = jsonify({})
+        response.status_code = 204
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Authorization,Content-Type')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
@@ -16,4 +20,4 @@ def upload_shapefile():
     if not file.filename.endswith('.zip'):
         return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
 
-    return jsonify({'message': f'Archivo {file.filename} recibido correctamente'}), 200
+    return jsonify({'success': f'Archivo recibido: {file.filename}'})
