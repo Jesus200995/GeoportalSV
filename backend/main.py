@@ -27,10 +27,10 @@ os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 def index():
     return jsonify({"message": "Backend del Geoportal funcionando correctamente"})
 
-# Definir la ruta correctamente con methods=['POST', 'OPTIONS']
+# Definir la ruta con métodos correctos y con manejo específico para OPTIONS
 @app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
-    # Manejar solicitudes OPTIONS para CORS explícitamente
+    # Manejar solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':
         response = make_response()
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -38,12 +38,15 @@ def upload_shapefile():
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
         return response, 200
 
+    # Verificar si hay un archivo en la solicitud
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo'}), 400
 
+    # Obtener el archivo y su nombre
     file = request.files['file']
     filename = file.filename
 
+    # Crear una respuesta exitosa con headers CORS explícitos
     response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response, 200
@@ -136,7 +139,7 @@ def process_shapefile():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Interceptor para añadir headers CORS a todas las respuestas
+# Interceptor global para añadir headers CORS a todas las respuestas
 @app.after_request
 def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')

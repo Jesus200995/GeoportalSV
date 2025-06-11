@@ -16,10 +16,10 @@ SHAPEFILE_FOLDER = os.path.join(os.getcwd(), 'shapefiles')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 
-# Implementar el endpoint principal con manejo explícito de CORS
+# Implementar el endpoint principal con mejor manejo de OPTIONS
 @upload_bp.route('/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
-    # Manejar solicitudes OPTIONS para CORS de manera explícita
+    # Manejar explícitamente solicitudes OPTIONS para CORS
     if request.method == 'OPTIONS':
         response = make_response()
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -27,14 +27,20 @@ def upload_shapefile():
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
         return response, 200
     
+    # Manejar solicitud POST normal
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo'}), 400
 
     file = request.files['file']
+    if not file or file.filename == '':
+        return jsonify({'error': 'Archivo no válido'}), 400
+
     filename = file.filename
     
+    # Generar respuesta exitosa con headers CORS explícitos
     response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
     response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     return response, 200
 
 # Añadir ruta alternativa con 'F' mayúscula

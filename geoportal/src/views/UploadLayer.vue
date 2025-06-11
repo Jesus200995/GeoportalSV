@@ -139,7 +139,7 @@ const uploadFile = async () => {
   try {
     console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
     
-    // Utilizar axios con configuración manual de CORS
+    // Usar configuración simplificada sin withCredentials
     const response = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -222,6 +222,10 @@ const uploadFile = async () => {
     await fetchLayers();
   } catch (error) {
     console.error('Error detallado:', error);
+    
+    if (error.response) {
+      console.error(`Respuesta del servidor: Estado ${error.response.status}, Datos:`, error.response.data);
+    }
     
     // Verificar si es un error 405 y mostrar un mensaje más claro
     if (error.response && error.response.status === 405) {
