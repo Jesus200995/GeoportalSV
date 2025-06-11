@@ -16,7 +16,7 @@ export const API_ROUTES = {
 // Configuración para solicitudes
 export const API_CONFIG = {
   DEFAULT_TIMEOUT: 600000,
-  WITH_CREDENTIALS: true,
+  WITH_CREDENTIALS: false,  // Cambiado a false para evitar problemas de CORS
   // Añadir configuración CORS explícita para axios
   HEADERS: {
     'Content-Type': 'multipart/form-data',
