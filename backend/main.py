@@ -42,21 +42,12 @@ def upload_shapefile():
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo'}), 400
 
-    # Obtener el archivo y verificar validez
+    # Obtener el archivo y su nombre
     file = request.files['file']
-    if not file or file.filename == '':
-        return jsonify({'error': 'Archivo no válido'}), 400
-    
-    # Verificar que es un archivo ZIP
-    if not file.filename.lower().endswith('.zip'):
-        return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
+    filename = file.filename
 
     # Crear una respuesta exitosa con headers CORS explícitos
-    response = jsonify({
-        'success': True,
-        'message': f'Archivo {file.filename} recibido correctamente',
-        'filename': file.filename
-    })
+    response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response, 200
 

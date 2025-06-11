@@ -46,22 +46,9 @@ def create_app():
             return jsonify({'error': 'No se encontró el archivo'}), 400
 
         file = request.files['file']
-        if not file or file.filename == '':
-            return jsonify({'error': 'Archivo no válido'}), 400
-            
-        # Verificar que es un archivo ZIP
-        if not file.filename.lower().endswith('.zip'):
-            return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
+        filename = file.filename
         
-        # Puedes guardar el archivo aquí si es necesario
-        # unique_filename = str(uuid.uuid4()) + ".zip"
-        # file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-        
-        response = jsonify({
-            'success': True,
-            'message': f'Archivo {file.filename} recibido correctamente',
-            'filename': file.filename
-        })
+        response = jsonify({'message': f'Archivo {filename} recibido correctamente'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
     

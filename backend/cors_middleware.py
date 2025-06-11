@@ -30,11 +30,8 @@ def setup_cors_middleware(app):
         return response
     
     # Rutas específicas para manejar la subida de archivos
-    # Estas rutas son adicionales a las definidas en blueprints para asegurar que se manejen correctamente
     @app.route('/api/upload-shapefile', methods=['OPTIONS'])
     @app.route('/api/upload-shapeFile', methods=['OPTIONS'])  # Variante con F mayúscula
-    @app.route('/upload-shapefile', methods=['OPTIONS'])      # Por si se accede sin /api
-    @app.route('/upload-shapeFile', methods=['OPTIONS'])      # Por si se accede sin /api, con F mayúscula
     def upload_options():
         response = app.make_default_options_response()
         apply_cors_headers(response)
