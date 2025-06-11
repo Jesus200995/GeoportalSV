@@ -8,7 +8,7 @@ from app.utils import process_shapefile_zip
 
 app = Flask(__name__)
 
-# Configurar CORS correctamente
+# Configurar CORS correctamente para permitir solicitudes desde cualquier origen
 CORS(app, resources={r"/*": {
     "origins": "*", 
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -27,7 +27,7 @@ os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 def index():
     return jsonify({"message": "Backend del Geoportal funcionando correctamente"})
 
-# Definir la ruta con métodos correctos y con manejo específico para OPTIONS
+# Ruta principal para subir shapefile - asegurar que sea accesible desde /api/upload-shapefile con el método POST
 @app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
 def upload_shapefile():
     # Manejar solicitudes OPTIONS para CORS
@@ -36,53 +36,23 @@ def upload_shapefile():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        response.headers.add('Access-Control-Max-Age', '86400')
         return response, 200
 
     # Verificar si hay un archivo en la solicitud
     if 'file' not in request.files:
-        return jsonify({'error': 'No se encontró el archivo'}), 400
+        return jsonify({'error': 'No se encontró el archivo', 'success': False}), 400
 
     # Obtener el archivo y verificar validez
     file = request.files['file']
     if not file or file.filename == '':
-        return jsonify({'error': 'Archivo no válido'}), 400
+        return jsonify({'error': 'Archivo no válido', 'success': False}), 400
     
     # Verificar que es un archivo ZIP
     if not file.filename.lower().endswith('.zip'):
-        return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
+        return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile', 'success': False}), 400
 
-    # Crear una respuesta exitosa con headers CORS explícitos
-    response = jsonify({
-        'success': True,
-        'message': f'Archivo {file.filename} recibido correctamente',
-        'filename': file.filename
-    })
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response, 200
-
-# Añadir una ruta alternativa con 'F' mayúscula para mayor compatibilidad
-@app.route('/api/upload-shapeFile', methods=['POST', 'OPTIONS'])
-def upload_shapefile_alt():
-    return upload_shapefile()  # Reutilizar la misma función
-
-# Mantener la ruta de procesamiento avanzado con otro nombre
-@app.route('/api/process-shapefile', methods=['POST'])
-def process_shapefile():
     try:
-        # Verificar que se ha enviado un archivo
-        if 'file' not in request.files:
-            return jsonify({'error': 'No se ha enviado ningún archivo'}), 400
-        
-        file = request.files['file']
-        
-        # Verificar que el archivo tiene nombre
-        if file.filename == '':
-            return jsonify({'error': 'Archivo sin nombre'}), 400
-        
-        # Verificar que es un archivo ZIP
-        if not file.filename.lower().endswith('.zip'):
-            return jsonify({'error': 'El archivo debe ser un ZIP que contenga los archivos shapefile'}), 400
-        
         # Crear un nombre único para el archivo
         unique_filename = str(uuid.uuid4()) + ".zip"
         zip_path = os.path.join(UPLOAD_FOLDER, unique_filename)
@@ -95,58 +65,61 @@ def process_shapefile():
         os.makedirs(extract_dir, exist_ok=True)
         
         # Extraer el archivo ZIP
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-            
-            # Verificar que contiene archivos shapefile (.shp)
-            has_shapefile = False
-            for root, _, files in os.walk(extract_dir):
-                for file in files:
-                    if file.lower().endswith('.shp'):
-                        has_shapefile = True
-                        break
-                if has_shapefile:
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+        
+        # Verificar que contiene archivos shapefile (.shp)
+        has_shapefile = False
+        for root, _, files in os.walk(extract_dir):
+            for file in files:
+                if file.lower().endswith('.shp'):
+                    has_shapefile = True
                     break
-            
-            if not has_shapefile:
-                # Limpieza si no hay shapefiles
-                shutil.rmtree(extract_dir, ignore_errors=True)
-                os.remove(zip_path)
-                return jsonify({'error': 'El archivo ZIP no contiene ningún shapefile (.shp)'}), 400
-            
-            # Procesar el shapefile y publicar en GeoServer
-            result = process_shapefile_zip(extract_dir)
-            
-            # Limpiar archivo ZIP original
+            if has_shapefile:
+                break
+        
+        if not has_shapefile:
+            # Limpieza si no hay shapefiles
+            shutil.rmtree(extract_dir, ignore_errors=True)
             os.remove(zip_path)
+            return jsonify({'error': 'El archivo ZIP no contiene ningún shapefile (.shp)', 'success': False}), 400
+        
+        # Procesar el shapefile y publicar en GeoServer
+        result = process_shapefile_zip(extract_dir)
+        
+        # Limpiar archivo ZIP original
+        os.remove(zip_path)
+        
+        if result['success']:
+            response_data = {
+                'success': True,
+                'message': result['message'],
+                'table_name': result.get('table_name', '')
+            }
             
-            if result['success']:
-                response_data = {
-                    'success': True,
-                    'message': result['message'],
-                    'table_name': result.get('table_name', '')
-                }
+            # Solo incluir la ruta si el directorio no se eliminó
+            if not result.get('cleaned_directory', False):
+                response_data['filepath'] = extract_dir
+            
+            # Agregar información de GeoServer si está disponible
+            if 'geoserver_urls' in result:
+                response_data['geoserver'] = result['geoserver_urls']
                 
-                # Solo incluir la ruta si el directorio no se eliminó
-                if not result.get('cleaned_directory', False):
-                    response_data['filepath'] = extract_dir
-                
-                # Agregar información de GeoServer si está disponible
-                if 'geoserver_urls' in result:
-                    response_data['geoserver'] = result['geoserver_urls']
-                    
-                return jsonify(response_data)
-            else:
-                return jsonify({'error': result['error']}), 500
-            
-        except zipfile.BadZipFile:
-            # Limpieza si el archivo ZIP es inválido
-            os.remove(zip_path)
-            return jsonify({'error': 'El archivo ZIP es inválido o está corrupto'}), 400
-            
+            return jsonify(response_data)
+        else:
+            return jsonify({'error': result['error'], 'success': False}), 500
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'success': False}), 500
+
+# Mantener la misma función para la ruta alternativa
+@app.route('/api/process-shapefile', methods=['POST', 'OPTIONS'])
+def process_shapefile_route():
+    return upload_shapefile()
+
+# También crear una versión sin el prefijo /api para mayor compatibilidad
+@app.route('/upload-shapefile', methods=['POST', 'OPTIONS'])
+def upload_shapefile_no_prefix():
+    return upload_shapefile()
 
 # Interceptor global para añadir headers CORS a todas las respuestas
 @app.after_request

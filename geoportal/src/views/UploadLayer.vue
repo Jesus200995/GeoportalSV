@@ -137,10 +137,11 @@ const uploadFile = async () => {
   formData.append('file', selectedFile.value);
 
   try {
+    // Intentar primero con la ruta correcta
     console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
     
-    // Configuración simplificada para axios con manejo explícito de CORS
-    const response = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
+    // Configuración simplificada para axios sin credentials y con el Content-Type adecuado
+    const config = {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -163,8 +164,33 @@ const uploadFile = async () => {
           }
         }
       }
-    });
+    };
 
+    // Acceder a la URL completa de la API para mejor diagnóstico
+    const apiUrl = API_ROUTES.UPLOAD_SHAPEFILE;
+    console.log(`URL completa de la API: ${apiUrl}`);
+    
+    let response;
+    try {
+      // Primer intento con la ruta principal
+      response = await axios.post(apiUrl, formData, config);
+    } catch (firstError) {
+      console.error("Error en primera solicitud:", firstError);
+      
+      // Si falla con 405 (Method Not Allowed), intentar con la ruta alternativa
+      if (firstError.response?.status === 405) {
+        statusMessage.value = 'Intentando método alternativo...';
+        console.log(`Intentando ruta alternativa: ${API_ROUTES.PROCESS_SHAPEFILE}`);
+        
+        response = await axios.post(API_ROUTES.PROCESS_SHAPEFILE, formData, config);
+      } else {
+        // Si es otro error, volver a lanzarlo para que sea manejado por el catch exterior
+        throw firstError;
+      }
+    }
+
+    // Aquí el código continúa si alguna de las solicitudes fue exitosa
+    
     // Subida completada, ahora comienza el procesamiento
     uploadCompleted.value = true;
     uploadProgress.value = 50; // La subida representa el 50% del proceso
@@ -222,54 +248,26 @@ const uploadFile = async () => {
   } catch (error) {
     console.error('Error detallado:', error);
     
+    // Log mejorado para el diagnóstico
     if (error.response) {
       console.error(`Respuesta del servidor: Estado ${error.response.status}, Datos:`, error.response.data);
+      console.error("Encabezados de respuesta:", error.response.headers);
+    }
+    else if (error.request) {
+      console.error("La solicitud fue hecha pero no se recibió respuesta:", error.request);
+    }
+    else {
+      console.error("Error en la configuración de la solicitud:", error.message);
     }
     
-    // Intento alternativo con ruta ligeramente modificada
-    try {
-      if (error.response && error.response.status === 405) {
-        statusMessage.value = 'Intentando método alternativo...';
-        
-        // Intentar con la misma ruta para simplificar
-        const altResponse = await axios.post(API_ROUTES.UPLOAD_SHAPEFILE, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          timeout: API_CONFIG.DEFAULT_TIMEOUT
-        });
-        
-        // Manejar respuesta exitosa del método alternativo
-        uploadProgress.value = 100;
-        uploadStatus.value = 'success';
-        statusMessage.value = altResponse.data.message || 'Archivo procesado correctamente por ruta alternativa';
-        processingStep.value = 'completed';
-        
-        // Configurar variables de éxito
-        newLayerUploaded.value = true;
-        lastUploadedLayer.value = {
-          name: fileName.value.replace('.zip', ''),
-          upload_date: new Date().toISOString(),
-          features_count: Math.floor(Math.random() * 100) + 20,
-          file_size: fileSize.value
-        };
-        
-        // Recargar las capas después del éxito
-        await fetchLayers();
-        return;
-      }
-    } catch (altError) {
-      console.error('Error en método alternativo:', altError);
-    }
-    
-    // Verificar si es un error 405 y mostrar un mensaje más claro
-    if (error.response && error.response.status === 405) {
-      statusMessage.value = 'Error 405: El servidor no acepta este tipo de solicitud. Verifique si el servidor está configurado para aceptar archivos.';
+    // Manejo de errores específicos
+    if (error.response?.status === 405) {
+      statusMessage.value = 'Error 405: El servidor no permite este método. Verifique la configuración del servidor o pruebe usando la ruta /api/process-shapefile.';
       uploadStatus.value = 'error';
-      console.error('Error 405: La ruta no acepta métodos POST o el servidor está configurado incorrectamente.');
     } else if (error.code === 'ERR_NETWORK') {
-      statusMessage.value = `Error de red: No se pudo conectar con el servidor ${API_URL}`;
+      statusMessage.value = `Error de red: No se pudo conectar con el servidor. Verifique que el backend esté en ejecución.`;
       uploadStatus.value = 'error';
+      backendAvailable.value = false;
     } else {
       // Manejo general de errores
       statusMessage.value = `Error: ${error.message || 'No se pudo subir el archivo'}`;
