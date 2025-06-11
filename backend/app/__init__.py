@@ -99,3 +99,6 @@ def create_app():
     app.config['JSON_SORT_KEYS'] = False
     
     return app
+
+# Añadir la importación para el módulo upload
+from app import upload
