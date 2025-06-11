@@ -10,6 +10,7 @@ export const API_ROUTES = {
   // Asegurarse que todas las rutas estén en minúsculas
   UPLOAD_SHAPEFILE: `${API_URL}/upload-shapefile`,
   LAYERS: `${API_URL}/layers`,
+  // Eliminamos la ruta process-shapefile y aseguramos que usamos solo upload-shapefile
 };
 
 // Configuración para solicitudes
