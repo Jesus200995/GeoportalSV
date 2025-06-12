@@ -28,18 +28,13 @@ const showNotification = (message, type = 'success') => {
   }, 3000);
 };
 
-// Agregar estados para el carrusel de fondo
-const backgroundImages = [
-  'https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=1920&auto=format&fit=crop', // Bosque verde
-  'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop', // Campo de cultivo
-  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1920&auto=format&fit=crop'  // Bosque con luz
-];
+// Usar solo la primera imagen de fondo
+const backgroundImage = 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=1920&auto=format&fit=crop'; // Campo de maíz dorado
 
-const currentImageIndex = ref(0);
-
-// Función para cambiar la imagen de fondo
-const changeBackgroundImage = () => {
-  currentImageIndex.value = (currentImageIndex.value + 1) % backgroundImages.length;
+// Nueva función simplificada para precargar la imagen
+const preloadImage = () => {
+  const img = new Image();
+  img.src = backgroundImage;
 };
 
 // Función para abrir el visor de mapa con animación de transición más rápida
@@ -127,9 +122,13 @@ const toggleSmokeEffect = () => {
   }
 };
 
-// Iniciar el carrusel de fondo
+// Iniciar con imagen estática
 onMounted(() => {
-  setInterval(changeBackgroundImage, 5000);
+  // Precargar imagen para evitar problemas de carga
+  preloadImage();
+  
+  // Ya no necesitamos el intervalo de cambio de imagen
+  // setInterval(changeBackgroundImage, 5000); // Removido
   
   // Generar partículas de humo iniciales
   generateSmokeParticles();
@@ -146,19 +145,23 @@ onMounted(() => {
     
     <!-- Vista de bienvenida -->
     <div v-if="showWelcome" class="min-h-screen flex flex-col">
-      <!-- Fondo con imágenes en carrusel -->
-      <div class="fixed inset-0 bg-black">
-        <transition name="fade" mode="out-in">
-          <div 
-            :key="currentImageIndex"
-            :style="{
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.7)), url(${backgroundImages[currentImageIndex]})`
-            }"
-            class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
-          ></div>
-        </transition>
+      <!-- Fondo con imagen estática -->
+      <div class="fixed inset-0 bg-black fancy-fade-container">
+        <div 
+          :style="{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.6)), url(${backgroundImage})`
+          }"
+          class="absolute inset-0 bg-cover bg-center"
+        ></div>
+        
         <!-- Superposición con patrón de puntos -->
         <div class="absolute inset-0 bg-pattern opacity-20"></div>
+        
+        <!-- Partículas mágicas en la transición -->
+        <div class="magic-particles"></div>
+        
+        <!-- Efecto verde durante transiciones -->
+        <div class="green-mist"></div>
       </div>
 
       <!-- Contenido -->
@@ -844,6 +847,155 @@ onMounted(() => {
   }
   100% {
     filter: brightness(1.1) blur(1px);
+  }
+}
+
+/* Animación de desvanecido mejorada con efectos verdes */
+.fancy-fade-enter-active {
+  animation: fadeInWithGreenGlow 1.8s ease-out;
+}
+
+.fancy-fade-leave-active {
+  animation: fadeOutWithGreenMist 1.8s ease-in;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes fadeInWithGreenGlow {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+    filter: brightness(1.3) blur(8px) hue-rotate(60deg);
+  }
+  30% {
+    filter: brightness(1.2) blur(5px) hue-rotate(40deg);
+  }
+  70% {
+    filter: brightness(1.1) blur(2px) hue-rotate(20deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1) blur(0) hue-rotate(0deg);
+  }
+}
+
+@keyframes fadeOutWithGreenMist {
+  0% {
+    opacity: 1;
+    filter: brightness(1) blur(0);
+  }
+  30% {
+    opacity: 0.8;
+    filter: brightness(1.2) blur(2px) hue-rotate(20deg);
+  }
+  70% {
+    opacity: 0.4;
+    filter: brightness(1.5) blur(5px) hue-rotate(40deg);
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(1.8) blur(10px) hue-rotate(60deg);
+  }
+}
+
+/* Efecto de humo verde adicional para las transiciones */
+.green-mist {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  opacity: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(72, 187, 120, 0.2) 0%,
+    rgba(72, 187, 120, 0.1) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.fancy-fade-container.transition-active .green-mist {
+  animation: green-mist-pulse 1.8s ease-in-out;
+}
+
+@keyframes green-mist-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  30% {
+    opacity: 0.3;
+    transform: scale(1.05);
+  }
+  70% {
+    opacity: 0.2;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Mejorar el efecto de partículas mágicas con toques verdes */
+.magic-particles::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background-image: radial-gradient(
+    circle at center,
+    rgba(72, 187, 120, 0.15) 0%,
+    rgba(72, 187, 120, 0) 70%
+  );
+  background-size: 100% 100%;
+  animation: green-particle-glow 8s ease-in-out infinite;
+  opacity: 0;
+}
+
+.magic-particles::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='1' fill='%2348BB78' fill-opacity='0.2'/%3E%3C/svg%3E");
+  opacity: 0;
+  animation: green-dust 10s ease-in-out infinite alternate;
+}
+
+@keyframes green-particle-glow {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes green-dust {
+  0% {
+    opacity: 0;
+    background-position: 0% 0%;
+  }
+  50% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0;
+    background-position: 100% 100%;
   }
 }
 </style>
