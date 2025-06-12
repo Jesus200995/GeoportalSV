@@ -43,6 +43,11 @@ const router = createRouter({
         requiresAuth: true,
         title: 'Subir Capas - Geoportal Sembrando Datos'
       }
+    },
+    {
+      path: '/supervisar',
+      name: 'supervisar',
+      component: () => import('../views/SupervisarView.vue')
     }
   ]
 })
