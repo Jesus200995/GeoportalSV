@@ -71,19 +71,15 @@ const openStats = () => {
 
 // Función para ir a la pantalla de Supervisar (nuevo)
 const openSupervisar = () => {
-  // Mostrar notificación temporal ya que está en desarrollo
-  showNotification('Función en desarrollo. Redirigiendo...', 'info');
+  // Activar la transición con flor girando
+  isTransitioning.value = true;
+  transitionTarget.value = 'supervisar';
   
-  // Redirigir a la nueva vista después de una breve pausa
+  // Mostrar la animación de carga por 3 segundos antes de redirigir
   setTimeout(() => {
-    isTransitioning.value = true;
-    transitionTarget.value = 'supervisar';
-    
-    setTimeout(() => {
-      // En vez de ocultar la pantalla de bienvenida, navegamos a la nueva vista
-      window.location.href = '/supervisar';
-    }, 300);
-  }, 1000);
+    // Redirigir a la URL externa
+    window.location.href = 'https://adminpwa.sembrandodatos.com/dashboard';
+  }, 3000);
 };
 
 // Estado para el efecto de humo
@@ -136,11 +132,51 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <!-- Animación de transición al hacer clic -->
-    <div v-if="isTransitioning" class="transition-overlay">
-      <!-- Eliminar la clase que crea el efecto de onda con colores verde y morado -->
-      <div class="transition-wave"></div>
+  <div>    <!-- Animación de transición al hacer clic -->
+    <div v-if="isTransitioning" class="transition-overlay">      <!-- Transición especial para supervisar con flor girando -->
+      <div v-if="transitionTarget === 'supervisar'" class="flower-loading-container">
+        <div class="flower-animation">
+          <!-- Pétalos externos -->
+          <div class="flower-layer outer-petals">
+            <div class="petal-group">
+              <div class="petal large-petal" v-for="n in 8" :key="'outer-' + n" :style="{ '--rotation': (n-1) * 45 + 'deg' }"></div>
+            </div>
+          </div>
+          
+          <!-- Pétalos internos -->
+          <div class="flower-layer inner-petals">
+            <div class="petal-group">
+              <div class="petal small-petal" v-for="n in 6" :key="'inner-' + n" :style="{ '--rotation': (n-1) * 60 + 22.5 + 'deg' }"></div>
+            </div>
+          </div>
+          
+          <!-- Centro de la flor -->
+          <div class="flower-center">
+            <div class="center-core"></div>
+            <div class="center-ring"></div>
+          </div>
+          
+          <!-- Hojas rotatorias -->
+          <div class="flower-leaves">
+            <div class="leaf leaf-1"></div>
+            <div class="leaf leaf-2"></div>
+            <div class="leaf leaf-3"></div>
+            <div class="leaf leaf-4"></div>
+          </div>
+        </div>
+        
+        <div class="loading-text">
+          <p>Conectando con el sistema de supervisión...</p>
+          <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Transiciones para otros botones -->
+      <div v-else class="transition-wave"></div>
     </div>
     
     <!-- Vista de bienvenida -->
@@ -362,16 +398,10 @@ onMounted(() => {
                     <!-- Indicador pulsante para llamar la atención en rojo -->
                     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4 border-red-400/50 animate-ping-slow opacity-0 group-hover:opacity-100"></div>
                   </button>
-                  
-                  <!-- Etiqueta descriptiva más compacta con indicador rojo -->
+                    <!-- Etiqueta descriptiva más compacta -->
                   <div class="mt-3 text-center">
                     <h3 class="text-lg font-semibold text-white">Supervisar Personal</h3>
                     <p class="text-xs text-gray-300 mt-1 max-w-xs">Monitoree ubicaciones en campo</p>
-                    
-                    <!-- Indicador de función en desarrollo más discreto en rojo -->
-                    <span class="inline-block mt-1 bg-red-700/70 text-white text-xs py-0.5 px-2 rounded-full">
-                      En desarrollo
-                    </span>
                   </div>
                 </div>
               </div>
@@ -996,6 +1026,251 @@ onMounted(() => {
   100% {
     opacity: 0;
     background-position: 100% 100%;
+  }
+}
+
+/* Estilos para la animación de flor girando en supervisar */
+.flower-loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 50, 0, 0.95), rgba(10, 40, 10, 0.98));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.flower-animation {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flower-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.petal-group {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Pétalos externos grandes */
+.outer-petals {
+  animation: rotate-clockwise 4s linear infinite;
+}
+
+.large-petal {
+  position: absolute;
+  width: 25px;
+  height: 70px;
+  background: linear-gradient(145deg, #10b981, #059669, #047857);
+  border-radius: 50% 50% 50% 50% / 80% 80% 20% 20%;
+  top: 50%;
+  left: 50%;
+  transform-origin: 12.5px 70px;
+  transform: translate(-50%, -100%) rotate(var(--rotation));
+  box-shadow: 
+    inset 0 2px 8px rgba(255, 255, 255, 0.2),
+    0 2px 12px rgba(16, 185, 129, 0.4);
+  opacity: 0.9;
+}
+
+/* Pétalos internos pequeños */
+.inner-petals {
+  animation: rotate-counter-clockwise 3s linear infinite;
+}
+
+.small-petal {
+  position: absolute;
+  width: 18px;
+  height: 45px;
+  background: linear-gradient(145deg, #34d399, #10b981, #059669);
+  border-radius: 50% 50% 50% 50% / 75% 75% 25% 25%;
+  top: 50%;
+  left: 50%;
+  transform-origin: 9px 45px;
+  transform: translate(-50%, -100%) rotate(var(--rotation));
+  box-shadow: 
+    inset 0 1px 6px rgba(255, 255, 255, 0.3),
+    0 1px 8px rgba(52, 211, 153, 0.5);
+  opacity: 0.8;
+}
+
+/* Centro de la flor */
+.flower-center {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  z-index: 10;
+  animation: center-breathe 2s ease-in-out infinite;
+}
+
+.center-core {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, #fbbf24, #f59e0b, #d97706);
+  border-radius: 50%;
+  box-shadow: 
+    0 0 0 3px #10b981,
+    0 0 20px rgba(251, 191, 36, 0.7),
+    inset 0 2px 8px rgba(217, 119, 6, 0.3);
+}
+
+.center-core::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #92400e, #78350f);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.center-ring {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 50px;
+  height: 50px;
+  border: 2px solid rgba(16, 185, 129, 0.6);
+  border-radius: 50%;
+  animation: ring-pulse 1.5s ease-in-out infinite;
+}
+
+/* Hojas rotatorias */
+.flower-leaves {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  animation: rotate-leaves 6s linear infinite;
+}
+
+.leaf {
+  position: absolute;
+  width: 15px;
+  height: 30px;
+  background: linear-gradient(135deg, #065f46, #047857, #059669);
+  border-radius: 0 100% 0 100%;
+  opacity: 0.7;
+}
+
+.leaf-1 {
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+}
+
+.leaf-2 {
+  top: 50%;
+  right: 10%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.leaf-3 {
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.leaf-4 {
+  top: 50%;
+  left: 10%;
+  transform: translateY(-50%) rotate(270deg);
+}
+
+.loading-text {
+  margin-top: 50px;
+  text-align: center;
+  color: white;
+}
+
+.loading-text p {
+  font-size: 18px;
+  margin-bottom: 20px;
+  opacity: 0.9;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #34d399, #10b981);
+  animation: dots-bounce 1.4s ease-in-out infinite both;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.4);
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+/* Animaciones */
+@keyframes rotate-clockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes rotate-counter-clockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes rotate-leaves {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes center-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes ring-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes dots-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
   }
 }
 </style>
