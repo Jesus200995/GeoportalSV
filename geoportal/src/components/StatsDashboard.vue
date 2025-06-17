@@ -325,7 +325,7 @@ onMounted(() => {
     <!-- Footer mejorado - Reducido en altura -->
     <footer class="bg-white border-t border-gray-200 py-4 mt-auto">
       <div class="container mx-auto px-4 text-center">
-        <p class="text-gray-600 text-xs">© 2023 Geoportal Sembrando Datos. Todos los derechos reservados.</p>
+        <p class="text-gray-600 text-xs">© 2025 Geoportal Sembrando Datos. Todos los derechos reservados.</p>
       </div>
     </footer>
   </div>

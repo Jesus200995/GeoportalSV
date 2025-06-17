@@ -412,7 +412,7 @@ onMounted(() => {
         <!-- Pie de página -->
         <footer class="py-6 px-4 text-center text-white/70 text-sm">
           <div class="container mx-auto">
-            <p>© 2023 Geoportal Sembrando Datos. Todos los derechos reservados.</p>
+            <p>© 2025 Geoportal Sembrando Datos. Todos los derechos reservados.</p>
           </div>
         </footer>
       </div>
