@@ -3,7 +3,7 @@ import { getAvailableLayers } from '../services/geoserver';
 
 // Configuración de grupos de capas 
 export function useLayers() {
-  const geoserverUrl = 'https://geoportal.sembrandodatos.com/geoserver';
+  const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
   
   // Lista de capas predefinidas que queremos mostrar si existen
   const predefinedLayerNames = {

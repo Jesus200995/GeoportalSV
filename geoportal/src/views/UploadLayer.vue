@@ -140,12 +140,17 @@ const uploadFile = async () => {
     // Intentar primero con la ruta correcta
     console.log(`Enviando solicitud a: ${API_ROUTES.UPLOAD_SHAPEFILE}`);
     
-    // Configuración simplificada para axios sin credentials y con el Content-Type adecuado
+  // Configuración para axios con manejo mejorado
     const config = {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
       timeout: API_CONFIG.DEFAULT_TIMEOUT,
+      withCredentials: false, // Asegurarse que no se envían credenciales
+      validateStatus: function (status) {
+        // Aceptar todos los códigos de estado para manejarlos manualmente
+        return true;
+      },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 50) / progressEvent.total);
@@ -164,28 +169,48 @@ const uploadFile = async () => {
           }
         }
       }
-    };
-
-    // Acceder a la URL completa de la API para mejor diagnóstico
-    const apiUrl = API_ROUTES.UPLOAD_SHAPEFILE;
-    console.log(`URL completa de la API: ${apiUrl}`);
+    };    // Usar URL simplificada para el proxy
+    const apiUrl = '/api/upload-shapefile'; // Usar directamente el endpoint del proxy
+    console.log(`URL para la API: ${apiUrl}`);
     
     let response;
     try {
-      // Primer intento con la ruta principal
+      // Primer intento con la ruta simplificada
+      statusMessage.value = 'Enviando archivo al servidor...';
+      console.log('Enviando formData:', selectedFile.value.name);
       response = await axios.post(apiUrl, formData, config);
+      
+      console.log('Respuesta recibida:', response.status, response.data);
+      
+      // Verificar el código de estado manualmente
+      if (response.status >= 400) {
+        console.error('Error en la respuesta:', response.status, response.statusText);
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
     } catch (firstError) {
       console.error("Error en primera solicitud:", firstError);
       
-      // Si falla con 405 (Method Not Allowed), intentar con la ruta alternativa
-      if (firstError.response?.status === 405) {
-        statusMessage.value = 'Intentando método alternativo...';
-        console.log(`Intentando ruta alternativa: ${API_ROUTES.PROCESS_SHAPEFILE}`);
+      // Mostrar detalles del error para depuración
+      const errorDetails = firstError.response ? 
+        `Status: ${firstError.response.status}, Datos: ${JSON.stringify(firstError.response.data)}` : 
+        `Mensaje: ${firstError.message}`;
+      
+      console.error('Detalles del error:', errorDetails);
+      
+      // Intentar con ruta alternativa
+      statusMessage.value = 'Intentando método alternativo...';
+      const altUrl = '/api/process-shapefile';
+      console.log(`Intentando ruta alternativa: ${altUrl}`);
+      
+      try {
+        response = await axios.post(altUrl, formData, config);
         
-        response = await axios.post(API_ROUTES.PROCESS_SHAPEFILE, formData, config);
-      } else {
-        // Si es otro error, volver a lanzarlo para que sea manejado por el catch exterior
-        throw firstError;
+        if (response.status >= 400) {
+          throw new Error(`Error alternativo: ${response.status} ${response.statusText}`);
+        }
+      } catch (altError) {
+        console.error("Error en solicitud alternativa:", altError);
+        throw altError;
       }
     }
 
@@ -244,8 +269,7 @@ const uploadFile = async () => {
     }, 3000);
     
     // Recargar la lista de capas después de una subida exitosa
-    await fetchLayers();
-  } catch (error) {
+    await fetchLayers();  } catch (error) {
     console.error('Error detallado:', error);
     
     // Log mejorado para el diagnóstico
@@ -262,15 +286,19 @@ const uploadFile = async () => {
     
     // Manejo de errores específicos
     if (error.response?.status === 405) {
-      statusMessage.value = 'Error 405: El servidor no permite este método. Verifique la configuración del servidor o pruebe usando la ruta /api/process-shapefile.';
+      statusMessage.value = 'Error 405: El servidor no permite este método. Intente acceder directamente a https://geoportal.sembrandodatos.com para subir archivos.';
+      uploadStatus.value = 'error';
+    } else if (error.response?.status === 500) {
+      statusMessage.value = `Error 500: Error interno del servidor. Es posible que el proxy local no esté manejando correctamente los archivos. 
+      Recomendación: Intente acceder directamente a https://geoportal.sembrandodatos.com para subir archivos.`;
       uploadStatus.value = 'error';
     } else if (error.code === 'ERR_NETWORK') {
-      statusMessage.value = `Error de red: No se pudo conectar con el servidor. Verifique que el backend esté en ejecución.`;
+      statusMessage.value = `Error de red: No se pudo conectar con el servidor. Verifique que el backend esté en ejecución o intente acceder directamente a https://geoportal.sembrandodatos.com`;
       uploadStatus.value = 'error';
       backendAvailable.value = false;
     } else {
       // Manejo general de errores
-      statusMessage.value = `Error: ${error.message || 'No se pudo subir el archivo'}`;
+      statusMessage.value = `Error: ${error.message || 'No se pudo subir el archivo'}. Intente acceder directamente a https://geoportal.sembrandodatos.com`;
       uploadStatus.value = 'error';
     }
   } finally {
@@ -616,8 +644,23 @@ const goToDashboard = () => {
 };
 </script>
 
-<template>
-  <div class="min-h-screen bg-gray-50">
+<template>  <div class="min-h-screen bg-gray-50">
+    <!-- Alerta informativa sobre la funcionalidad de subida -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-blue-700">
+            <strong>Nota importante:</strong> La funcionalidad de subida de archivos puede no estar disponible en el entorno de desarrollo local debido a limitaciones del proxy. Para subir nuevas capas, se recomienda acceder directamente a <a href="https://geoportal.sembrandodatos.com" class="font-medium underline text-blue-800 hover:text-blue-900" target="_blank">https://geoportal.sembrandodatos.com</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    
     <!-- Encabezado con navegación de regreso -->
     <header class="bg-white shadow-md">
       <div class="container mx-auto px-4 py-4 flex items-center justify-between">
