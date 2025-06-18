@@ -3,7 +3,7 @@
  */
 
 // URL base del servidor GeoServer
-const GEOSERVER_URL = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
+const GEOSERVER_URL = 'https://geoportal.sembrandodatos.com/geoserver';
 const WORKSPACE = 'sembrando';
 
 // Credenciales de autenticación para GeoServer

@@ -3,14 +3,11 @@ import { fromLonLat } from 'ol/proj';
 
 export function useMapConfig() {
   // Configuración de servidor GeoServer
-  const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
-  const workspace = 'sembrando';
-  
   const geoServerConfig = ref({
-    baseUrl: geoserverUrl,
-    workspace: workspace,
-    wmsUrl: `${geoserverUrl}/${workspace}/wms`,
-    wfsUrl: `${geoserverUrl}/ows`
+    baseUrl: 'https://geoportal.sembrandodatos.com/geoserver',
+    workspace: 'sembrando',
+    wmsUrl: 'https://geoportal.sembrandodatos.com/geoserver/sembrando/wms',
+    wfsUrl: 'https://geoportal.sembrandodatos.com/geoserver/ows'
   });
   
   // Configuración inicial del mapa

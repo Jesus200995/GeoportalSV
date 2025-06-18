@@ -206,12 +206,12 @@ const addLayerToMap = (layer) => {
     olLayers.value[layer.name].setVisible(true);
     return;
   }
-    console.log(`Añadiendo nueva capa al mapa: ${layer.name}`, layer);
+  
+  console.log(`Añadiendo nueva capa al mapa: ${layer.name}`, layer);
   
   // Crear la fuente WMS
-  const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
   const wmsSource = new TileWMS({
-    url: layer.wmsUrl || `${geoserverUrl}/sembrando/wms`,
+    url: layer.wmsUrl || 'https://geoportal.sembrandodatos.com/geoserver/sembrando/wms',
     params: {
       'LAYERS': layer.fullName || `sembrando:${layer.name}`,
       'TILED': true,

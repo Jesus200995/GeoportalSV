@@ -86,7 +86,8 @@ const performSearch = async () => {
         }));
           
         // Ordenar por importancia para mostrar primero los lugares más relevantes
-        nominatimResults.sort((a, b) => b.importance - a.importance);      }
+        nominatimResults.sort((a, b) => b.importance - a.importance);
+      }
     } catch (error) {
       console.log('Error en búsqueda OpenStreetMap:', error);
       // No mostrar error ya que intentaremos con GeoServer
@@ -95,7 +96,7 @@ const performSearch = async () => {
     // Luego buscamos en GeoServer para entidades territoriales locales
     let geoserverResults = [];
     try {
-      const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
+      const geoserverUrl = 'https://geoportal.sembrandodatos.com/geoserver';
       const geoserverResponse = await fetch(
         `${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`
       );

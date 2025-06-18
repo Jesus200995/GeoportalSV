@@ -253,7 +253,7 @@ const searchFeatures = async () => {
   
   // Implementar búsqueda WFS aquí
   try {
-    const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver'; // URL desde variable de entorno
+    const geoserverUrl = 'https://geoportal.sembrandodatos.com/geoserver'; // URL actualizada
     const response = await fetch(`${geoserverUrl}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:territorios_28&outputFormat=application/json&CQL_FILTER=nombre_territorio ILIKE '%${searchQuery.value}%'`);
     const data = await response.json();
     searchResults.value = data.features;
@@ -946,17 +946,16 @@ const performQuery = async () => {
   
   // Limpiar marcador previo al realizar una nueva consulta
   clearQueryMarker();
-  activeQueryResult.value = null;  
+  activeQueryResult.value = null;
+  
   try {
     const layerName = selectedLayerForQuery.value.name;
     const searchFilter = searchTermQuery.value ? 
       `&CQL_FILTER=nombre ILIKE '%${searchTermQuery.value}%' OR nombre_territorio ILIKE '%${searchTermQuery.value}%'` : '';
     
-    const geoserverUrl = import.meta.env.VITE_GEOSERVER_URL || 'https://geoportal.sembrandodatos.com/geoserver';
-    
     // Realizar consulta a GeoServer
     const response = await fetch(
-      `${geoserverUrl}/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
+      `https://geoportal.sembrandodatos.com/geoserver/sembrando/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=sembrando:${layerName}&outputFormat=application/json${searchFilter}`
     );
     
     if (!response.ok) {
