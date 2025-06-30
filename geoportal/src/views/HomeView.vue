@@ -946,8 +946,8 @@ onMounted(() => {
 /* Nuevos estilos para las cartas con efecto flip */
 .card {
   overflow: visible;
-  width: 280px;
-  height: 360px;
+  width: 190px;
+  height: 254px;
   cursor: pointer;
 }
 
