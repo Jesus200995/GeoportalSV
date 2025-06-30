@@ -159,10 +159,10 @@ const buttons = ref([
 
 // Configuración del carrusel lateral moderno
 const carouselConfig = ref({
-  blurIntensity: 2, // Desenfoque sutil en pixeles
-  scaleReduction: 0.15, // Reducción de escala para botones laterales
-  opacityReduction: 0.3, // Reducción de opacidad para botones laterales
-  transitionDuration: 800, // Duración de transición más suave
+  blurIntensity: 1.5, // Desenfoque más sutil para mejor rendimiento
+  scaleReduction: 0.12, // Reducción de escala más sutil
+  opacityReduction: 0.25, // Reducción de opacidad más sutil
+  transitionDuration: 180, // Duración ultra rápida y responsiva
   slideDistance: 320 // Distancia de deslizamiento entre botones
 });
 
@@ -181,7 +181,7 @@ const getButtonPosition = (buttonIndex) => {
   // Calcular propiedades visuales basadas en la posición
   const absPosition = Math.abs(position);
   
-  // Botón central (posición 0)
+  // SOLO el botón central (posición 0) es clickeable
   if (position === 0) {
     return {
       translateX: 0,
@@ -195,6 +195,7 @@ const getButtonPosition = (buttonIndex) => {
     };
   }
   
+  // Todos los demás botones NO son clickeables
   // Botones laterales inmediatos (posición ±1)
   if (absPosition === 1) {
     return {
@@ -203,7 +204,7 @@ const getButtonPosition = (buttonIndex) => {
       scale: 1 - carouselConfig.value.scaleReduction,
       blur: carouselConfig.value.blurIntensity,
       zIndex: 5,
-      isClickable: false,
+      isClickable: false, // EXPLÍCITAMENTE no clickeable
       brightness: 0.8,
       visible: true
     };
@@ -217,7 +218,7 @@ const getButtonPosition = (buttonIndex) => {
       scale: 0.6,
       blur: carouselConfig.value.blurIntensity * 2,
       zIndex: 2,
-      isClickable: false,
+      isClickable: false, // EXPLÍCITAMENTE no clickeable
       brightness: 0.6,
       visible: true
     };
@@ -230,7 +231,7 @@ const getButtonPosition = (buttonIndex) => {
     scale: 0.4,
     blur: carouselConfig.value.blurIntensity * 3,
     zIndex: 1,
-    isClickable: false,
+    isClickable: false, // EXPLÍCITAMENTE no clickeable
     brightness: 0.4,
     visible: false // Ocultos para mejor rendimiento
   };
@@ -246,7 +247,7 @@ const nextSlide = () => {
   
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, carouselConfig.value.transitionDuration);
+  }, carouselConfig.value.transitionDuration * 0.5); // Permite nuevos clicks mucho más rápido
 };
 
 const prevSlide = () => {
@@ -258,7 +259,7 @@ const prevSlide = () => {
   
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, carouselConfig.value.transitionDuration);
+  }, carouselConfig.value.transitionDuration * 0.5); // Permite nuevos clicks mucho más rápido
 };
 
 const goToSlide = (index) => {
@@ -284,7 +285,7 @@ const goToSlide = (index) => {
   
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, carouselConfig.value.transitionDuration);
+  }, carouselConfig.value.transitionDuration * 0.5); // Permite nuevos clicks mucho más rápido
 };
 
 // Función para ejecutar la acción del botón
@@ -306,6 +307,25 @@ const executeButtonAction = (button) => {
       // Para router-link, se manejará en el template
       break;
   }
+};
+
+// Función mejorada para manejar clicks solo en el botón central
+const handleButtonClick = (button, index, event) => {
+  // Solo permitir clicks en el botón central
+  if (index !== currentSlide.value) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+  
+  // Si es un router-link, permitir la navegación normal
+  if (button.action === 'router') {
+    return true;
+  }
+  
+  // Ejecutar la acción solo si es el botón central
+  executeButtonAction(button);
+  return true;
 };
 
 // Estado para el efecto de humo
@@ -396,6 +416,49 @@ onMounted(() => {
     document.removeEventListener('keydown', handleKeydown);
   };
 });
+
+// Función para obtener colores específicos de cada botón
+const getButtonColors = (buttonId) => {
+  const colorMap = {
+    visor: {
+      border: 'border-green-400/60',
+      shadow: 'shadow-green-500/40',
+      glow: 'shadow-green-400/20',
+      ring: 'focus:ring-green-400/50'
+    },
+    capas: {
+      border: 'border-emerald-400/60',
+      shadow: 'shadow-emerald-500/40',
+      glow: 'shadow-emerald-400/20',
+      ring: 'focus:ring-emerald-400/50'
+    },
+    datos: {
+      border: 'border-blue-400/60',
+      shadow: 'shadow-blue-500/40',
+      glow: 'shadow-blue-400/20',
+      ring: 'focus:ring-blue-400/50'
+    },
+    biblioteca: {
+      border: 'border-purple-400/60',
+      shadow: 'shadow-purple-500/40',
+      glow: 'shadow-purple-400/20',
+      ring: 'focus:ring-purple-400/50'
+    },
+    supervisar: {
+      border: 'border-red-400/60',
+      shadow: 'shadow-red-500/40',
+      glow: 'shadow-red-400/20',
+      ring: 'focus:ring-red-400/50'
+    }
+  };
+  
+  return colorMap[buttonId] || {
+    border: 'border-white/30',
+    shadow: 'shadow-white/20',
+    glow: 'shadow-white/10',
+    ring: 'focus:ring-white/50'
+  };
+};
 </script>
 
 <template>
@@ -503,7 +566,7 @@ onMounted(() => {
                   :disabled="isTransitioningCarousel"
                   aria-label="Botón anterior"
                   class="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/15 backdrop-blur-md text-white rounded-full p-2 sm:p-3 
-                         transition-all duration-200 hover:bg-white/25 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-all duration-100 hover:bg-white/25 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
                          border border-white/30 shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -517,7 +580,7 @@ onMounted(() => {
                   :disabled="isTransitioningCarousel"
                   aria-label="Botón siguiente"
                   class="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/15 backdrop-blur-md text-white rounded-full p-2 sm:p-3 
-                         transition-all duration-200 hover:bg-white/25 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-all duration-100 hover:bg-white/25 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
                          border border-white/30 shadow-lg focus:outline-none focus:ring-2 focus:ring-white/50"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -554,21 +617,22 @@ onMounted(() => {
                         <component 
                           :is="button.action === 'router' ? 'router-link' : 'button'"
                           :to="button.route || undefined"
-                          @click="getButtonPosition(index).isClickable && button.action !== 'router' ? executeButtonAction(button) : undefined"
-                          @mouseenter="button.id === 'supervisar' && getButtonPosition(index).isClickable ? toggleSmokeEffect() : undefined"
-                          :disabled="!getButtonPosition(index).isClickable"
-                          :tabindex="getButtonPosition(index).isClickable ? 0 : -1"
+                          @click="handleButtonClick(button, index, $event)"
+                          @mouseenter="button.id === 'supervisar' && index === currentSlide ? toggleSmokeEffect() : undefined"
+                          :disabled="index !== currentSlide"
+                          :tabindex="index === currentSlide ? 0 : -1"
                           :class="[
                             `${button.id}-button`,
                             'lateral-carousel-button',
                             'relative bg-black/20 backdrop-blur-lg text-white rounded-full',
                             'p-6 sm:p-8 md:p-10 w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72',
-                            'flex flex-col items-center justify-center',
-                            'border border-white/20 overflow-hidden',
-                            `shadow-${button.color}-500/30`,
+                            'flex flex-col items-center justify-center overflow-hidden',
+                            getButtonColors(button.id).border,
+                            index === currentSlide ? getButtonColors(button.id).shadow : 'shadow-white/10',
+                            index === currentSlide ? 'border-2' : 'border',
                             {
-                              'cursor-pointer': getButtonPosition(index).isClickable,
-                              'cursor-default pointer-events-none': !getButtonPosition(index).isClickable,
+                              'cursor-pointer': index === currentSlide,
+                              'cursor-default pointer-events-none': index !== currentSlide,
                               'lateral-button-active': index === currentSlide,
                               'lateral-button-inactive': index !== currentSlide
                             }
@@ -638,22 +702,29 @@ onMounted(() => {
                           <div class="absolute inset-0 rounded-full overflow-hidden lateral-effects">
                             <!-- Efecto de brillo para botón activo -->
                             <div 
-                              :class="`bg-gradient-to-br from-${button.color}-300/30 to-transparent lateral-glow`"
+                              v-if="index === currentSlide"
+                              :class="`bg-gradient-to-br from-${button.color}-300/40 to-transparent lateral-glow`"
                               class="absolute inset-0"
                             ></div>
                           </div>
                           
-                          <!-- Anillo exterior lateral -->
+                          <!-- Anillo exterior lateral con color específico -->
                           <div 
-                            :class="`border-${button.color}-400/30 lateral-ring`"
-                            class="absolute -inset-1.5 rounded-full border"
+                            :class="[
+                              index === currentSlide ? getButtonColors(button.id).border.replace('/60', '/80') : getButtonColors(button.id).border.replace('/60', '/30'),
+                              'lateral-ring border-2'
+                            ]"
+                            class="absolute -inset-1.5 rounded-full"
                           ></div>
                           
-                          <!-- Efecto pulsante solo para botón activo -->
+                          <!-- Efecto pulsante solo para botón activo con color específico -->
                           <div 
                             v-if="index === currentSlide"
-                            :class="`border-${button.color}-400/50 lateral-pulse`"
-                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4"
+                            :class="[
+                              getButtonColors(button.id).border.replace('/60', '/60'),
+                              'lateral-pulse animate-ping-slow border-2'
+                            ]"
+                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
                           ></div>
                         </component>
                         
@@ -678,7 +749,7 @@ onMounted(() => {
                     :aria-selected="currentSlide === index"
                     role="tab"
                     :class="[
-                      'carousel-indicator w-3 h-3 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50',
+                      'carousel-indicator w-3 h-3 rounded-full transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-white/50',
                       currentSlide === index 
                         ? 'bg-white shadow-lg scale-125 active' 
                         : 'bg-white/40 hover:bg-white/60'
@@ -1901,7 +1972,7 @@ onMounted(() => {
   bottom: 0;
   background-image: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
                     radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+                    radial-gradient(circle at 40% 40%, rgba(255, 255,255, 255, 0.05) 0%, transparent 50%);
   animation: floating-particles 8s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
@@ -2020,15 +2091,16 @@ onMounted(() => {
   filter: blur(var(--slide-blur)) brightness(var(--slide-brightness));
   z-index: var(--slide-z-index);
   
-  /* Transición suave para el deslizamiento lateral */
+  /* Transición ultra rápida y fluida para el deslizamiento lateral */
   transition: 
-    transform var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94),
-    filter var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
   
-  /* Optimización de rendimiento */
+  /* Optimización de rendimiento máxima */
   will-change: transform, opacity, filter;
   backface-visibility: hidden;
+  transform-style: preserve-3d;
 }
 
 /* Wrapper del botón lateral */
@@ -2037,12 +2109,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Botón del carrusel lateral */
 .lateral-carousel-button {
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-style: preserve-3d;
 }
 
@@ -2057,169 +2129,100 @@ onMounted(() => {
 
 /* Estado inactivo del botón lateral */
 .lateral-button-inactive {
-  pointer-events: none; /* No clickeable cuando está inactivo */
+  pointer-events: none !important; /* Forzar que no sea clickeable cuando está inactivo */
+  user-select: none; /* Prevenir selección de texto */
 }
 
-/* Restaurar interactividad solo para botones clickeables */
-.lateral-carousel-button:not(:disabled) {
-  pointer-events: auto;
+/* Restaurar interactividad solo para botones activos */
+.lateral-button-active {
+  pointer-events: auto !important;
+  user-select: auto;
 }
 
-/* Iconos laterales con animación suave */
-.lateral-icon-container {
-  transition: transform var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* Asegurar que botones deshabilitados no sean clickeables */
+.lateral-carousel-button:disabled {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
 }
 
-.slide-active-lateral .lateral-icon-container {
-  transform: scale(1.05);
+/* Efectos específicos de color para cada botón activo */
+.visor-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(34, 197, 94, 0.15),
+    0 0 45px rgba(34, 197, 94, 0.10);
 }
 
-/* Texto lateral con transiciones */
-.lateral-text-container {
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.capas-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(16, 185, 129, 0.15),
+    0 0 45px rgba(16, 185, 129, 0.10);
 }
 
-.lateral-title,
-.lateral-subtitle {
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.datos-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(59, 130, 246, 0.15),
+    0 0 45px rgba(59, 130, 246, 0.10);
 }
 
-/* Efectos visuales laterales */
-.lateral-effects {
-  transition: opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.biblioteca-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(168, 85, 247, 0.15),
+    0 0 45px rgba(168, 85, 247, 0.10);
 }
 
-.lateral-glow {
-  opacity: 0;
-  transition: opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.supervisar-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(239, 68, 68, 0.15),
+    0 0 45px rgba(239, 68, 68, 0.10);
 }
 
-.lateral-button-active .lateral-glow {
-  opacity: 0.5;
-}
-
-/* Anillo exterior lateral */
+/* Anillos exteriores con efectos de color mejorados */
 .lateral-ring {
-  opacity: 0.2;
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.lateral-button-active .lateral-ring {
-  opacity: 0.7;
-  transform: scale(1.03);
-}
-
-/* Efecto pulsante lateral para botón activo */
 .lateral-pulse {
-  animation: lateral-pulse-effect 2.5s ease-in-out infinite;
+  animation: lateral-color-pulse 2s ease-in-out infinite alternate;
 }
 
-/* Descripción lateral */
-.lateral-description {
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.slide-inactive-lateral .lateral-description {
-  opacity: 0.5;
-  transform: translateY(3px);
-}
-
-.lateral-desc-title,
-.lateral-desc-detail {
-  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-/* Animaciones laterales */
-@keyframes lateral-breathe {
+@keyframes lateral-color-pulse {
   0% {
-    transform: scale(1);
-    box-shadow: 
-      0 12px 35px rgba(255, 255, 255, 0.12),
-      0 0 45px rgba(255, 255, 255, 0.08);
-  }
-  100% {
-    transform: scale(1.01);
-    box-shadow: 
-      0 16px 45px rgba(255, 255, 255, 0.16),
-      0 0 55px rgba(255, 255, 255, 0.12);
-  }
-}
-
-@keyframes lateral-pulse-effect {
-  0%, 100% {
-    opacity: 0.5;
+    opacity: 0.4;
     transform: translate(-50%, -50%) scale(1);
   }
-  50% {
-    opacity: 0.2;
-    transform: translate(-50%, -50%) scale(1.05);
+  100% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.02);
   }
 }
 
-/* Hover mejorado solo para botón activo lateral */
-.lateral-button-active:hover {
-  transform: scale(1.03);
-  box-shadow: 
-    0 18px 55px rgba(255, 255, 255, 0.18),
-    0 0 65px rgba(255, 255, 255, 0.15);
+/* Asegurar que solo el botón central sea interactivo */
+.carousel-slide-lateral:not(.slide-active-lateral) {
+  pointer-events: none !important;
 }
 
-.lateral-button-active:hover .lateral-icon-container {
-  transform: scale(1.15);
+.carousel-slide-lateral:not(.slide-active-lateral) * {
+  pointer-events: none !important;
 }
 
-.lateral-button-active:hover .lateral-glow {
-  opacity: 0.7;
+.slide-active-lateral {
+  pointer-events: auto !important;
 }
 
-/* Efectos de entrada suave para nuevos slides */
-.carousel-slide-lateral[style*="translateX(0px)"] {
-  /* Slide central con efecto especial */
-  filter: blur(0px) brightness(1) saturate(1.1);
+.slide-active-lateral * {
+  pointer-events: auto !important;
 }
 
-/* Responsive para carrusel lateral */
-@media (max-width: 768px) {
-  .lateral-carousel-container {
-    height: 380px;
-  }
-  
-  .carousel-slide-lateral {
-    /* En móviles, reducir efectos para mejor rendimiento */
-    filter: blur(calc(var(--slide-blur) * 0.6)) brightness(var(--slide-brightness));
-  }
+/* Efectos visuales para distinguir botón activo vs inactivos */
+.lateral-button-inactive {
+  opacity: 0.6;
+  filter: grayscale(20%);
+  transform-origin: center;
 }
 
-@media (max-width: 640px) {
-  .lateral-carousel-container {
-    height: 320px;
-  }
-}
-
-/* Optimizaciones de rendimiento para carrusel lateral */
-.carousel-slide-lateral,
-.lateral-carousel-button,
-.lateral-button-wrapper {
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Suavizado de animaciones en dispositivos de gama baja */
-@media (prefers-reduced-motion: reduce) {
-  .carousel-slide-lateral,
-  .lateral-carousel-button,
-  .lateral-icon-container,
-  .lateral-text-container {
-    transition-duration: 0.2s !important;
-  }
-  
-  .lateral-button-active {
-    animation: none !important;
-  }
-  
-  .lateral-pulse {
-    animation: none !important;
-  }
+.lateral-button-active {
+  opacity: 1;
+  filter: grayscale(0%);
+  z-index: 100;
 }
 </style>
