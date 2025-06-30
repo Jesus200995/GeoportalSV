@@ -157,32 +157,134 @@ const buttons = ref([
   }
 ]);
 
-// Funciones del carrusel
+// Configuración del carrusel lateral moderno
+const carouselConfig = ref({
+  blurIntensity: 2, // Desenfoque sutil en pixeles
+  scaleReduction: 0.15, // Reducción de escala para botones laterales
+  opacityReduction: 0.3, // Reducción de opacidad para botones laterales
+  transitionDuration: 800, // Duración de transición más suave
+  slideDistance: 320 // Distancia de deslizamiento entre botones
+});
+
+// Función para calcular la posición y estado de cada botón en el carrusel lateral
+const getButtonPosition = (buttonIndex) => {
+  const totalButtons = totalSlides;
+  let position = buttonIndex - currentSlide.value;
+  
+  // Manejo de carrusel infinito - encuentra la distancia más corta
+  if (position > totalButtons / 2) {
+    position -= totalButtons;
+  } else if (position < -totalButtons / 2) {
+    position += totalButtons;
+  }
+  
+  // Calcular propiedades visuales basadas en la posición
+  const absPosition = Math.abs(position);
+  
+  // Botón central (posición 0)
+  if (position === 0) {
+    return {
+      translateX: 0,
+      opacity: 1,
+      scale: 1,
+      blur: 0,
+      zIndex: 10,
+      isClickable: true,
+      brightness: 1,
+      visible: true
+    };
+  }
+  
+  // Botones laterales inmediatos (posición ±1)
+  if (absPosition === 1) {
+    return {
+      translateX: position * carouselConfig.value.slideDistance,
+      opacity: 1 - carouselConfig.value.opacityReduction,
+      scale: 1 - carouselConfig.value.scaleReduction,
+      blur: carouselConfig.value.blurIntensity,
+      zIndex: 5,
+      isClickable: false,
+      brightness: 0.8,
+      visible: true
+    };
+  }
+  
+  // Botones más alejados (posición ±2)
+  if (absPosition === 2) {
+    return {
+      translateX: position * carouselConfig.value.slideDistance * 0.7, // Menos distancia para efecto perspectiva
+      opacity: 0.2,
+      scale: 0.6,
+      blur: carouselConfig.value.blurIntensity * 2,
+      zIndex: 2,
+      isClickable: false,
+      brightness: 0.6,
+      visible: true
+    };
+  }
+  
+  // Botones muy lejanos (casi invisibles)
+  return {
+    translateX: position * carouselConfig.value.slideDistance * 0.5,
+    opacity: 0.05,
+    scale: 0.4,
+    blur: carouselConfig.value.blurIntensity * 3,
+    zIndex: 1,
+    isClickable: false,
+    brightness: 0.4,
+    visible: false // Ocultos para mejor rendimiento
+  };
+};
+
+// Funciones del carrusel con deslizamiento lateral
 const nextSlide = () => {
   if (isTransitioningCarousel.value) return;
   isTransitioningCarousel.value = true;
+  
+  // Carrusel infinito hacia adelante
   currentSlide.value = (currentSlide.value + 1) % totalSlides;
+  
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, 500);
+  }, carouselConfig.value.transitionDuration);
 };
 
 const prevSlide = () => {
   if (isTransitioningCarousel.value) return;
   isTransitioningCarousel.value = true;
+  
+  // Carrusel infinito hacia atrás
   currentSlide.value = currentSlide.value === 0 ? totalSlides - 1 : currentSlide.value - 1;
+  
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, 500);
+  }, carouselConfig.value.transitionDuration);
 };
 
 const goToSlide = (index) => {
   if (isTransitioningCarousel.value || index === currentSlide.value) return;
   isTransitioningCarousel.value = true;
-  currentSlide.value = index;
+  
+  // Calcular la dirección más corta para el deslizamiento
+  const currentPos = currentSlide.value;
+  const targetPos = index;
+  const totalButtons = totalSlides;
+  
+  const directDistance = targetPos - currentPos;
+  const wrapDistance = directDistance > 0 ? 
+    directDistance - totalButtons : 
+    directDistance + totalButtons;
+  
+  // Elegir la ruta más corta
+  if (Math.abs(directDistance) <= Math.abs(wrapDistance)) {
+    currentSlide.value = targetPos;
+  } else {
+    currentSlide.value = targetPos;
+  }
+  
   setTimeout(() => {
     isTransitioningCarousel.value = false;
-  }, 500);
+  }, carouselConfig.value.transitionDuration);
 };
 
 // Función para ejecutar la acción del botón
@@ -423,34 +525,53 @@ onMounted(() => {
                   </svg>
                 </button>
                 
-                <!-- Contenedor de slides -->
-                <div class="overflow-hidden mx-20 sm:mx-28">
-                  <div 
-                    class="flex transition-transform duration-500 ease-in-out"
-                    :style="{ transform: `translateX(-${currentSlide * 100}%)` }"
-                  >
-                    <!-- Slide para cada botón -->
+                <!-- Carrusel lateral moderno con deslizamiento -->
+                <div class="overflow-visible mx-20 sm:mx-28 lateral-carousel-container">
+                  <div class="carousel-viewport">
+                    <!-- Todos los botones se renderizan simultáneamente para el efecto slide -->
                     <div 
                       v-for="(button, index) in buttons" 
-                      :key="button.id"
-                      class="w-full flex-shrink-0 flex justify-center"
+                      :key="`slide-${button.id}`"
+                      class="carousel-slide-lateral"
+                      :style="{
+                        '--slide-translate-x': `${getButtonPosition(index).translateX}px`,
+                        '--slide-opacity': getButtonPosition(index).opacity,
+                        '--slide-scale': getButtonPosition(index).scale,
+                        '--slide-blur': `${getButtonPosition(index).blur}px`,
+                        '--slide-brightness': getButtonPosition(index).brightness,
+                        '--slide-z-index': getButtonPosition(index).zIndex,
+                        '--transition-duration': `${carouselConfig.transitionDuration}ms`,
+                        'visibility': getButtonPosition(index).visible ? 'visible' : 'hidden'
+                      }"
+                      :class="{
+                        'slide-active-lateral': index === currentSlide,
+                        'slide-inactive-lateral': index !== currentSlide
+                      }"
                     >
-                      <!-- Botón del carrusel -->
-                      <div class="relative group flex flex-col items-center py-4 px-2">
-                        <!-- Botón principal -->
+                      <!-- Container del botón con animación lateral -->
+                      <div class="lateral-button-wrapper">
+                        <!-- Botón principal con efectos laterales -->
                         <component 
                           :is="button.action === 'router' ? 'router-link' : 'button'"
                           :to="button.route || undefined"
-                          @click="button.action !== 'router' ? executeButtonAction(button) : undefined"
-                          @mouseenter="button.id === 'supervisar' ? toggleSmokeEffect() : undefined"
+                          @click="getButtonPosition(index).isClickable && button.action !== 'router' ? executeButtonAction(button) : undefined"
+                          @mouseenter="button.id === 'supervisar' && getButtonPosition(index).isClickable ? toggleSmokeEffect() : undefined"
+                          :disabled="!getButtonPosition(index).isClickable"
+                          :tabindex="getButtonPosition(index).isClickable ? 0 : -1"
                           :class="[
                             `${button.id}-button`,
-                            'relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full',
+                            'lateral-carousel-button',
+                            'relative bg-black/20 backdrop-blur-lg text-white rounded-full',
                             'p-6 sm:p-8 md:p-10 w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72',
-                            'flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-110',
-                            'group-hover:shadow-2xl border border-white/20 overflow-hidden',
+                            'flex flex-col items-center justify-center',
+                            'border border-white/20 overflow-hidden',
                             `shadow-${button.color}-500/30`,
-                            'carousel-button modern-button'
+                            {
+                              'cursor-pointer': getButtonPosition(index).isClickable,
+                              'cursor-default pointer-events-none': !getButtonPosition(index).isClickable,
+                              'lateral-button-active': index === currentSlide,
+                              'lateral-button-inactive': index !== currentSlide
+                            }
                           ]"
                         >
                           <!-- Contenedor para el efecto de humo (solo para supervisar) -->
@@ -473,12 +594,12 @@ onMounted(() => {
                             ></div>
                           </div>
                           
-                          <!-- Icono responsivo -->
-                          <div class="relative z-10 mb-3 group-hover:scale-125 transition-transform duration-500">
+                          <!-- Icono responsivo lateral -->
+                          <div class="relative z-10 mb-3 lateral-icon-container">
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
                               :class="[
-                                'text-white drop-shadow-xl',
+                                'text-white drop-shadow-xl lateral-icon',
                                 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
                                 button.id === 'supervisar' ? 'opacity-70' : ''
                               ]"
@@ -491,11 +612,11 @@ onMounted(() => {
                             </svg>
                           </div>
                           
-                          <!-- Texto del botón responsivo -->
-                          <div class="relative z-10 flex flex-col items-center">
+                          <!-- Texto del botón responsivo lateral -->
+                          <div class="relative z-10 flex flex-col items-center lateral-text-container">
                             <span 
                               :class="[
-                                'font-bold tracking-widest text-white drop-shadow-xl mb-2',
+                                'font-bold tracking-widest text-white drop-shadow-xl mb-2 lateral-title',
                                 'text-lg sm:text-xl md:text-2xl',
                                 button.id === 'supervisar' ? 'opacity-70' : ''
                               ]"
@@ -504,7 +625,7 @@ onMounted(() => {
                             </span>
                             <span 
                               :class="[
-                                'font-medium tracking-wide text-center px-2',
+                                'font-medium tracking-wide text-center px-2 lateral-subtitle',
                                 'text-xs sm:text-sm md:text-base',
                                 `text-${button.color}-300`
                               ]"
@@ -513,31 +634,33 @@ onMounted(() => {
                             </span>
                           </div>
                           
-                          <!-- Efecto de brillo al hacer hover -->
-                          <div class="absolute inset-0 rounded-full overflow-hidden">
+                          <!-- Efectos visuales laterales -->
+                          <div class="absolute inset-0 rounded-full overflow-hidden lateral-effects">
+                            <!-- Efecto de brillo para botón activo -->
                             <div 
-                              :class="`bg-gradient-to-br from-${button.color}-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700`"
+                              :class="`bg-gradient-to-br from-${button.color}-300/30 to-transparent lateral-glow`"
                               class="absolute inset-0"
                             ></div>
                           </div>
                           
-                          <!-- Anillo exterior adicional -->
+                          <!-- Anillo exterior lateral -->
                           <div 
-                            :class="`border-${button.color}-400/30 opacity-50 group-hover:opacity-80 transition-opacity`"
+                            :class="`border-${button.color}-400/30 lateral-ring`"
                             class="absolute -inset-1.5 rounded-full border"
                           ></div>
                           
-                          <!-- Indicador pulsante para llamar la atención -->
+                          <!-- Efecto pulsante solo para botón activo -->
                           <div 
-                            :class="`border-${button.color}-400/50 animate-ping-slow opacity-0 group-hover:opacity-100`"
+                            v-if="index === currentSlide"
+                            :class="`border-${button.color}-400/50 lateral-pulse`"
                             class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4"
                           ></div>
                         </component>
                         
-                        <!-- Etiqueta descriptiva -->
-                        <div class="mt-2 sm:mt-3 text-center">
-                          <h3 class="text-sm sm:text-base md:text-lg font-semibold text-white mb-1">{{ button.description }}</h3>
-                          <p class="text-xs sm:text-sm text-gray-300 max-w-xs">{{ button.detail }}</p>
+                        <!-- Etiqueta descriptiva lateral -->
+                        <div class="mt-2 sm:mt-3 text-center lateral-description">
+                          <h3 class="text-sm sm:text-base md:text-lg font-semibold text-white mb-1 lateral-desc-title">{{ button.description }}</h3>
+                          <p class="text-xs sm:text-sm text-gray-300 max-w-xs lateral-desc-detail">{{ button.detail }}</p>
                         </div>
                       </div>
                     </div>
@@ -1856,6 +1979,247 @@ onMounted(() => {
   50% {
     opacity: 0.6;
     transform: scale(1.02);
+  }
+}
+
+/* ===== CARRUSEL LATERAL MODERNO CON DESLIZAMIENTO ===== */
+
+/* Contenedor principal del carrusel lateral */
+.lateral-carousel-container {
+  position: relative;
+  height: 450px; /* Altura suficiente para contener los botones */
+  overflow: visible; /* Permitir que los elementos se vean fuera del contenedor */
+  perspective: 1200px; /* Perspectiva 3D para profundidad */
+}
+
+/* Viewport del carrusel - donde se ven los elementos */
+.carousel-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Slides laterales con posicionamiento absoluto para deslizamiento */
+.carousel-slide-lateral {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  
+  /* Transformaciones dinámicas para el efecto de deslizamiento */
+  transform: 
+    translate(-50%, -50%) 
+    translateX(var(--slide-translate-x)) 
+    scale(var(--slide-scale));
+  
+  opacity: var(--slide-opacity);
+  filter: blur(var(--slide-blur)) brightness(var(--slide-brightness));
+  z-index: var(--slide-z-index);
+  
+  /* Transición suave para el deslizamiento lateral */
+  transition: 
+    transform var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    filter var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* Optimización de rendimiento */
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+/* Wrapper del botón lateral */
+.lateral-button-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Botón del carrusel lateral */
+.lateral-carousel-button {
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+}
+
+/* Estado activo del botón lateral (centro) */
+.lateral-button-active {
+  /* Efecto sutil de respiración para el botón central */
+  animation: lateral-breathe 3s ease-in-out infinite alternate;
+  box-shadow: 
+    0 12px 35px rgba(255, 255, 255, 0.12),
+    0 0 45px rgba(255, 255, 255, 0.08);
+}
+
+/* Estado inactivo del botón lateral */
+.lateral-button-inactive {
+  pointer-events: none; /* No clickeable cuando está inactivo */
+}
+
+/* Restaurar interactividad solo para botones clickeables */
+.lateral-carousel-button:not(:disabled) {
+  pointer-events: auto;
+}
+
+/* Iconos laterales con animación suave */
+.lateral-icon-container {
+  transition: transform var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.slide-active-lateral .lateral-icon-container {
+  transform: scale(1.05);
+}
+
+/* Texto lateral con transiciones */
+.lateral-text-container {
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.lateral-title,
+.lateral-subtitle {
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Efectos visuales laterales */
+.lateral-effects {
+  transition: opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.lateral-glow {
+  opacity: 0;
+  transition: opacity var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.lateral-button-active .lateral-glow {
+  opacity: 0.5;
+}
+
+/* Anillo exterior lateral */
+.lateral-ring {
+  opacity: 0.2;
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.lateral-button-active .lateral-ring {
+  opacity: 0.7;
+  transform: scale(1.03);
+}
+
+/* Efecto pulsante lateral para botón activo */
+.lateral-pulse {
+  animation: lateral-pulse-effect 2.5s ease-in-out infinite;
+}
+
+/* Descripción lateral */
+.lateral-description {
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.slide-inactive-lateral .lateral-description {
+  opacity: 0.5;
+  transform: translateY(3px);
+}
+
+.lateral-desc-title,
+.lateral-desc-detail {
+  transition: all var(--transition-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Animaciones laterales */
+@keyframes lateral-breathe {
+  0% {
+    transform: scale(1);
+    box-shadow: 
+      0 12px 35px rgba(255, 255, 255, 0.12),
+      0 0 45px rgba(255, 255, 255, 0.08);
+  }
+  100% {
+    transform: scale(1.01);
+    box-shadow: 
+      0 16px 45px rgba(255, 255, 255, 0.16),
+      0 0 55px rgba(255, 255, 255, 0.12);
+  }
+}
+
+@keyframes lateral-pulse-effect {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+/* Hover mejorado solo para botón activo lateral */
+.lateral-button-active:hover {
+  transform: scale(1.03);
+  box-shadow: 
+    0 18px 55px rgba(255, 255, 255, 0.18),
+    0 0 65px rgba(255, 255, 255, 0.15);
+}
+
+.lateral-button-active:hover .lateral-icon-container {
+  transform: scale(1.15);
+}
+
+.lateral-button-active:hover .lateral-glow {
+  opacity: 0.7;
+}
+
+/* Efectos de entrada suave para nuevos slides */
+.carousel-slide-lateral[style*="translateX(0px)"] {
+  /* Slide central con efecto especial */
+  filter: blur(0px) brightness(1) saturate(1.1);
+}
+
+/* Responsive para carrusel lateral */
+@media (max-width: 768px) {
+  .lateral-carousel-container {
+    height: 380px;
+  }
+  
+  .carousel-slide-lateral {
+    /* En móviles, reducir efectos para mejor rendimiento */
+    filter: blur(calc(var(--slide-blur) * 0.6)) brightness(var(--slide-brightness));
+  }
+}
+
+@media (max-width: 640px) {
+  .lateral-carousel-container {
+    height: 320px;
+  }
+}
+
+/* Optimizaciones de rendimiento para carrusel lateral */
+.carousel-slide-lateral,
+.lateral-carousel-button,
+.lateral-button-wrapper {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Suavizado de animaciones en dispositivos de gama baja */
+@media (prefers-reduced-motion: reduce) {
+  .carousel-slide-lateral,
+  .lateral-carousel-button,
+  .lateral-icon-container,
+  .lateral-text-container {
+    transition-duration: 0.2s !important;
+  }
+  
+  .lateral-button-active {
+    animation: none !important;
+  }
+  
+  .lateral-pulse {
+    animation: none !important;
   }
 }
 </style>
