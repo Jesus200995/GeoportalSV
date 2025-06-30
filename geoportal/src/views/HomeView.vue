@@ -496,7 +496,7 @@ onMounted(() => {
                             <span 
                               :class="[
                                 'font-bold tracking-widest text-white drop-shadow-xl mb-2',
-                                'text-xl sm:text-2xl md:text-3xl',
+                                'text-lg sm:text-xl md:text-2xl',
                                 button.id === 'supervisar' ? 'opacity-70' : ''
                               ]"
                             >
@@ -505,7 +505,7 @@ onMounted(() => {
                             <span 
                               :class="[
                                 'font-medium tracking-wide text-center px-2',
-                                'text-sm sm:text-base md:text-lg',
+                                'text-xs sm:text-sm md:text-base',
                                 `text-${button.color}-300`
                               ]"
                             >
