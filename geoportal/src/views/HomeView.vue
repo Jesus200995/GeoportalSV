@@ -181,9 +181,6 @@ const getButtonPosition = (buttonIndex) => {
   // Calcular propiedades visuales basadas en la posición
   const absPosition = Math.abs(position);
   
-  // SOLO el botón central (posición 0) es clickeable
-  const isClickable = position === 0 && buttonIndex === currentSlide.value;
-  
   // Botón central (posición 0)
   if (position === 0) {
     return {
@@ -192,7 +189,7 @@ const getButtonPosition = (buttonIndex) => {
       scale: 1,
       blur: 0,
       zIndex: 10,
-      isClickable: true, // Solo el centro es clickeable
+      isClickable: true,
       brightness: 1,
       visible: true
     };
@@ -206,7 +203,7 @@ const getButtonPosition = (buttonIndex) => {
       scale: 1 - carouselConfig.value.scaleReduction,
       blur: carouselConfig.value.blurIntensity,
       zIndex: 5,
-      isClickable: false, // Laterales NO clickeables
+      isClickable: false,
       brightness: 0.8,
       visible: true
     };
@@ -220,7 +217,7 @@ const getButtonPosition = (buttonIndex) => {
       scale: 0.6,
       blur: carouselConfig.value.blurIntensity * 2,
       zIndex: 2,
-      isClickable: false, // Alejados NO clickeables
+      isClickable: false,
       brightness: 0.6,
       visible: true
     };
@@ -233,7 +230,7 @@ const getButtonPosition = (buttonIndex) => {
     scale: 0.4,
     blur: carouselConfig.value.blurIntensity * 3,
     zIndex: 1,
-    isClickable: false, // Lejanos NO clickeables
+    isClickable: false,
     brightness: 0.4,
     visible: false // Ocultos para mejor rendimiento
   };
@@ -288,63 +285,6 @@ const goToSlide = (index) => {
   setTimeout(() => {
     isTransitioningCarousel.value = false;
   }, carouselConfig.value.transitionDuration);
-};
-
-// Función para manejar clics de botones con validación estricta
-const handleButtonClick = (button, index, event) => {
-  // VALIDACIÓN TRIPLE: Prevenir cualquier acción si el botón no está activo (centrado)
-  const isCurrentSlide = index === currentSlide.value;
-  const buttonState = getButtonPosition(index);
-  const isButtonClickable = buttonState.isClickable;
-  
-  // Primera verificación: índice del slide actual
-  if (!isCurrentSlide) {
-    console.log(`Botón ${button.title} no está en el centro. Acción bloqueada.`);
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
-  }
-  
-  // Segunda verificación: estado calculado del botón
-  if (!isButtonClickable) {
-    console.log(`Botón ${button.title} no es clickeable según getButtonPosition. Acción bloqueada.`);
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
-  }
-  
-  // Tercera verificación: el carrusel no debe estar en transición
-  if (isTransitioningCarousel.value) {
-    console.log(`Carrusel en transición. Acción de ${button.title} bloqueada.`);
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
-  }
-  
-  // Si todas las validaciones pasan, proceder con la acción
-  console.log(`Ejecutando acción para botón ${button.title}`);
-  
-  // Solo ejecutar acción si es un botón normal (no router-link)
-  if (button.action !== 'router') {
-    executeButtonAction(button);
-  }
-  // Para router-links, el componente manejará la navegación automáticamente
-};
-
-// Función adicional para validar eventos de teclado
-const handleKeyEvent = (event, button, index) => {
-  // Solo permitir eventos de teclado en el botón central
-  if (index !== currentSlide.value || !getButtonPosition(index).isClickable) {
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
-  }
-  
-  // Permitir solo Enter y Space para activar el botón
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    handleButtonClick(button, index, event);
-  }
 };
 
 // Función para ejecutar la acción del botón
@@ -613,24 +553,11 @@ onMounted(() => {
                         <!-- Botón principal con efectos laterales -->
                         <component 
                           :is="button.action === 'router' ? 'router-link' : 'button'"
-                          :to="getButtonPosition(index).isClickable && button.route ? button.route : undefined"
-                          @click="handleButtonClick(button, index, $event)"
-                          @mousedown="!getButtonPosition(index).isClickable ? $event.preventDefault() : undefined"
-                          @mouseup="!getButtonPosition(index).isClickable ? $event.preventDefault() : undefined"
-                          @keydown="handleKeyEvent($event, button, index)"
-                          @keyup="!getButtonPosition(index).isClickable ? $event.preventDefault() : undefined"
-                          @touchstart="!getButtonPosition(index).isClickable ? $event.preventDefault() : undefined"
-                          @touchend="!getButtonPosition(index).isClickable ? $event.preventDefault() : undefined"
+                          :to="button.route || undefined"
+                          @click="getButtonPosition(index).isClickable && button.action !== 'router' ? executeButtonAction(button) : undefined"
                           @mouseenter="button.id === 'supervisar' && getButtonPosition(index).isClickable ? toggleSmokeEffect() : undefined"
                           :disabled="!getButtonPosition(index).isClickable"
                           :tabindex="getButtonPosition(index).isClickable ? 0 : -1"
-                          :aria-disabled="!getButtonPosition(index).isClickable"
-                          :aria-hidden="!getButtonPosition(index).isClickable"
-                          :role="getButtonPosition(index).isClickable ? (button.action === 'router' ? 'link' : 'button') : 'presentation'"
-                          :style="{
-                            pointerEvents: getButtonPosition(index).isClickable ? 'auto' : 'none',
-                            userSelect: getButtonPosition(index).isClickable ? 'auto' : 'none'
-                          }"
                           :class="[
                             `${button.id}-button`,
                             'lateral-carousel-button',
@@ -641,10 +568,9 @@ onMounted(() => {
                             `shadow-${button.color}-500/30`,
                             {
                               'cursor-pointer': getButtonPosition(index).isClickable,
-                              'cursor-default': !getButtonPosition(index).isClickable,
+                              'cursor-default pointer-events-none': !getButtonPosition(index).isClickable,
                               'lateral-button-active': index === currentSlide,
-                              'lateral-button-inactive': index !== currentSlide,
-                              'select-none': !getButtonPosition(index).isClickable
+                              'lateral-button-inactive': index !== currentSlide
                             }
                           ]"
                         >
@@ -2131,62 +2057,12 @@ onMounted(() => {
 
 /* Estado inactivo del botón lateral */
 .lateral-button-inactive {
-  pointer-events: none !important; /* Forzar no interacción */
-  user-select: none !important; /* Prevenir selección */
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  -webkit-touch-callout: none !important; /* Prevenir menú contextual en iOS */
-  -webkit-tap-highlight-color: transparent !important; /* Eliminar highlight en móviles */
-  cursor: default !important; /* Cursor por defecto */
+  pointer-events: none; /* No clickeable cuando está inactivo */
 }
 
-/* Refuerzo de reglas para botones no clickeables */
-.lateral-carousel-button[disabled],
-.lateral-carousel-button[aria-disabled="true"],
-.lateral-carousel-button:not(.lateral-button-active) {
-  pointer-events: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  -webkit-touch-callout: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-  cursor: default !important;
-  outline: none !important;
-  
-  /* Prevenir eventos de teclado */
-  -webkit-user-focus: none !important;
-  -moz-user-focus: none !important;
-}
-
-/* Anular cualquier hover o focus en botones inactivos */
-.lateral-carousel-button:not(.lateral-button-active):hover,
-.lateral-carousel-button:not(.lateral-button-active):focus,
-.lateral-carousel-button:not(.lateral-button-active):active,
-.lateral-carousel-button[disabled]:hover,
-.lateral-carousel-button[disabled]:focus,
-.lateral-carousel-button[disabled]:active {
-  transform: none !important;
-  box-shadow: none !important;
-  border: none !important;
-  outline: none !important;
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  cursor: default !important;
-}
-
-/* Restaurar interactividad SOLO para botones clickeables y activos */
-.lateral-carousel-button:not(:disabled).lateral-button-active {
-  pointer-events: auto !important;
-  user-select: auto;
-  cursor: pointer !important;
-}
-
-/* Asegurar que los botones deshabilitados no sean clickeables */
-.lateral-carousel-button:disabled {
-  pointer-events: none !important;
-  cursor: not-allowed !important;
-  opacity: 0.6;
+/* Restaurar interactividad solo para botones clickeables */
+.lateral-carousel-button:not(:disabled) {
+  pointer-events: auto;
 }
 
 /* Iconos laterales con animación suave */
@@ -2300,45 +2176,6 @@ onMounted(() => {
 .carousel-slide-lateral[style*="translateX(0px)"] {
   /* Slide central con efecto especial */
   filter: blur(0px) brightness(1) saturate(1.1);
-}
-
-/* Overlay visual para botones no interactivos */
-.lateral-carousel-button:not(.lateral-button-active)::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 100;
-  transition: opacity 0.3s ease;
-}
-
-/* Indicador visual sutil para botón activo */
-.lateral-carousel-button.lateral-button-active::before {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
-  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), transparent, rgba(255, 255, 255, 0.1));
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: -1;
-  animation: active-glow 3s ease-in-out infinite;
-}
-
-@keyframes active-glow {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.6;
-  }
 }
 
 /* Responsive para carrusel lateral */
