@@ -435,57 +435,109 @@ onMounted(() => {
                       :key="button.id"
                       class="w-full flex-shrink-0 flex justify-center"
                     >
-                      <!-- Botón del carrusel con estilo de carta -->
-                      <div class="card" @click="executeButtonAction(button)">
-                        <div class="content">
-                          <!-- Parte trasera con animación -->
-                          <div class="back" :class="button.id + '-back'">
-                            <div class="back-content">
-                              <svg 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                fill="none" 
-                                viewBox="0 0 24 24" 
-                                stroke-width="1.5" 
-                                stroke="currentColor" 
-                                width="50px" 
-                                height="50px"
-                                class="text-white"
-                              >
-                                <path stroke-linecap="round" stroke-linejoin="round" :d="button.icon" />
-                              </svg>
-                              <strong class="text-white">{{ button.title }}</strong>
-                            </div>
+                      <!-- Botón del carrusel -->
+                      <div class="relative group flex flex-col items-center py-4 px-2">
+                        <!-- Botón principal -->
+                        <component 
+                          :is="button.action === 'router' ? 'router-link' : 'button'"
+                          :to="button.route || undefined"
+                          @click="button.action !== 'router' ? executeButtonAction(button) : undefined"
+                          @mouseenter="button.id === 'supervisar' ? toggleSmokeEffect() : undefined"
+                          :class="[
+                            `${button.id}-button`,
+                            'relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full',
+                            'p-6 sm:p-8 md:p-10 w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72',
+                            'flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-110',
+                            'group-hover:shadow-2xl border border-white/20 overflow-hidden',
+                            `shadow-${button.color}-500/30`,
+                            'carousel-button modern-button'
+                          ]"
+                        >
+                          <!-- Contenedor para el efecto de humo (solo para supervisar) -->
+                          <div v-if="button.id === 'supervisar'" class="absolute inset-0 smoke-container overflow-hidden rounded-full">
+                            <div 
+                              v-for="particle in smokeParticles" 
+                              :key="particle.id"
+                              :class="{ 'animate-smoke': isSmokeActive }"
+                              class="absolute rounded-full bg-white/30 backdrop-blur-sm"
+                              :style="{
+                                width: `${particle.size}px`,
+                                height: `${particle.size}px`,
+                                left: `calc(50% + ${particle.posX}px)`,
+                                top: `calc(50% + ${particle.posY}px)`,
+                                opacity: particle.opacity,
+                                animationDelay: `${particle.delay}s`,
+                                animationDuration: `${particle.duration}s`,
+                                filter: 'blur(8px)'
+                              }"
+                            ></div>
                           </div>
                           
-                          <!-- Parte frontal -->
-                          <div class="front">
-                            <div class="img">
-                              <div class="circle" :class="button.id + '-circle'"></div>
-                              <div class="circle circle-right" :class="button.id + '-circle-right'"></div>
-                              <div class="circle circle-bottom" :class="button.id + '-circle-bottom'"></div>
-                            </div>
-
-                            <div class="front-content">
-                              <small class="badge">{{ button.subtitle }}</small>
-                              <div class="description">
-                                <div class="title">
-                                  <p class="title">
-                                    <strong>{{ button.description }}</strong>
-                                  </p>
-                                  <svg fill-rule="nonzero" height="15px" width="15px" viewBox="0,0,256,256" xmlns="http://www.w3.org/2000/svg">
-                                    <g fill="#20c997">
-                                      <g transform="scale(8,8)">
-                                        <path d="M25,27l-9,-6.75l-9,6.75v-23h18z"></path>
-                                      </g>
-                                    </g>
-                                  </svg>
-                                </div>
-                                <p class="card-footer">
-                                  {{ button.detail }}
-                                </p>
-                              </div>
-                            </div>
+                          <!-- Icono responsivo -->
+                          <div class="relative z-10 mb-3 group-hover:scale-125 transition-transform duration-500">
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              :class="[
+                                'text-white drop-shadow-xl',
+                                'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
+                                button.id === 'supervisar' ? 'opacity-70' : ''
+                              ]"
+                              fill="none" 
+                              viewBox="0 0 24 24" 
+                              stroke="currentColor" 
+                              stroke-width="1.5"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" :d="button.icon" />
+                            </svg>
                           </div>
+                          
+                          <!-- Texto del botón responsivo -->
+                          <div class="relative z-10 flex flex-col items-center">
+                            <span 
+                              :class="[
+                                'font-bold tracking-widest text-white drop-shadow-xl mb-2',
+                                'text-xl sm:text-2xl md:text-3xl',
+                                button.id === 'supervisar' ? 'opacity-70' : ''
+                              ]"
+                            >
+                              {{ button.title }}
+                            </span>
+                            <span 
+                              :class="[
+                                'font-medium tracking-wide text-center px-2',
+                                'text-sm sm:text-base md:text-lg',
+                                `text-${button.color}-300`
+                              ]"
+                            >
+                              {{ button.subtitle }}
+                            </span>
+                          </div>
+                          
+                          <!-- Efecto de brillo al hacer hover -->
+                          <div class="absolute inset-0 rounded-full overflow-hidden">
+                            <div 
+                              :class="`bg-gradient-to-br from-${button.color}-300/30 to-transparent opacity-0 group-hover:opacity-60 transition-opacity duration-700`"
+                              class="absolute inset-0"
+                            ></div>
+                          </div>
+                          
+                          <!-- Anillo exterior adicional -->
+                          <div 
+                            :class="`border-${button.color}-400/30 opacity-50 group-hover:opacity-80 transition-opacity`"
+                            class="absolute -inset-1.5 rounded-full border"
+                          ></div>
+                          
+                          <!-- Indicador pulsante para llamar la atención -->
+                          <div 
+                            :class="`border-${button.color}-400/50 animate-ping-slow opacity-0 group-hover:opacity-100`"
+                            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full border-4"
+                          ></div>
+                        </component>
+                        
+                        <!-- Etiqueta descriptiva -->
+                        <div class="mt-2 sm:mt-3 text-center">
+                          <h3 class="text-sm sm:text-base md:text-lg font-semibold text-white mb-1">{{ button.description }}</h3>
+                          <p class="text-xs sm:text-sm text-gray-300 max-w-xs">{{ button.detail }}</p>
                         </div>
                       </div>
                     </div>
@@ -942,320 +994,6 @@ onMounted(() => {
 .animate-logo-pulse {
   animation: logo-pulse 3s ease-in-out infinite;
 }
-
-/* Nuevos estilos para las cartas con efecto flip */
-.card {
-  overflow: visible;
-  width: 190px;
-  height: 254px;
-  cursor: pointer;
-}
-
-.content {
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 300ms;
-  box-shadow: 0px 0px 10px 1px #000000ee;
-  border-radius: 5px;
-}
-
-.front, .back {
-  background-color: #151515;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.back {
-  width: 100%;
-  height: 100%;
-  justify-content: center;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.back-content {
-  position: absolute;
-  width: 99%;
-  height: 99%;
-  background-color: #151515;
-  border-radius: 5px;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-}
-
-.card:hover .content {
-  transform: rotateY(180deg);
-}
-
-.front {
-  transform: rotateY(180deg);
-  color: white;
-}
-
-.front .front-content {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.front-content .badge {
-  background-color: #00000055;
-  padding: 2px 10px;
-  border-radius: 10px;
-  backdrop-filter: blur(2px);
-  width: fit-content;
-  font-size: 10px;
-}
-
-.description {
-  box-shadow: 0px 0px 10px 5px #00000088;
-  width: 100%;
-  padding: 10px;
-  background-color: #00000099;
-  backdrop-filter: blur(5px);
-  border-radius: 5px;
-}
-
-.title {
-  font-size: 11px;
-  max-width: 100%;
-  display: flex;
-  justify-content: space-between;
-}
-
-.title p {
-  width: 50%;
-}
-
-.card-footer {
-  color: #ffffff88;
-  margin-top: 5px;
-  font-size: 8px;
-}
-
-.front .img {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.circle {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  position: relative;
-  filter: blur(15px);
-  animation: floating 2600ms infinite linear;
-}
-
-.circle-bottom {
-  left: 50px;
-  top: 0px;
-  width: 150px;
-  height: 150px;
-  animation-delay: -800ms;
-}
-
-.circle-right {
-  left: 160px;
-  top: -80px;
-  width: 30px;
-  height: 30px;
-  animation-delay: -1800ms;
-}
-
-@keyframes floating {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-/* Animaciones específicas para cada botón */
-
-/* Visor - Verde */
-.visor-back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #10b981, #10b981, #10b981, #10b981, transparent);
-  animation: rotation_visor 5000ms infinite linear;
-}
-
-.visor-circle {
-  background-color: #34d399;
-}
-
-.visor-circle-bottom {
-  background-color: #059669;
-}
-
-.visor-circle-right {
-  background-color: #047857;
-}
-
-@keyframes rotation_visor {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-/* Capas - Esmeralda */
-.capas-back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #10d9c4, #10d9c4, #10d9c4, #10d9c4, transparent);
-  animation: rotation_capas 5000ms infinite linear;
-}
-
-.capas-circle {
-  background-color: #6ee7b7;
-}
-
-.capas-circle-bottom {
-  background-color: #34d399;
-}
-
-.capas-circle-right {
-  background-color: #10b981;
-}
-
-@keyframes rotation_capas {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-/* Datos - Azul */
-.datos-back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #3b82f6, #3b82f6, #3b82f6, #3b82f6, transparent);
-  animation: rotation_datos 5000ms infinite linear;
-}
-
-.datos-circle {
-  background-color: #60a5fa;
-}
-
-.datos-circle-bottom {
-  background-color: #3b82f6;
-}
-
-.datos-circle-right {
-  background-color: #1d4ed8;
-}
-
-@keyframes rotation_datos {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-/* Biblioteca - Púrpura */
-.biblioteca-back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #8b5cf6, #8b5cf6, #8b5cf6, #8b5cf6, transparent);
-  animation: rotation_biblioteca 5000ms infinite linear;
-}
-
-.biblioteca-circle {
-  background-color: #a78bfa;
-}
-
-.biblioteca-circle-bottom {
-  background-color: #8b5cf6;
-}
-
-.biblioteca-circle-right {
-  background-color: #7c3aed;
-}
-
-@keyframes rotation_biblioteca {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-/* Supervisar - Rojo */
-.supervisar-back::before {
-  position: absolute;
-  content: ' ';
-  display: block;
-  width: 160px;
-  height: 160%;
-  background: linear-gradient(90deg, transparent, #ef4444, #ef4444, #ef4444, #ef4444, transparent);
-  animation: rotation_supervisar 5000ms infinite linear;
-}
-
-.supervisar-circle {
-  background-color: #f87171;
-}
-
-.supervisar-circle-bottom {
-  background-color: #ef4444;
-}
-
-.supervisar-circle-right {
-  background-color: #dc2626;
-}
-
-@keyframes rotation_supervisar {
-  0% {
-    transform: rotateZ(0deg);
-  }
-  100% {
-    transform: rotateZ(360deg);
-  }
-}
-
-/* Estilos existentes preservados */
 
 /* Estilos para el texto elegante */
 .elegant-text {
