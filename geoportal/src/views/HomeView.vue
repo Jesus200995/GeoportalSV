@@ -424,7 +424,7 @@ onMounted(() => {
                 </button>
                 
                 <!-- Contenedor de slides -->
-                <div class="overflow-hidden mx-18 sm:mx-24">
+                <div class="overflow-hidden mx-20 sm:mx-28">
                   <div 
                     class="flex transition-transform duration-500 ease-in-out"
                     :style="{ transform: `translateX(-${currentSlide * 100}%)` }"
@@ -446,11 +446,11 @@ onMounted(() => {
                           :class="[
                             `${button.id}-button`,
                             'relative bg-black/20 backdrop-blur-lg hover:bg-black/30 text-white rounded-full',
-                            'p-4 sm:p-6 md:p-7 w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64',
-                            'flex flex-col items-center justify-center transform transition-all duration-300 hover:scale-105',
-                            'group-hover:shadow-xl border border-white/20 overflow-hidden',
-                            `shadow-${button.color}-500/20`,
-                            'carousel-button'
+                            'p-6 sm:p-8 md:p-10 w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72',
+                            'flex flex-col items-center justify-center transform transition-all duration-500 hover:scale-110',
+                            'group-hover:shadow-2xl border border-white/20 overflow-hidden',
+                            `shadow-${button.color}-500/30`,
+                            'carousel-button modern-button'
                           ]"
                         >
                           <!-- Contenedor para el efecto de humo (solo para supervisar) -->
@@ -474,12 +474,12 @@ onMounted(() => {
                           </div>
                           
                           <!-- Icono responsivo -->
-                          <div class="relative z-10 mb-2 group-hover:scale-110 transition-transform duration-300">
+                          <div class="relative z-10 mb-3 group-hover:scale-125 transition-transform duration-500">
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
                               :class="[
-                                'text-white drop-shadow-lg',
-                                'h-9 w-9 sm:h-11 sm:w-11 md:h-13 md:w-13',
+                                'text-white drop-shadow-xl',
+                                'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
                                 button.id === 'supervisar' ? 'opacity-70' : ''
                               ]"
                               fill="none" 
@@ -495,8 +495,8 @@ onMounted(() => {
                           <div class="relative z-10 flex flex-col items-center">
                             <span 
                               :class="[
-                                'font-bold tracking-widest text-white drop-shadow-lg mb-1',
-                                'text-lg sm:text-xl md:text-2xl',
+                                'font-bold tracking-widest text-white drop-shadow-xl mb-2',
+                                'text-xl sm:text-2xl md:text-3xl',
                                 button.id === 'supervisar' ? 'opacity-70' : ''
                               ]"
                             >
@@ -504,8 +504,8 @@ onMounted(() => {
                             </span>
                             <span 
                               :class="[
-                                'font-medium tracking-wide drop-shadow-md text-center px-2',
-                                'text-xs sm:text-sm',
+                                'font-medium tracking-wide text-center px-2',
+                                'text-sm sm:text-base md:text-lg',
                                 `text-${button.color}-300`
                               ]"
                             >
@@ -703,7 +703,8 @@ onMounted(() => {
 .particle:nth-child(8) { left: 80%; animation-delay: 14s; }
 .particle:nth-child(9) { left: 90%; animation-delay: 16s; }
 
-/* Nuevos estilos para las etiquetas elegantes */
+/* Estilos antiguos problemáticos eliminados - causaban recuadros negros */
+/*
 .text-sm.text-green-300,
 .text-sm.text-blue-300 {
   letter-spacing: 0.05em;
@@ -716,6 +717,7 @@ onMounted(() => {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
+*/
 
 /* Estilos refinados para el plasma del visor */
 .plasma-bg {
@@ -1587,34 +1589,127 @@ onMounted(() => {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Efectos de transición para botones grandes del carrusel */
+/* Efectos de transición modernos y profesionales para botones del carrusel */
 .carousel-button {
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: center;
+  position: relative;
+  overflow: hidden;
 }
 
 .carousel-button:hover {
-  transform: scale(1.05) rotateY(5deg);
-  filter: brightness(1.1);
+  transform: scale(1.1) translateY(-5px);
+  filter: brightness(1.2) contrast(1.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* Efecto de profundidad 3D sutil */
+/* Efecto de onda moderna al hacer hover */
 .carousel-button::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
-  transition: opacity 0.3s ease;
   opacity: 0;
 }
 
 .carousel-button:hover::before {
+  width: 100%;
+  height: 100%;
   opacity: 1;
+}
+
+/* Efecto de resplandor específico para cada color */
+.visor-button:hover {
+  box-shadow: 
+    0 20px 40px rgba(34, 197, 94, 0.4),
+    0 0 60px rgba(34, 197, 94, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.capas-button:hover {
+  box-shadow: 
+    0 20px 40px rgba(5, 150, 105, 0.4),
+    0 0 60px rgba(5, 150, 105, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.datos-button:hover {
+  box-shadow: 
+    0 20px 40px rgba(59, 130, 246, 0.4),
+    0 0 60px rgba(59, 130, 246, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.biblioteca-button:hover {
+  box-shadow: 
+    0 20px 40px rgba(147, 51, 234, 0.4),
+    0 0 60px rgba(147, 51, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.supervisar-button:hover {
+  box-shadow: 
+    0 20px 40px rgba(239, 68, 68, 0.4),
+    0 0 60px rgba(239, 68, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Efecto de partículas flotantes modernas */
+.carousel-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  border-radius: inherit;
+  animation: rotate-border 3s linear infinite;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+.carousel-button:hover::after {
+  opacity: 1;
+}
+
+@keyframes rotate-border {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animación de entrada con efecto de rebote moderno */
+.modern-button {
+  animation: modernEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modernEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+    filter: blur(10px);
+  }
+  60% {
+    transform: scale(1.05) translateY(-10px);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+  }
 }
 
 /* Animación de entrada con retraso escalonado */
@@ -1634,7 +1729,8 @@ onMounted(() => {
   }
 }
 
-/* Efecto de brillo mejorado para cada color */
+/* Estilos antiguos comentados - reemplazados por efectos modernos */
+/*
 .visor-button:hover {
   box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
 }
@@ -1656,6 +1752,7 @@ onMounted(() => {
 .supervisar-button:hover {
   box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
 }
+*/
 
 /* Animación de respiración para el botón activo del carrusel */
 @keyframes breathe {
@@ -1705,9 +1802,9 @@ onMounted(() => {
   }
   
   .carousel-button {
-    width: 14rem !important;
-    height: 14rem !important;
-    padding: 1.25rem !important;
+    width: 16rem !important;
+    height: 16rem !important;
+    padding: 1.5rem !important;
   }
   
   .carousel-arrow {
@@ -1722,9 +1819,9 @@ onMounted(() => {
 
 @media (min-width: 768px) and (max-width: 1024px) {
   .carousel-button {
-    width: 16rem !important;
-    height: 16rem !important;
-    padding: 1.5rem !important;
+    width: 18rem !important;
+    height: 18rem !important;
+    padding: 2rem !important;
   }
 }
 
