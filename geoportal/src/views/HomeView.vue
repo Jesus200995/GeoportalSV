@@ -1091,7 +1091,102 @@ const getButtonColors = (buttonId) => {
 }
 */
 
-/* Efectos especiales para el botón biblioteca */
+/* ===== EFECTOS DE FONDO CON COLOR PARA TODOS LOS BOTONES ===== */
+
+/* Efecto de fondo para el botón VISOR (Verde) */
+.visor-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.visor-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(34, 197, 94, 0.3) 0%,
+    rgba(16, 185, 129, 0.2) 50%,
+    rgba(5, 150, 105, 0.1) 100%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.visor-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Efecto de fondo para el botón CAPAS (Esmeralda) */
+.capas-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.capas-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(16, 185, 129, 0.3) 0%,
+    rgba(5, 150, 105, 0.2) 50%,
+    rgba(4, 120, 87, 0.1) 100%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.capas-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Efecto de fondo para el botón DATOS (Azul) */
+.datos-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.datos-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(59, 130, 246, 0.3) 0%,
+    rgba(37, 99, 235, 0.2) 50%,
+    rgba(29, 78, 216, 0.1) 100%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.datos-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Efecto de fondo para el botón BIBLIOTECA (Púrpura) */
 .biblioteca-button {
   position: relative;
   overflow: hidden;
@@ -1100,19 +1195,57 @@ const getButtonColors = (buttonId) => {
 .biblioteca-button::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(147, 51, 234, 0.1), transparent);
-  transform: rotate(45deg);
-  transition: all 0.5s;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(168, 85, 247, 0.3) 0%,
+    rgba(147, 51, 234, 0.2) 50%,
+    rgba(126, 34, 206, 0.1) 100%
+  );
+  border-radius: inherit;
   opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
 }
 
 .biblioteca-button:hover::before {
-  animation: shimmer 1.5s ease-in-out infinite;
   opacity: 1;
+  transform: scale(1);
+}
+
+/* Efecto de fondo para el botón SUPERVISAR (Rojo) */
+.supervisar-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.supervisar-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(239, 68, 68, 0.3) 0%,
+    rgba(220, 38, 38, 0.2) 50%,
+    rgba(185, 28, 28, 0.1) 100%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.supervisar-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
 }
 
 @keyframes shimmer {
@@ -1124,6 +1257,158 @@ const getButtonColors = (buttonId) => {
   }
   100% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+/* ===== EFECTOS DE BRILLO ADICIONALES PARA TODOS LOS BOTONES ===== */
+
+/* Efectos de brillo con transformación para el botón VISOR */
+.visor-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(34, 197, 94, 0.4),
+    transparent,
+    rgba(16, 185, 129, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.visor-button:hover::after {
+  opacity: 1;
+}
+
+/* Efectos de brillo con transformación para el botón CAPAS */
+.capas-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(16, 185, 129, 0.4),
+    transparent,
+    rgba(5, 150, 105, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.capas-button:hover::after {
+  opacity: 1;
+}
+
+/* Efectos de brillo con transformación para el botón DATOS */
+.datos-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(59, 130, 246, 0.4),
+    transparent,
+    rgba(37, 99, 235, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.datos-button:hover::after {
+  opacity: 1;
+}
+
+/* Efectos de brillo con transformación para el botón BIBLIOTECA */
+.biblioteca-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(168, 85, 247, 0.4),
+    transparent,
+    rgba(147, 51, 234, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.biblioteca-button:hover::after {
+  opacity: 1;
+}
+
+/* Efectos de brillo con transformación para el botón SUPERVISAR */
+.supervisar-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(239, 68, 68, 0.4),
+    transparent,
+    rgba(220, 38, 38, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.supervisar-button:hover::after {
+  opacity: 1;
+}
+
+/* Animación de rotación del brillo */
+@keyframes rotate-glow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -1276,42 +1561,19 @@ const getButtonColors = (buttonId) => {
   --smoke-y: calc(-30px * var(--random, 0.7));
 }
 
-/* Estilizado del nuevo botón de supervisar */
+/* Efectos adicionales para el botón de supervisar */
 .supervisar-button {
-  position: relative;
   background-color: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(8px);
 }
 
-.supervisar-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 9999px;
-  background: radial-gradient(
-    circle at center,
-    rgba(239, 68, 68, 0.2),
-    rgba(185, 28, 28, 0.1),
-    transparent
-  );
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.supervisar-button:hover::before {
-  opacity: 1;
-}
-
-/* Contenedor de la animación de humo */
+/* Contenedor de la animación de humo para supervisar */
 .smoke-container {
   z-index: 5;
   pointer-events: none;
 }
 
-/* Animar solo cuando se activa el efecto */
+/* Animar solo cuando se activa el efecto de supervisar */
 .supervisar-button:hover .smoke-container {
   animation: pulse-glow 2s infinite alternate;
 }
