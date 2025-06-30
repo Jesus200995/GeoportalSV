@@ -29,7 +29,7 @@ const showNotification = (message, type = 'success') => {
 };
 
 // Usar solo la primera imagen de fondo
-const backgroundImage = 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=1920&auto=format&fit=crop'; // Campo de maíz dorado
+const backgroundImage = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1920&auto=format&fit=crop'; // Bosque verde exuberante
 
 // Nueva función simplificada para precargar la imagen
 const preloadImage = () => {
@@ -2378,6 +2378,14 @@ const getButtonColors = (buttonId) => {
 .lateral-carousel-button {
   transition: all var(--transition-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-style: preserve-3d;
+  /* Fondo menos transparente con desvanecido ligero */
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.4) 0%, 
+    rgba(0, 0, 0, 0.3) 50%, 
+    rgba(0, 0, 0, 0.2) 100%
+  ) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Estado activo del botón lateral (centro) */
@@ -2387,6 +2395,14 @@ const getButtonColors = (buttonId) => {
   box-shadow: 
     0 12px 35px rgba(255, 255, 255, 0.12),
     0 0 45px rgba(255, 255, 255, 0.08);
+  /* Fondo más visible para el botón activo */
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.6) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(0, 0, 0, 0.4) 100%
+  ) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Estado inactivo del botón lateral */
