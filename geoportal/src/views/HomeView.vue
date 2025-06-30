@@ -2426,32 +2426,67 @@ const getButtonColors = (buttonId) => {
 /* Efectos específicos de color para cada botón activo */
 .visor-button.lateral-button-active {
   box-shadow: 
-    0 12px 35px rgba(34, 197, 94, 0.15),
-    0 0 45px rgba(34, 197, 94, 0.10);
+    0 12px 35px rgba(34, 197, 94, 0.25),
+    0 0 45px rgba(34, 197, 94, 0.20),
+    inset 0 0 0 2px rgba(34, 197, 94, 0.4);
+  border: 2px solid rgba(34, 197, 94, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(34, 197, 94, 0.10) 100%
+  ) !important;
 }
 
 .capas-button.lateral-button-active {
   box-shadow: 
-    0 12px 35px rgba(16, 185, 129, 0.15),
-    0 0 45px rgba(16, 185, 129, 0.10);
+    0 12px 35px rgba(16, 185, 129, 0.25),
+    0 0 45px rgba(16, 185, 129, 0.20),
+    inset 0 0 0 2px rgba(16, 185, 129, 0.4);
+  border: 2px solid rgba(16, 185, 129, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(16, 185, 129, 0.10) 100%
+  ) !important;
 }
 
 .datos-button.lateral-button-active {
   box-shadow: 
-    0 12px 35px rgba(59, 130, 246, 0.15),
-    0 0 45px rgba(59, 130, 246, 0.10);
+    0 12px 35px rgba(59, 130, 246, 0.25),
+    0 0 45px rgba(59, 130, 246, 0.20),
+    inset 0 0 0 2px rgba(59, 130, 246, 0.4);
+  border: 2px solid rgba(59, 130, 246, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(59, 130, 246, 0.10) 100%
+  ) !important;
 }
 
 .biblioteca-button.lateral-button-active {
   box-shadow: 
-    0 12px 35px rgba(168, 85, 247, 0.15),
-    0 0 45px rgba(168, 85, 247, 0.10);
+    0 12px 35px rgba(168, 85, 247, 0.25),
+    0 0 45px rgba(168, 85, 247, 0.20),
+    inset 0 0 0 2px rgba(168, 85, 247, 0.4);
+  border: 2px solid rgba(168, 85, 247, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(168, 85, 247, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(168, 85, 247, 0.10) 100%
+  ) !important;
 }
 
 .supervisar-button.lateral-button-active {
   box-shadow: 
-    0 12px 35px rgba(239, 68, 68, 0.15),
-    0 0 45px rgba(239, 68, 68, 0.10);
+    0 12px 35px rgba(239, 68, 68, 0.25),
+    0 0 45px rgba(239, 68, 68, 0.20),
+    inset 0 0 0 2px rgba(239, 68, 68, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(239, 68, 68, 0.10) 100%
+  ) !important;
 }
 
 /* Anillos exteriores con efectos de color mejorados */
