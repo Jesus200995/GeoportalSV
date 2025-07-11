@@ -82,19 +82,10 @@ const openSupervisar = () => {
   }, 3000);
 };
 
-// Función para abrir la biblioteca de datos con animación
+// Función para abrir la biblioteca de datos - redirección inmediata
 const openBiblioteca = () => {
-  isTransitioning.value = true;
-  transitionTarget.value = 'biblioteca';
-  
-  // Simulación de transición a biblioteca
-  setTimeout(() => {
-    showWelcome.value = false;
-    
-    setTimeout(() => {
-      isTransitioning.value = false;
-    }, 50);
-  }, 300);
+  // Redirigir inmediatamente a la URL externa de la biblioteca
+  window.open('https://biblioteca.sembrandodatos.com/#', '_blank');
 };
 
 // Estado para el carrusel
