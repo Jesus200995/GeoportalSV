@@ -82,10 +82,21 @@ const openSupervisar = () => {
   }, 3000);
 };
 
-// Función para abrir la biblioteca de datos - redirección inmediata
+// Función para abrir la biblioteca de datos con animación de transición
 const openBiblioteca = () => {
-  // Redirigir inmediatamente a la URL externa de la biblioteca
-  window.open('https://biblioteca.sembrandodatos.com/#', '_blank');
+  // Activar la transición con carpeta y archivos
+  isTransitioning.value = true;
+  transitionTarget.value = 'biblioteca';
+  
+  // Mostrar la animación de carga por 3 segundos antes de abrir el enlace
+  setTimeout(() => {
+    // Abrir el enlace en una nueva pestaña
+    window.open('https://biblioteca.sembrandodatos.com/#', '_blank');
+    
+    // Reiniciar el estado de transición
+    isTransitioning.value = false;
+    transitionTarget.value = '';
+  }, 3000);
 };
 
 // Estado para el carrusel
@@ -454,7 +465,49 @@ const getButtonColors = (buttonId) => {
 
 <template>
   <div>    <!-- Animación de transición al hacer clic -->
-    <div v-if="isTransitioning" class="transition-overlay">      <!-- Transición especial para supervisar con flor girando -->
+    <div v-if="isTransitioning" class="transition-overlay">
+      <!-- Transición especial para biblioteca con carpeta y archivos -->
+      <div v-if="transitionTarget === 'biblioteca'" class="folder-loading-container">
+        <div class="folder-animation">
+          <!-- Carpeta principal -->
+          <div class="folder-base">
+            <div class="folder-front"></div>
+            <div class="folder-back"></div>
+            <div class="folder-tab"></div>
+          </div>
+          
+          <!-- Archivos flotantes de colores -->
+          <div class="floating-files">
+            <div class="file file-red" style="--delay: 0.2s; --x: -60px; --y: -40px;"></div>
+            <div class="file file-blue" style="--delay: 0.4s; --x: 50px; --y: -30px;"></div>
+            <div class="file file-green" style="--delay: 0.6s; --x: -40px; --y: 20px;"></div>
+            <div class="file file-yellow" style="--delay: 0.8s; --x: 70px; --y: 30px;"></div>
+            <div class="file file-orange" style="--delay: 1.0s; --x: 0px; --y: -60px;"></div>
+            <div class="file file-pink" style="--delay: 1.2s; --x: -80px; --y: 0px;"></div>
+          </div>
+          
+          <!-- Partículas de datos -->
+          <div class="data-particles">
+            <div class="particle" v-for="n in 15" :key="'particle-' + n" 
+                 :style="{ 
+                   '--delay': (n * 0.1) + 's',
+                   '--x': (Math.random() * 200 - 100) + 'px',
+                   '--y': (Math.random() * 200 - 100) + 'px'
+                 }"></div>
+          </div>
+        </div>
+        
+        <div class="loading-text">
+          <p>Accediendo a la biblioteca de datos...</p>
+          <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Transición especial para supervisar con flor girando -->
       <div v-if="transitionTarget === 'supervisar'" class="flower-loading-container">
         <div class="flower-animation">
           <!-- Pétalos externos -->
@@ -1081,6 +1134,265 @@ const getButtonColors = (buttonId) => {
   }
 }
 */
+
+/* ===== ANIMACIÓN DE CARPETA PARA BIBLIOTECA ===== */
+.folder-loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #6a0dad, #8b5dba, #9966cc, #ba55d3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeInPurple 0.5s ease-out;
+}
+
+@keyframes fadeInPurple {
+  0% {
+    opacity: 0;
+    background: linear-gradient(135deg, #000, #000, #000, #000);
+  }
+  100% {
+    opacity: 1;
+    background: linear-gradient(135deg, #6a0dad, #8b5dba, #9966cc, #ba55d3);
+  }
+}
+
+.folder-animation {
+  position: relative;
+  width: 200px;
+  height: 150px;
+  margin-bottom: 40px;
+}
+
+/* Carpeta base */
+.folder-base {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  animation: folderPulse 2s ease-in-out infinite;
+}
+
+.folder-front {
+  position: absolute;
+  width: 180px;
+  height: 120px;
+  background: linear-gradient(145deg, #f0f0f0, #d0d0d0);
+  border-radius: 8px 8px 4px 4px;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border: 3px solid #bbb;
+}
+
+.folder-back {
+  position: absolute;
+  width: 170px;
+  height: 110px;
+  background: linear-gradient(145deg, #e8e8e8, #c8c8c8);
+  border-radius: 6px 6px 2px 2px;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: -1;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.folder-tab {
+  position: absolute;
+  width: 60px;
+  height: 20px;
+  background: linear-gradient(145deg, #f5f5f5, #d5d5d5);
+  border-radius: 8px 8px 0 0;
+  top: -10px;
+  left: 20px;
+  border: 2px solid #bbb;
+  border-bottom: none;
+}
+
+@keyframes folderPulse {
+  0%, 100% {
+    transform: scale(1) rotateY(0deg);
+  }
+  50% {
+    transform: scale(1.05) rotateY(5deg);
+  }
+}
+
+/* Archivos flotantes de colores */
+.floating-files {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.file {
+  position: absolute;
+  width: 24px;
+  height: 30px;
+  border-radius: 3px 3px 0 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: floatFile 3s ease-in-out infinite;
+  animation-delay: var(--delay);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+}
+
+.file::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 6px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  filter: brightness(0.8);
+}
+
+.file-red {
+  background: linear-gradient(145deg, #ff6b6b, #ee5a52);
+}
+
+.file-blue {
+  background: linear-gradient(145deg, #4ecdc4, #45b7b8);
+}
+
+.file-green {
+  background: linear-gradient(145deg, #6bcf7f, #5fb3d4);
+}
+
+.file-yellow {
+  background: linear-gradient(145deg, #ffd93d, #f39c12);
+}
+
+.file-orange {
+  background: linear-gradient(145deg, #ff8c42, #e67e22);
+}
+
+.file-pink {
+  background: linear-gradient(145deg, #ff85a2, #e84393);
+}
+
+@keyframes floatFile {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(10deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(-5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+  }
+}
+
+/* Partículas de datos */
+.data-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.data-particles .particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  animation: dataParticleFloat 2.5s ease-in-out infinite;
+  animation-delay: var(--delay);
+  opacity: 0;
+}
+
+@keyframes dataParticleFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x) * 0.3), calc(-50% + var(--y) * 0.3)) scale(1);
+  }
+  70% {
+    opacity: 0.8;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x) * 1.2), calc(-50% + var(--y) * 1.2)) scale(0);
+  }
+}
+
+/* Texto de carga para biblioteca */
+.folder-loading-container .loading-text {
+  text-align: center;
+  color: white;
+}
+
+.folder-loading-container .loading-text p {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.folder-loading-container .loading-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-loading-container .loading-dots span {
+  width: 12px;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: dotBounce 1.5s ease-in-out infinite;
+}
+
+.folder-loading-container .loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.folder-loading-container .loading-dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.folder-loading-container .loading-dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes dotBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+}
 
 /* ===== EFECTOS DE FONDO CON COLOR PARA TODOS LOS BOTONES ===== */
 
