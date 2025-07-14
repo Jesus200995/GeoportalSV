@@ -467,45 +467,45 @@ const getButtonColors = (buttonId) => {
   <div>    <!-- Animación de transición al hacer clic -->
     <div v-if="isTransitioning" class="transition-overlay">
       <!-- Transición especial para biblioteca con carpeta y archivos -->
-      <div v-if="transitionTarget === 'biblioteca'" class="folder-loading-container">
-        <div class="folder-animation">
-          <!-- Carpeta principal -->
-          <div class="folder-base">
-            <div class="folder-front"></div>
-            <div class="folder-back"></div>
-            <div class="folder-tab"></div>
+
+      <transition name="fade-biblioteca">
+        <div v-if="transitionTarget === 'biblioteca'" class="folder-loading-container fade-biblioteca-anim">
+          <div class="folder-animation">
+            <!-- Carpeta principal -->
+            <div class="folder-base">
+              <div class="folder-front"></div>
+              <div class="folder-back"></div>
+              <div class="folder-tab"></div>
+            </div>
+            <!-- Archivos flotantes de colores -->
+            <div class="floating-files">
+              <div class="file file-red" style="--delay: 0.2s; --x: -60px; --y: -40px;"></div>
+              <div class="file file-blue" style="--delay: 0.4s; --x: 50px; --y: -30px;"></div>
+              <div class="file file-green" style="--delay: 0.6s; --x: -40px; --y: 20px;"></div>
+              <div class="file file-yellow" style="--delay: 0.8s; --x: 70px; --y: 30px;"></div>
+              <div class="file file-orange" style="--delay: 1.0s; --x: 0px; --y: -60px;"></div>
+              <div class="file file-pink" style="--delay: 1.2s; --x: -80px; --y: 0px;"></div>
+            </div>
+            <!-- Partículas de datos -->
+            <div class="data-particles">
+              <div class="particle" v-for="n in 15" :key="'particle-' + n" 
+                   :style="{ 
+                     '--delay': (n * 0.1) + 's',
+                     '--x': (Math.random() * 200 - 100) + 'px',
+                     '--y': (Math.random() * 200 - 100) + 'px'
+                   }"></div>
+            </div>
           </div>
-          
-          <!-- Archivos flotantes de colores -->
-          <div class="floating-files">
-            <div class="file file-red" style="--delay: 0.2s; --x: -60px; --y: -40px;"></div>
-            <div class="file file-blue" style="--delay: 0.4s; --x: 50px; --y: -30px;"></div>
-            <div class="file file-green" style="--delay: 0.6s; --x: -40px; --y: 20px;"></div>
-            <div class="file file-yellow" style="--delay: 0.8s; --x: 70px; --y: 30px;"></div>
-            <div class="file file-orange" style="--delay: 1.0s; --x: 0px; --y: -60px;"></div>
-            <div class="file file-pink" style="--delay: 1.2s; --x: -80px; --y: 0px;"></div>
-          </div>
-          
-          <!-- Partículas de datos -->
-          <div class="data-particles">
-            <div class="particle" v-for="n in 15" :key="'particle-' + n" 
-                 :style="{ 
-                   '--delay': (n * 0.1) + 's',
-                   '--x': (Math.random() * 200 - 100) + 'px',
-                   '--y': (Math.random() * 200 - 100) + 'px'
-                 }"></div>
+          <div class="loading-text">
+            <p>Accediendo a la biblioteca de datos...</p>
+            <div class="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
         </div>
-        
-        <div class="loading-text">
-          <p>Accediendo a la biblioteca de datos...</p>
-          <div class="loading-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      </div>
+      </transition>
       
       <!-- Transición especial para supervisar con flor girando -->
       <div v-if="transitionTarget === 'supervisar'" class="flower-loading-container">
@@ -1392,6 +1392,17 @@ const getButtonColors = (buttonId) => {
     transform: translateY(-20px);
     opacity: 1;
   }
+}
+
+/* ===== EFECTO FADE PARA BIBLIOTECA ===== */
+.fade-biblioteca-enter-active, .fade-biblioteca-leave-active {
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+.fade-biblioteca-enter-from, .fade-biblioteca-leave-to {
+  opacity: 0;
+}
+.fade-biblioteca-enter-to, .fade-biblioteca-leave-from {
+  opacity: 1;
 }
 
 /* ===== EFECTOS DE FONDO CON COLOR PARA TODOS LOS BOTONES ===== */
