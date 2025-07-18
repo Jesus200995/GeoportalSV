@@ -1,17 +1,10 @@
 /**
- * Servicio para interactuar con GeoServer usando proxy local
+ * Servicio para interactuar con GeoServer que funciona en desarrollo y producción
  */
-import { GEOSERVER_PROXY_CONFIG } from './geoserver-config.js';
+import { ACTIVE_GEOSERVER_CONFIG, GEOSERVER_CONFIG } from './geoserver-config.js';
 
-// Configuración usando el proxy local
-const GEOSERVER_URL = GEOSERVER_PROXY_CONFIG.ORIGINAL_GEOSERVER_URL;
-const WORKSPACE = GEOSERVER_PROXY_CONFIG.WORKSPACE;
-
-// Las credenciales ahora se manejan en el backend
-const GEOSERVER_AUTH = {
-  username: 'admin',
-  password: 'geoserver'
-};
+// Configuración activa que cambia según el entorno
+const WORKSPACE = ACTIVE_GEOSERVER_CONFIG.WORKSPACE;
 
 /**
  * Obtiene las capacidades del servicio WMS de GeoServer
@@ -168,15 +161,17 @@ export function getWMSLayerParams(layerName) {
  * @returns {string} URL base
  */
 export function getGeoServerUrl() {
-  return GEOSERVER_URL;
+  return ACTIVE_GEOSERVER_CONFIG.IS_DEVELOPMENT ? 
+    ACTIVE_GEOSERVER_CONFIG.WMS_URL().replace('/wms', '') : 
+    GEOSERVER_CONFIG.GEOSERVER_URL;
 }
 
 /**
- * Obtiene la URL de WMS para el workspace actual usando el proxy
+ * Obtiene la URL de WMS para el workspace actual
  * @returns {string} URL del servicio WMS
  */
 export function getWMSUrl() {
-  return GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE);
+  return ACTIVE_GEOSERVER_CONFIG.WMS_URL(WORKSPACE);
 }
 
 /**
@@ -188,25 +183,31 @@ export function getWorkspace() {
 }
 
 /**
- * Obtiene la lista de capas disponibles utilizando el proxy local al API REST de GeoServer
+ * Obtiene la lista de capas disponibles desde GeoServer (con proxy en desarrollo)
  * @returns {Promise<Array>} Lista de capas disponibles
  */
 export async function getAvailableLayers() {
   try {
-    // URL del proxy local para evitar problemas de CORS
-    const url = GEOSERVER_PROXY_CONFIG.FEATURETYPES_URL(WORKSPACE);
+    // URL que cambia según el entorno
+    const url = ACTIVE_GEOSERVER_CONFIG.FEATURETYPES_URL(WORKSPACE);
     
     console.log('Obteniendo capas desde:', url);
+    console.log('Entorno de desarrollo:', ACTIVE_GEOSERVER_CONFIG.IS_DEVELOPMENT);
     
-    // Hacer la solicitud HTTP sin autenticación (la maneja el proxy)
+    // Headers que cambian según el entorno
+    const headers = {
+      'Accept': 'application/json',
+      ...ACTIVE_GEOSERVER_CONFIG.getAuthHeaders()
+    };
+    
+    // Hacer la solicitud HTTP
     const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json'
-      }
+      headers: headers,
+      method: 'GET'
     });
     
     if (!response.ok) {
-      throw new Error(`Error en la respuesta: ${response.status}`);
+      throw new Error(`Error en la respuesta: ${response.status} - ${response.statusText}`);
     }
 
     // Obtener los datos en formato JSON
@@ -226,9 +227,9 @@ export async function getAvailableLayers() {
       abstract: layer.abstract || '',
       fullName: `${WORKSPACE}:${layer.name}`,
       workspace: WORKSPACE,
-      wmsUrl: GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE),
-      wfsUrl: GEOSERVER_PROXY_CONFIG.WFS_URL(WORKSPACE),
-      legendUrl: `${GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE)}?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
+      wmsUrl: ACTIVE_GEOSERVER_CONFIG.WMS_URL(WORKSPACE),
+      wfsUrl: ACTIVE_GEOSERVER_CONFIG.WFS_URL(WORKSPACE),
+      legendUrl: `${ACTIVE_GEOSERVER_CONFIG.WMS_URL(WORKSPACE)}?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
     }));
     
     console.log('Capas procesadas:', processedLayers);
