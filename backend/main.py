@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, make_response
-from flask_cors import CORS
 import os
 import uuid
 import zipfile
@@ -7,13 +6,6 @@ import shutil
 from app.utils import process_shapefile_zip
 
 app = Flask(__name__)
-
-# Configurar CORS correctamente para permitir solicitudes desde cualquier origen
-CORS(app, resources={r"/*": {
-    "origins": "*", 
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
-}})
 
 # Directorio para almacenar archivos subidos
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
@@ -27,18 +19,8 @@ os.makedirs(SHAPEFILE_FOLDER, exist_ok=True)
 def index():
     return jsonify({"message": "Backend del Geoportal funcionando correctamente"})
 
-# Ruta principal para subir shapefile - asegurar que sea accesible desde /api/upload-shapefile con el método POST
-@app.route('/api/upload-shapefile', methods=['POST', 'OPTIONS'])
+@app.route('/api/upload-shapefile', methods=['POST'])
 def upload_shapefile():
-    # Manejar solicitudes OPTIONS para CORS
-    if request.method == 'OPTIONS':
-        response = make_response()
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
-        response.headers.add('Access-Control-Max-Age', '86400')
-        return response, 200
-
     # Verificar si hay un archivo en la solicitud
     if 'file' not in request.files:
         return jsonify({'error': 'No se encontró el archivo', 'success': False}), 400

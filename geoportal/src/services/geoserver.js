@@ -1,12 +1,13 @@
 /**
- * Servicio para interactuar con GeoServer
+ * Servicio para interactuar con GeoServer usando proxy local
  */
+import { GEOSERVER_PROXY_CONFIG } from './geoserver-config.js';
 
-// URL base del servidor GeoServer
-const GEOSERVER_URL = 'https://geoportal.sembrandodatos.com/geoserver';
-const WORKSPACE = 'sembrando';
+// Configuración usando el proxy local
+const GEOSERVER_URL = GEOSERVER_PROXY_CONFIG.ORIGINAL_GEOSERVER_URL;
+const WORKSPACE = GEOSERVER_PROXY_CONFIG.WORKSPACE;
 
-// Credenciales de autenticación para GeoServer
+// Las credenciales ahora se manejan en el backend
 const GEOSERVER_AUTH = {
   username: 'admin',
   password: 'geoserver'
@@ -171,11 +172,11 @@ export function getGeoServerUrl() {
 }
 
 /**
- * Obtiene la URL de WMS para el workspace actual
+ * Obtiene la URL de WMS para el workspace actual usando el proxy
  * @returns {string} URL del servicio WMS
  */
 export function getWMSUrl() {
-  return `${GEOSERVER_URL}/${WORKSPACE}/wms`;
+  return GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE);
 }
 
 /**
@@ -187,23 +188,19 @@ export function getWorkspace() {
 }
 
 /**
- * Obtiene la lista de capas disponibles utilizando el API REST de GeoServer
+ * Obtiene la lista de capas disponibles utilizando el proxy local al API REST de GeoServer
  * @returns {Promise<Array>} Lista de capas disponibles
  */
 export async function getAvailableLayers() {
   try {
-    // URL del API REST de GeoServer para listar feature types
-    const url = `${GEOSERVER_URL}/rest/workspaces/${WORKSPACE}/featuretypes.json`;
-    
-    // Generar las credenciales de autenticación básica
-    const authHeader = 'Basic ' + btoa(`${GEOSERVER_AUTH.username}:${GEOSERVER_AUTH.password}`);
+    // URL del proxy local para evitar problemas de CORS
+    const url = GEOSERVER_PROXY_CONFIG.FEATURETYPES_URL(WORKSPACE);
     
     console.log('Obteniendo capas desde:', url);
     
-    // Hacer la solicitud HTTP con autenticación
+    // Hacer la solicitud HTTP sin autenticación (la maneja el proxy)
     const response = await fetch(url, {
       headers: {
-        'Authorization': authHeader,
         'Accept': 'application/json'
       }
     });
@@ -229,9 +226,9 @@ export async function getAvailableLayers() {
       abstract: layer.abstract || '',
       fullName: `${WORKSPACE}:${layer.name}`,
       workspace: WORKSPACE,
-      wmsUrl: `${GEOSERVER_URL}/${WORKSPACE}/wms`,
-      wfsUrl: `${GEOSERVER_URL}/wfs`,
-      legendUrl: `${GEOSERVER_URL}/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
+      wmsUrl: GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE),
+      wfsUrl: GEOSERVER_PROXY_CONFIG.WFS_URL(WORKSPACE),
+      legendUrl: `${GEOSERVER_PROXY_CONFIG.WMS_URL(WORKSPACE)}?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20&LAYER=${WORKSPACE}:${layer.name}`
     }));
     
     console.log('Capas procesadas:', processedLayers);
