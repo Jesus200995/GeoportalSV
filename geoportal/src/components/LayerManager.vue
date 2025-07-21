@@ -685,7 +685,7 @@ watch(() => props.map, (newMap) => {
 }
 
 .layer-list {
-  max-height: 320px; /* Altura máxima para el área de scroll */
+  max-height:400px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #10b981 #e5e7eb;
