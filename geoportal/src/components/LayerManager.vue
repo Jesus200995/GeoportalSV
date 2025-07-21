@@ -341,17 +341,16 @@ watch(() => props.map, (newMap) => {
 <template>
   <div class="layer-manager rounded-xl bg-white shadow-lg p-5 border border-gray-100 max-w-md mx-auto md:mx-0 w-full">
     <!-- Encabezado con efecto de gradiente -->
-    <div class="flex items-center justify-between mb-5 pb-3 border-b border-gray-100">
+    <div class="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
       <div class="flex items-center space-x-2">
-        <div class="w-7 h-7 bg-gradient-to-tr from-green-600 to-emerald-400 rounded-lg flex items-center justify-center shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="w-6 h-6 bg-gradient-to-tr from-green-600 to-emerald-400 rounded-lg flex items-center justify-center shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         </div>
-        <h3 class="text-lg font-semibold text-gray-800">Capas disponibles</h3>
+        <h3 class="text-base font-semibold text-gray-800">Capas disponibles</h3>
       </div>
       <div class="flex items-center space-x-2">
-        <span class="text-xs text-gray-400 hidden sm:inline">{{ activeLayers.length }} activa(s)</span>
         <button 
           @click="refreshLayers" 
           class="refresh-button"
@@ -364,6 +363,11 @@ watch(() => props.map, (newMap) => {
           </svg>
         </button>
       </div>
+    </div>
+    
+    <!-- Contador de capas activas con fondo azul -->
+    <div class="bg-blue-100 border border-blue-200 rounded-lg px-3 py-2 mb-4">
+      <span class="text-xs font-medium text-blue-700">{{ activeLayers.length }} capa(s) activa(s)</span>
     </div>
     
     <!-- Buscador de capas con diseño mejorado -->
@@ -685,7 +689,7 @@ watch(() => props.map, (newMap) => {
 }
 
 .layer-list {
-  max-height:400px;
+  max-height:380px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #10b981 #e5e7eb;
