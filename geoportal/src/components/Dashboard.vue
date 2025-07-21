@@ -1438,17 +1438,13 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
       :class="sidebarOpen ? 'w-80 sm:w-96' : 'w-16'"
     >
       <!-- Encabezado de la barra lateral -->
-      <div class="h-14 sm:h-16 flex items-center justify-between px-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-        <div class="flex items-center space-x-3 overflow-hidden">
-          <img 
-            src="@/components/images/logotipo.png" 
-            alt="Logo" 
-            class="h-8 w-8 object-contain flex-shrink-0"
-          />
-          <h2 class="font-medium text-green-800 truncate transition-opacity duration-300"
+      <div class="h-14 sm:h-16 flex items-center justify-between px-4 border-b border-gray-100 bg-gradient-to-r from-green-100 to-emerald-100">
+        <div class="flex-1 flex flex-col items-center justify-center">
+          <h2 class="menu-visor-title text-green-800 truncate transition-opacity duration-300 text-center"
               :class="sidebarOpen ? 'opacity-100' : 'opacity-0'">
-            Herramientas
+            Menú del Visor
           </h2>
+          <div v-if="sidebarOpen" class="menu-visor-underline bg-green-600 mt-1"></div>
         </div>
         <!-- Botón para colapsar/expandir la barra lateral -->
         <button 
