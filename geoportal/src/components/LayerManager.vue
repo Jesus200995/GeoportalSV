@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
 import { getAvailableLayers } from '../services/geoserver';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
@@ -18,6 +18,10 @@ const loadingLayers = ref(true);
 const error = ref(null);
 const searchQuery = ref('');
 
+// Referencias para el manejo del scroll
+const layersScrollWrapper = ref(null);
+const layersList = ref(null);
+
 // Estado para guardar referencias a las capas de OpenLayers
 const olLayers = ref({});
 
@@ -31,6 +35,14 @@ onMounted(async () => {
   layerOpacities.value = { ...savedOpacities };
   
   await fetchLayers();
+  
+  // Configurar manejo del scroll después de que se monte el componente
+  setTimeout(() => {
+    if (layersList.value) {
+      updateScrollIndicators();
+      layersList.value.addEventListener('scroll', updateScrollIndicators);
+    }
+  }, 300);
   
   // Cargamos estado guardado de localStorage si existe
   const savedActiveLayers = localStorage.getItem('activeLayers');
@@ -277,6 +289,32 @@ const removeLayerFromMap = (layer) => {
 // Refrescar las capas
 const refreshLayers = async () => {
   await fetchLayers();
+  
+  // Actualizar indicadores de scroll después de refrescar
+  setTimeout(() => {
+    updateScrollIndicators();
+  }, 300);
+};
+
+// Función para actualizar indicadores visuales de scroll
+const updateScrollIndicators = () => {
+  if (!layersList.value || !layersScrollWrapper.value) return;
+  
+  const { scrollTop, scrollHeight, clientHeight } = layersList.value;
+  const canScrollUp = scrollTop > 5;
+  const canScrollDown = scrollTop < (scrollHeight - clientHeight - 5);
+  
+  if (canScrollUp) {
+    layersScrollWrapper.value.classList.add('can-scroll-up');
+  } else {
+    layersScrollWrapper.value.classList.remove('can-scroll-up');
+  }
+  
+  if (canScrollDown) {
+    layersScrollWrapper.value.classList.add('can-scroll-down');
+  } else {
+    layersScrollWrapper.value.classList.remove('can-scroll-down');
+  }
 };
 
 // Observar cambios en el mapa - si el mapa cambia, actualizar las capas
@@ -374,8 +412,8 @@ watch(() => props.map, (newMap) => {
       </div>
     </div>
     
-    <!-- Lista de capas rediseñada -->
-    <div v-else class="layer-list">
+    <!-- Contenedor principal de la lista de capas con scroll mejorado -->
+    <div v-else class="layers-scroll-container">
       <!-- Estado vacío mejorado -->
       <div v-if="filteredLayers.length === 0" class="empty-state">
         <div class="empty-icon-container">
@@ -398,55 +436,61 @@ watch(() => props.map, (newMap) => {
         </button>
       </div>
       
-      <!-- Listado de capas con diseño mejorado -->
-      <div v-for="layer in filteredLayers" 
-           :key="layer.name"
-           class="layer-item"
-           :class="{'active-layer': isLayerActive(layer.name)}">
-        <!-- Contenedor principal de la capa -->
-        <div class="layer-header">
-          <div class="flex items-center space-x-3">
-            <!-- Switch para activar/desactivar capa -->
-            <div class="toggle-container">
-              <input 
-                type="checkbox" 
-                :id="`layer-${layer.name}`" 
-                :checked="isLayerActive(layer.name)"
-                @change="toggleLayer(layer)" 
-                class="toggle-input"
-              />
-              <label 
-                :for="`layer-${layer.name}`" 
-                class="toggle-label"
-                :class="{'active': isLayerActive(layer.name)}"
-              ></label>
+      <!-- Lista con scroll para las capas -->
+      <div v-else ref="layersScrollWrapper" class="layers-scroll-wrapper">
+        <div ref="layersList" class="layer-list">
+          <!-- Listado de capas con diseño mejorado -->
+          <div v-for="(layer, index) in filteredLayers" 
+              :key="layer.name"
+              class="layer-item"
+              :style="{'--index': index}"
+              :class="{'active-layer': isLayerActive(layer.name)}">
+            <!-- Contenedor principal de la capa -->
+            <div class="layer-header">
+              <div class="flex items-center space-x-3">
+                <!-- Switch para activar/desactivar capa -->
+                <div class="toggle-container">
+                  <input 
+                    type="checkbox" 
+                    :id="`layer-${layer.name}`" 
+                    :checked="isLayerActive(layer.name)"
+                    @change="toggleLayer(layer)" 
+                    class="toggle-input"
+                  />
+                  <label 
+                    :for="`layer-${layer.name}`" 
+                    class="toggle-label"
+                    :class="{'active': isLayerActive(layer.name)}"
+                  ></label>
+                </div>
+                
+                <!-- Información de la capa -->
+                <div class="layer-info">
+                  <h4 class="layer-title">{{ layer.title || layer.name }}</h4>
+                  <p v-if="layer.abstract" class="layer-description">{{ layer.abstract }}</p>
+                </div>
+              </div>
             </div>
             
-            <!-- Información de la capa -->
-            <div class="layer-info">
-              <h4 class="layer-title">{{ layer.title || layer.name }}</h4>
-              <p v-if="layer.abstract" class="layer-description">{{ layer.abstract }}</p>
+            <!-- Control de opacidad - Solo visible cuando la capa está activa -->
+            <div v-if="isLayerActive(layer.name)" 
+                class="opacity-control">
+              <div class="flex items-center space-x-3">
+                <div class="opacity-badge">
+                  {{ Math.round((layerOpacities[layer.name] || 1) * 100) }}%
+                </div>
+                <input 
+                  type="range"
+                  :id="`opacity-${layer.name}`"
+                  :value="layerOpacities[layer.name] || 1"
+                  @input="updateOpacity(layer, $event.target.value)"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  class="opacity-slider"
+                />
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <!-- Control de opacidad - Solo visible cuando la capa está activa -->
-        <div v-if="isLayerActive(layer.name)" 
-             class="opacity-control">
-          <div class="flex items-center space-x-3">
-            <div class="opacity-badge">
-              {{ Math.round((layerOpacities[layer.name] || 1) * 100) }}%
-            </div>
-            <input 
-              type="range"
-              :id="`opacity-${layer.name}`"
-              :value="layerOpacities[layer.name] || 1"
-              @input="updateOpacity(layer, $event.target.value)"
-              min="0"
-              max="1"
-              step="0.05"
-              class="opacity-slider"
-            />
           </div>
         </div>
       </div>
@@ -626,14 +670,28 @@ watch(() => props.map, (newMap) => {
   background-color: #d1fae5;
 }
 
-/* Listado de capas */
+/* Estilos para el contenedor con scroll de capas */
+.layers-scroll-container {
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.layers-scroll-wrapper {
+  background-color: #f0fdf4; /* Fondo verde suave para el área de scroll */
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #dcfce7;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
 .layer-list {
-  max-height: 400px;
+  max-height: 320px; /* Altura máxima para el área de scroll */
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #10b981 #e5e7eb;
-  margin-bottom: 1rem;
-  padding-right: 0.25rem;
+  padding-right: 0.5rem;
+  padding-left: 0.25rem;
+  margin-right: -0.25rem;
 }
 
 .layer-list::-webkit-scrollbar {
@@ -650,6 +708,35 @@ watch(() => props.map, (newMap) => {
   border-radius: 3px;
 }
 
+/* Indicadores de scroll superior e inferior */
+.layers-scroll-wrapper::before,
+.layers-scroll-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.layers-scroll-wrapper::before {
+  top: 0.75rem;
+  background: linear-gradient(to bottom, rgba(240, 253, 244, 1), rgba(240, 253, 244, 0));
+}
+
+.layers-scroll-wrapper::after {
+  bottom: 0.75rem;
+  background: linear-gradient(to top, rgba(240, 253, 244, 1), rgba(240, 253, 244, 0));
+}
+
+.layers-scroll-wrapper.can-scroll-up::before,
+.layers-scroll-wrapper.can-scroll-down::after {
+  opacity: 1;
+}
+
 /* Estilos para cada elemento de capa */
 .layer-item {
   margin-bottom: 0.75rem;
@@ -661,18 +748,38 @@ watch(() => props.map, (newMap) => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.layer-item:last-child {
+  margin-bottom: 0;
+}
+
 .layer-item:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  border-color: #86efac; /* Borde verde claro al pasar el cursor */
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
   transform: translateY(-1px);
 }
 
 .active-layer {
   border-left: 3px solid #10b981;
+  background-color: #f0fdf4; /* Fondo verdecito suave para capas activas */
 }
 
 .layer-header {
   padding: 0.75rem;
+  position: relative;
+}
+
+/* Marcador visual para capas activas */
+.active-layer .layer-header::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 /* Estilos para información de la capa */
@@ -682,8 +789,8 @@ watch(() => props.map, (newMap) => {
 
 .layer-title {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 600;
+  color: #166534; /* Color verde más oscuro para los títulos */
   margin-bottom: 0.125rem;
 }
 
@@ -747,68 +854,77 @@ watch(() => props.map, (newMap) => {
 /* Estilos para el control de opacidad */
 .opacity-control {
   padding: 0.75rem;
-  border-top: 1px solid #f3f4f6;
-  background-color: #f9fafb;
+  border-top: 1px solid #dcfce7; /* Borde verde claro */
+  background-color: #ecfdf5; /* Fondo verde muy suave */
   animation: fade-in 0.2s ease-out forwards;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
 }
 
 .opacity-badge {
   display: inline-flex;
   min-width: 45px;
   font-size: 0.75rem;
-  font-weight: 500;
-  color: #4b5563;
-  background-color: #e5e7eb;
+  font-weight: 600;
+  color: #15803d; /* Verde oscuro para texto */
+  background-color: #dcfce7; /* Verde muy claro para fondo */
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   text-align: center;
   justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .opacity-slider {
   flex: 1;
   height: 4px;
-  background-color: #e5e7eb;
+  background-color: #d1d5db;
   border-radius: 9999px;
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
   outline: none;
+  background-image: linear-gradient(to right, #10b981 0%, #10b981 50%, #d1d5db 50%, #d1d5db 100%);
+  background-size: 200% 100%;
+  background-position: right;
 }
 
 .opacity-slider::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  background-color: #10b981;
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff;
+  border: 2px solid #10b981;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .opacity-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  background-color: #10b981;
+  width: 16px;
+  height: 16px;
+  background-color: #ffffff;
+  border: 2px solid #10b981;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: none;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .opacity-slider:hover::-webkit-slider-thumb {
   transform: scale(1.25);
-  background-color: #059669;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  background-color: #10b981;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 
 .opacity-slider:hover::-moz-range-thumb {
   transform: scale(1.25);
-  background-color: #059669;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  background-color: #10b981;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 
 /* Footer info */
@@ -817,30 +933,32 @@ watch(() => props.map, (newMap) => {
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem;
-  border-radius: 0.375rem;
-  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  background-color: #f0fdf4; /* Fondo verde suave */
   font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
+  color: #15803d; /* Texto verde más oscuro */
+  margin-top: 0.75rem;
+  border: 1px dashed #a7f3d0; /* Borde punteado verde claro */
 }
 
 .active-layers-badge {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  color: #059669;
-  font-weight: 500;
+  color: #047857; /* Verde más intenso */
+  font-weight: 600;
 }
 
 .layers-list-footer {
   font-family: monospace;
-  padding: 0.375rem;
-  background-color: #f3f4f6;
+  padding: 0.375rem 0.5rem;
+  background-color: #ffffff;
   border-radius: 0.25rem;
   overflow-x: auto;
   white-space: nowrap;
-  border-left: 2px solid #10b981;
+  border-left: 3px solid #10b981;
   color: #4b5563;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Animaciones */
