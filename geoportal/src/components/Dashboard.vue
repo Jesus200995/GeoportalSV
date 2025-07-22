@@ -1678,68 +1678,135 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
       <!-- Mapa a pantalla completa -->
       <div ref="mapElement" class="absolute inset-0 z-0"></div>
       
-      <!-- Header flotante con título y botones de acción -->
-      <header class="absolute top-0 left-0 right-0 bg-white bg-opacity-95 shadow-md z-10 transition-all duration-300">
-        <div class="container mx-auto px-4 py-2 sm:py-3 flex justify-between items-center">
-          <!-- Logo y título -->
-          <div class="flex items-center space-x-3">
-            <img 
-              src="@/components/images/logotipo.png" 
-              alt="Logotipo Sembrando Datos" 
-              class="h-10 sm:h-12 w-auto object-contain"
-            />
-            <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-500">
-              Geoportal Sembrando Datos
-            </h1>
+      <!-- Header flotante premium con efectos modernos -->
+      <header class="absolute top-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-gray-200/60 shadow-lg z-10 transition-all duration-300 relative overflow-hidden">
+        <!-- Fondo decorativo animado -->
+        <div class="absolute inset-0 bg-gradient-to-r from-green-50/20 via-blue-50/20 to-purple-50/20 animate-pulse opacity-50"></div>
+        
+        <!-- Línea de acento superior -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-white via-lime-300 to-lime-500"></div>
+        
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center relative z-10">
+          <!-- Logo y título mejorados -->
+          <div class="flex items-center space-x-4 group">
+            <!-- Radar animado -->
+            <div class="relative transform transition-all duration-300 group-hover:scale-110">
+              <div class="radar-container w-12 h-12 sm:w-14 sm:h-14 relative">
+                <!-- Pantalla del radar -->
+                <div class="radar-screen w-full h-full rounded-full bg-white/10 backdrop-blur-sm shadow-lg relative overflow-hidden border-2 border-green-500/50">
+                  <!-- Círculos concéntricos del radar -->
+                  <div class="absolute inset-2 rounded-full border border-green-400/40"></div>
+                  <div class="absolute inset-4 rounded-full border border-green-400/50"></div>
+                  <div class="absolute inset-6 rounded-full border border-green-400/60"></div>
+                  
+                  <!-- Líneas de cuadrícula -->
+                  <div class="absolute top-1/2 left-0 right-0 h-px bg-green-400/40"></div>
+                  <div class="absolute top-0 bottom-0 left-1/2 w-px bg-green-400/40"></div>
+                  
+                  <!-- Haz del radar giratorio -->
+                  <div class="radar-sweep absolute inset-0 rounded-full overflow-hidden">
+                    <div class="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-green-400/90 via-green-300/70 to-transparent transform -translate-y-0.5 origin-left animate-radar-sweep"></div>
+                  </div>
+                  
+                  <!-- Puntos del radar -->
+                  <div class="radar-dot absolute top-3 left-4 w-1 h-1 bg-green-400 rounded-full animate-radar-pulse shadow-sm"></div>
+                  <div class="radar-dot absolute top-6 right-3 w-0.5 h-0.5 bg-green-300 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
+                  <div class="radar-dot absolute bottom-4 left-6 w-1 h-1 bg-green-500 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
+                  <div class="radar-dot absolute bottom-3 right-5 w-0.5 h-0.5 bg-green-400 rounded-full animate-radar-pulse shadow-sm"></div>
+                  <div class="radar-dot absolute top-1/2 left-3 w-0.5 h-0.5 bg-green-300 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
+                  <div class="radar-dot absolute top-4 right-6 w-1 h-1 bg-green-500 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
+                  
+                  <!-- Centro del radar -->
+                  <div class="absolute top-1/2 left-1/2 w-1 h-1 bg-green-400 rounded-full transform -translate-x-0.5 -translate-y-0.5 animate-pulse shadow-sm"></div>
+                </div>
+                
+                <!-- Resplandor exterior -->
+                <div class="absolute inset-0 rounded-full border-2 border-green-400/30 animate-pulse-slow"></div>
+                
+                <!-- Ondas de transmisión -->
+                <div class="absolute inset-0 rounded-full border-2 border-green-400/15 animate-radar-wave"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-green-400/10 animate-radar-wave-delayed"></div>
+              </div>
+              <!-- Resplandor detrás del radar -->
+              <div class="absolute inset-0 bg-green-400/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
+            </div>
+            
+            <!-- Título con efectos mejorados -->
+            <div class="flex flex-col">
+              <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-300 via-green-500 to-green-700">
+                Geoportal
+              </h1>
+              <div class="h-0.5 bg-gradient-to-r from-green-500 to-transparent w-0 group-hover:w-full transition-all duration-500 ease-out"></div>
+            </div>
           </div>
 
-          <!-- Botones de acción redistribuidos -->
-          <div class="flex items-center">
-            <!-- Botón de inicio actualizado sin contorno ni fondo -->
+          <!-- Botones de acción renovados -->
+          <div class="flex items-center space-x-3">
+            <!-- Botón de inicio compacto -->
             <button 
               @click="handleGoHome"
-              class="px-4 py-2 text-green-600 rounded-lg transition-all duration-300 flex items-center space-x-2 hover:text-green-800 focus:outline-none transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-4"
+              class="home-btn-compact relative overflow-hidden px-3 py-2 text-green-700 rounded-lg transition-all duration-300 flex items-center space-x-2 hover:text-white focus:outline-none group font-medium border border-green-300 hover:border-green-500 hover:shadow-md" 
               aria-label="Volver a la página de inicio"
             >
-              <span class="home-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Efecto de fondo suave -->
+              <div class="absolute inset-0 bg-gradient-to-r from-green-400 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out"></div>
+              
+              <span class="home-icon relative z-10 transform group-hover:scale-110 transition-transform duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                   <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
               </span>
-              <span class="hidden sm:inline">Inicio</span>
+              <span class="hidden sm:inline relative z-10 font-medium text-sm">Inicio</span>
+              
+              <!-- Indicador sutil -->
+              <div class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
             </button>
-            
-            <!-- Botón para consultar (NUEVO) -->
+
+            <!-- Botón para consultar compacto -->
             <button 
               @click="toggleQueryPanel"
-              class="modern-button query-button px-4 py-2 bg-gradient-to-r from-purple-400 to-purple-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold mr-4"
+              class="query-btn-compact relative overflow-hidden px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-purple-500/25 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50 transform hover:scale-105 active:scale-95 font-medium group" 
               aria-label="Consultar información"
             >
-              <span class="query-icon relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <!-- Brillo animado -->
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out"></div>
+              
+              <span class="query-icon relative z-10 transform group-hover:rotate-90 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16l2.879-2.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </span>
-              <span class="hidden sm:inline">Consultar</span>
+              <span class="hidden sm:inline relative z-10 font-medium text-sm">Consultar</span>
+              
+              <!-- Punto decorativo -->
+              <div class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-purple-300 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
             </button>
-            
-            <!-- Botón para subir capas -->
+
+            <!-- Botón para subir capas compacto -->
             <button 
               @click="goToUploadMaps"
-              class="modern-button upload-button px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:-translate-y-0.5 active:translate-y-0 font-semibold group mr-4"
+              class="upload-btn-compact relative overflow-hidden px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-blue-500/25 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transform hover:scale-105 active:scale-95 font-medium group" 
               aria-label="Subir nuevas capas"
             >
-              <span class="upload-icon relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <!-- Onda animada -->
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -translate-y-full group-hover:translate-y-full transition-transform duration-400 ease-out"></div>
+              
+              <span class="upload-icon relative z-10 transform group-hover:scale-110 transition-transform duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </span>
-              <span class="hidden sm:inline">IR a subir capas</span>
+              <span class="hidden sm:inline relative z-10 font-medium text-sm">Subir</span>
+              
+              <!-- Indicador de actividad -->
+              <div class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-cyan-300 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
             </button>
 
             <!-- Componente de perfil de usuario -->
-            <UserProfile class="ml-auto" />
+            <div class="ml-3">
+              <UserProfile />
+            </div>
           </div>
         </div>
       </header>
@@ -2658,5 +2725,349 @@ button:active {
     box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
     transform: scale(0.95);
   }
+}
+
+/* ===== NUEVOS ESTILOS PREMIUM PARA LA BARRA SUPERIOR ===== */
+
+/* Animación de gradiente para el título */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Animación de gradiente para la línea superior */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Clase para el título con animación de brillo */
+.animate-text-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Animación para el gradiente de la línea superior */
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 3s ease infinite;
+}
+
+/* Estilos para los botones premium */
+.premium-button {
+  position: relative;
+  isolation: isolate;
+  background-clip: padding-box;
+}
+
+/* Estilos para el botón de inicio compacto */
+.home-btn-compact {
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  font-size: 0.875rem; /* text-sm */
+  min-height: 2.5rem;
+  min-width: 5rem; /* Ancho mínimo fijo */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-btn-compact:hover {
+  background: none;
+  box-shadow: 0 4px 12px -2px rgba(34, 197, 94, 0.2), 
+              0 2px 4px -1px rgba(34, 197, 94, 0.1);
+  transform: translateY(-1px);
+}
+
+.home-btn-compact:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Estilos para el botón de consulta compacto */
+.query-btn-compact {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  font-size: 0.875rem; /* text-sm */
+  min-height: 2.5rem;
+  min-width: 5rem; /* Mismo ancho que inicio */
+  box-shadow: 0 2px 8px 0 rgba(139, 92, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.query-btn-compact:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 4px 12px -2px rgba(139, 92, 246, 0.4), 
+              0 2px 4px -1px rgba(139, 92, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.query-btn-compact:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Estilos para el botón de subida compacto */
+.upload-btn-compact {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  font-size: 0.875rem; /* text-sm */
+  min-height: 2.5rem;
+  min-width: 5rem; /* Mismo ancho que inicio */
+  box-shadow: 0 2px 8px 0 rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upload-btn-compact:hover {
+  background: linear-gradient(135deg, #1d4ed8, #0891b2);
+  box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4), 
+              0 2px 4px -1px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.upload-btn-compact:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Estilos responsivos para mantener consistencia en móviles */
+@media (max-width: 640px) {
+  .home-btn-compact, 
+  .query-btn-compact, 
+  .upload-btn-compact {
+    min-width: 2.5rem; /* Solo icono en móviles */
+    padding: 0.5rem;
+  }
+}
+
+/* Efectos específicos para el botón de inicio original */
+.home-btn {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-image: linear-gradient(135deg, #10b981, #059669) 1;
+}
+
+.home-btn:hover {
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.25), 
+              0 10px 10px -5px rgba(16, 185, 129, 0.04),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Efectos específicos para el botón de consulta */
+.query-btn {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed, #6d28d9);
+  box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.39);
+}
+
+.query-btn:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9, #5b21b6);
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4), 
+              0 10px 10px -5px rgba(139, 92, 246, 0.04);
+}
+
+/* Efectos específicos para el botón de subida */
+.upload-btn {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8, #1e40af);
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+}
+
+.upload-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af, #1e3a8a);
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4), 
+              0 10px 10px -5px rgba(59, 130, 246, 0.04);
+}
+
+/* Animación de pulso personalizada */
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Animación de bounce personalizada */
+@keyframes custom-bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+/* Estilo para el fondo animado del header */
+.animate-pulse {
+  animation: gentle-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Efectos de hover para iconos */
+.home-icon svg {
+  filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.3));
+}
+
+.query-icon svg {
+  filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.3));
+}
+
+.upload-icon svg {
+  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3));
+}
+
+/* Animación de rotación suave */
+@keyframes gentle-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(12deg);
+  }
+}
+
+/* Animación de ping personalizada para partículas */
+@keyframes custom-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Animaciones del radar */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg) translateY(-50%);
+  }
+  100% {
+    transform: rotate(360deg) translateY(-50%);
+  }
+}
+
+@keyframes radar-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes radar-pulse-delayed {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes radar-pulse-delayed-2 {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes radar-wave {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@keyframes radar-wave-delayed {
+  0% {
+    transform: scale(1);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+/* Clases de animación del radar */
+.animate-radar-sweep {
+  animation: radar-sweep 3s linear infinite;
+}
+
+.animate-radar-pulse {
+  animation: radar-pulse 2s ease-in-out infinite;
+}
+
+.animate-radar-pulse-delayed {
+  animation: radar-pulse-delayed 2.5s ease-in-out infinite 0.5s;
+}
+
+.animate-radar-pulse-delayed-2 {
+  animation: radar-pulse-delayed-2 2.2s ease-in-out infinite 1s;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-radar-wave {
+  animation: radar-wave 3s ease-out infinite;
+}
+
+.animate-radar-wave-delayed {
+  animation: radar-wave-delayed 3s ease-out infinite 1.5s;
+}
+
+/* Transición suave para todos los elementos premium */
+.premium-button * {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mejora responsiva */
+@media (max-width: 640px) {
+  .premium-button {
+    padding: 0.75rem;
+  }
+  
+  .premium-button span:not(.home-icon):not(.query-icon):not(.upload-icon) {
+    display: none;
+  }
+}
+
+/* Efecto glassmorphism para el header */
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* Sombra moderna */
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+              0 4px 6px -2px rgba(0, 0, 0, 0.05),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 </style>
