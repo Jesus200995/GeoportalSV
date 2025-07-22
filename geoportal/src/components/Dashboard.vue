@@ -10,7 +10,6 @@ import TileWMS from 'ol/source/TileWMS';
 import { fromLonLat } from 'ol/proj';
 import { watchEffect } from 'vue';
 import MeasurementTool from './map-tools/MeasurementTool.vue';
-import UserProfile from './UserProfile.vue';
 import LayersTool from './map-tools/LayersTool.vue';
 import DrawTool from './map-tools/DrawTool.vue';
 import SearchTool from './map-tools/SearchTool.vue';
@@ -1805,16 +1804,11 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </span>
-              <span class="hidden sm:inline relative z-10 font-medium text-sm">Subir</span>
+              <span class="hidden sm:inline relative z-10 font-medium text-sm">Subir Capas</span>
               
               <!-- Indicador de actividad -->
               <div class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-cyan-300 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
             </button>
-
-            <!-- Componente de perfil de usuario -->
-            <div class="ml-3">
-              <UserProfile />
-            </div>
           </div>
         </div>
       </header>
