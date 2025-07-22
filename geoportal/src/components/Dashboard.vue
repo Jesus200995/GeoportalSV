@@ -1679,9 +1679,9 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
       <div ref="mapElement" class="absolute inset-0 z-0"></div>
       
       <!-- Header flotante premium con efectos modernos -->
-      <header class="absolute top-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-b border-gray-200/60 shadow-lg z-10 transition-all duration-300 relative overflow-hidden">
+      <header class="absolute top-0 left-0 right-0 bg-green-50/80 backdrop-blur-xl border-b border-green-200/60 shadow-lg z-10 transition-all duration-300 relative overflow-hidden">
         <!-- Fondo decorativo animado -->
-        <div class="absolute inset-0 bg-gradient-to-r from-green-50/20 via-blue-50/20 to-purple-50/20 animate-pulse opacity-50"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-green-100/30 via-green-50/20 to-green-100/30 animate-pulse opacity-50"></div>
         
         <!-- Línea de acento superior -->
         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-white via-lime-300 to-lime-500"></div>
