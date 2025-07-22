@@ -1690,45 +1690,43 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
           <!-- Logo y título mejorados -->
           <div class="flex items-center space-x-4 group">
             <!-- Radar animado -->
-            <div class="relative transform transition-all duration-300 group-hover:scale-110">
-              <div class="radar-container w-12 h-12 sm:w-14 sm:h-14 relative">
+            <div class="relative">
+              <div class="radar-container w-8 h-8 sm:w-10 sm:h-10 relative">
                 <!-- Pantalla del radar -->
-                <div class="radar-screen w-full h-full rounded-full bg-white/10 backdrop-blur-sm shadow-lg relative overflow-hidden border-2 border-green-500/50">
+                <div class="radar-screen w-full h-full rounded-full bg-white/10 backdrop-blur-sm shadow-lg relative overflow-hidden border-2 border-green-800/70">
                   <!-- Círculos concéntricos del radar -->
-                  <div class="absolute inset-2 rounded-full border border-green-400/40"></div>
-                  <div class="absolute inset-4 rounded-full border border-green-400/50"></div>
-                  <div class="absolute inset-6 rounded-full border border-green-400/60"></div>
+                  <div class="absolute inset-2 rounded-full border border-green-700/60"></div>
+                  <div class="absolute inset-3 rounded-full border border-green-700/70"></div>
+                  <div class="absolute inset-4 rounded-full border border-green-700/80"></div>
                   
                   <!-- Líneas de cuadrícula -->
-                  <div class="absolute top-1/2 left-0 right-0 h-px bg-green-400/40"></div>
-                  <div class="absolute top-0 bottom-0 left-1/2 w-px bg-green-400/40"></div>
+                  <div class="absolute top-1/2 left-0 right-0 h-px bg-green-700/60"></div>
+                  <div class="absolute top-0 bottom-0 left-1/2 w-px bg-green-700/60"></div>
                   
                   <!-- Haz del radar giratorio -->
                   <div class="radar-sweep absolute inset-0 rounded-full overflow-hidden">
-                    <div class="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-green-400/90 via-green-300/70 to-transparent transform -translate-y-0.5 origin-left animate-radar-sweep"></div>
+                    <div class="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-green-800/90 via-green-600/70 to-transparent transform -translate-y-0.5 origin-left animate-radar-sweep"></div>
                   </div>
                   
                   <!-- Puntos del radar -->
-                  <div class="radar-dot absolute top-3 left-4 w-1 h-1 bg-green-400 rounded-full animate-radar-pulse shadow-sm"></div>
-                  <div class="radar-dot absolute top-6 right-3 w-0.5 h-0.5 bg-green-300 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
-                  <div class="radar-dot absolute bottom-4 left-6 w-1 h-1 bg-green-500 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
-                  <div class="radar-dot absolute bottom-3 right-5 w-0.5 h-0.5 bg-green-400 rounded-full animate-radar-pulse shadow-sm"></div>
-                  <div class="radar-dot absolute top-1/2 left-3 w-0.5 h-0.5 bg-green-300 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
-                  <div class="radar-dot absolute top-4 right-6 w-1 h-1 bg-green-500 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
+                  <div class="radar-dot absolute top-2 left-2 w-0.5 h-0.5 bg-green-800 rounded-full animate-radar-pulse shadow-sm"></div>
+                  <div class="radar-dot absolute top-3 right-2 w-0.5 h-0.5 bg-green-700 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
+                  <div class="radar-dot absolute bottom-2 left-3 w-0.5 h-0.5 bg-green-900 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
+                  <div class="radar-dot absolute bottom-2 right-3 w-0.5 h-0.5 bg-green-800 rounded-full animate-radar-pulse shadow-sm"></div>
+                  <div class="radar-dot absolute top-1/2 left-2 w-0.5 h-0.5 bg-green-700 rounded-full animate-radar-pulse-delayed shadow-sm"></div>
+                  <div class="radar-dot absolute top-2 right-3 w-0.5 h-0.5 bg-green-900 rounded-full animate-radar-pulse-delayed-2 shadow-sm"></div>
                   
                   <!-- Centro del radar -->
-                  <div class="absolute top-1/2 left-1/2 w-1 h-1 bg-green-400 rounded-full transform -translate-x-0.5 -translate-y-0.5 animate-pulse shadow-sm"></div>
+                  <div class="absolute top-1/2 left-1/2 w-0.5 h-0.5 bg-green-800 rounded-full transform -translate-x-0.25 -translate-y-0.25 animate-pulse shadow-sm"></div>
                 </div>
                 
                 <!-- Resplandor exterior -->
-                <div class="absolute inset-0 rounded-full border-2 border-green-400/30 animate-pulse-slow"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-green-800/40 animate-pulse-slow"></div>
                 
                 <!-- Ondas de transmisión -->
-                <div class="absolute inset-0 rounded-full border-2 border-green-400/15 animate-radar-wave"></div>
-                <div class="absolute inset-0 rounded-full border-2 border-green-400/10 animate-radar-wave-delayed"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-green-800/20 animate-radar-wave"></div>
+                <div class="absolute inset-0 rounded-full border-2 border-green-800/15 animate-radar-wave-delayed"></div>
               </div>
-              <!-- Resplandor detrás del radar -->
-              <div class="absolute inset-0 bg-green-400/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
             </div>
             
             <!-- Título con efectos mejorados -->
