@@ -1733,10 +1733,20 @@ const mostrarModalPersonalizado = (titulo, contenido) => {
             
             <!-- Título con efectos mejorados -->
             <div class="flex flex-col">
-              <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-300 via-green-500 to-green-700">
-                Geoportal
-              </h1>
-              <div class="h-0.5 bg-gradient-to-r from-green-500 to-transparent w-0 group-hover:w-full transition-all duration-500 ease-out"></div>
+              <!-- Contenedor principal del título y subtítulo -->
+              <div class="flex items-end">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-lime-400 via-lime-600 to-green-800">
+                  Geoportal
+                </h1>
+                <!-- Subtítulo elegante al lado -->
+                <div class="flex items-center ml-1 mb-1">
+                  <div class="w-3 h-px bg-gradient-to-r from-transparent to-lime-600 opacity-60"></div>
+                  <h2 class="text-sm sm:text-base font-bold tracking-[0.12em] bg-clip-text text-transparent bg-gradient-to-r from-lime-600 via-lime-700 to-green-700 ml-1">
+                    SEMBRANDO DATOS
+                  </h2>
+                </div>
+              </div>
+              <div class="h-0.5 bg-gradient-to-r from-green-700 to-transparent w-full mt-2"></div>
             </div>
           </div>
 
