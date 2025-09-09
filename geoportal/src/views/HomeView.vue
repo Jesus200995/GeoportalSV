@@ -78,7 +78,7 @@ const openSupervisar = () => {
   // Mostrar la animación de carga por 3 segundos antes de redirigir
   setTimeout(() => {
     // Redirigir a la URL externa
-    window.location.href = 'https://adminpwa.sembrandodatos.com/dashboard';
+    window.location.href = 'https://adminpwa.sembrandodatos.com/visor-map';
   }, 3000);
 };
 
