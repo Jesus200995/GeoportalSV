@@ -165,7 +165,7 @@ const buttons = ref([
     detail: 'Acceda a los formularios de entrada',
     color: 'pink',
     action: 'openFormularios',
-    icon: 'M9 12.75H15m-6 6H15m2.25-15H5.25A2.25 2.25 0 003 4.5v15a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 19.5V4.5A2.25 2.25 0 0018.75 2.25z'
+    icon: 'M9 12.75H15m-6 6H15M7.5 3h9A2.25 2.25 0 0118.75 5.25v13.5A2.25 2.25 0 0116.5 21h-9a2.25 2.25 0 01-2.25-2.25V5.25A2.25 2.25 0 017.5 3z'
   }
 ]);
 
