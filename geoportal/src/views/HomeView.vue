@@ -82,16 +82,16 @@ const openSupervisar = () => {
   }, 3000);
 };
 
-// Función para abrir la biblioteca de datos con animación de transición
-const openBiblioteca = () => {
-  // Activar la transición con carpeta y archivos
+// Función para abrir los formularios
+const openFormularios = () => {
+  // Activar la transición
   isTransitioning.value = true;
-  transitionTarget.value = 'biblioteca';
+  transitionTarget.value = 'formularios';
   
   // Mostrar la animación de carga por 3 segundos antes de abrir el enlace
   setTimeout(() => {
     // Abrir el enlace en una nueva pestaña
-    window.open('https://biblioteca.sembrandodatos.com/#', '_blank');
+    window.open('https://docs.google.com/spreadsheets/d/1kS1nVjn0O_iekk1kD2kbzPBXWgD3h34_/edit?gid=926082204#gid=926082204', '_blank');
     
     // Reiniciar el estado de transición
     isTransitioning.value = false;
@@ -101,7 +101,7 @@ const openBiblioteca = () => {
 
 // Estado para el carrusel
 const currentSlide = ref(0);
-const totalSlides = 5; // Total de botones
+const totalSlides = 6; // Total de botones
 const isTransitioningCarousel = ref(false);
 
 // Definir los datos de los botones para el carrusel
@@ -156,6 +156,16 @@ const buttons = ref([
     color: 'red',
     action: 'openSupervisar',
     icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z'
+  },
+  {
+    id: 'formularios',
+    title: 'FORMULARIOS',
+    subtitle: 'GESTIÓN DE DATOS',
+    description: 'Formularios',
+    detail: 'Acceda a los formularios de entrada',
+    color: 'pink',
+    action: 'openFormularios',
+    icon: 'M9 12.75H15m-6 6H15m2.25-15H5.25A2.25 2.25 0 003 4.5v15a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 19.5V4.5A2.25 2.25 0 0018.75 2.25z'
   }
 ]);
 
@@ -305,6 +315,9 @@ const executeButtonAction = (button) => {
     case 'openSupervisar':
       openSupervisar();
       break;
+    case 'openFormularios':
+      openFormularios();
+      break;
     case 'router':
       // Para router-link, se manejará en el template
       break;
@@ -451,6 +464,12 @@ const getButtonColors = (buttonId) => {
       shadow: 'shadow-red-500/40',
       glow: 'shadow-red-400/20',
       ring: 'focus:ring-red-400/50'
+    },
+    formularios: {
+      border: 'border-pink-400/60',
+      shadow: 'shadow-pink-500/40',
+      glow: 'shadow-pink-400/20',
+      ring: 'focus:ring-pink-400/50'
     }
   };
   
@@ -1562,6 +1581,37 @@ const getButtonColors = (buttonId) => {
   transform: scale(1);
 }
 
+/* Efecto de fondo para el botón FORMULARIOS (Rosa) */
+.formularios-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.formularios-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(236, 72, 153, 0.3) 0%,
+    rgba(219, 39, 119, 0.2) 50%,
+    rgba(190, 24, 93, 0.1) 100%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.formularios-button:hover::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
@@ -1713,6 +1763,34 @@ const getButtonColors = (buttonId) => {
 }
 
 .supervisar-button:hover::after {
+  opacity: 1;
+}
+
+/* Efectos de brillo con transformación para el botón FORMULARIOS */
+.formularios-button::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(236, 72, 153, 0.4),
+    transparent,
+    rgba(219, 39, 119, 0.3),
+    transparent
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: all 0.6s ease;
+  animation: rotate-glow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.formularios-button:hover::after {
   opacity: 1;
 }
 
@@ -2800,6 +2878,19 @@ const getButtonColors = (buttonId) => {
     rgba(239, 68, 68, 0.15) 0%, 
     rgba(0, 0, 0, 0.5) 50%, 
     rgba(239, 68, 68, 0.10) 100%
+  ) !important;
+}
+
+.formularios-button.lateral-button-active {
+  box-shadow: 
+    0 12px 35px rgba(236, 72, 153, 0.25),
+    0 0 45px rgba(236, 72, 153, 0.20),
+    inset 0 0 0 2px rgba(236, 72, 153, 0.4);
+  border: 2px solid rgba(236, 72, 153, 0.6) !important;
+  background: linear-gradient(135deg, 
+    rgba(236, 72, 153, 0.15) 0%, 
+    rgba(0, 0, 0, 0.5) 50%, 
+    rgba(236, 72, 153, 0.10) 100%
   ) !important;
 }
 
