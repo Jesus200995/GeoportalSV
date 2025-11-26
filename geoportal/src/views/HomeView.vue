@@ -99,6 +99,23 @@ const openFormularios = () => {
   }, 3000);
 };
 
+// Función para abrir la biblioteca de datos
+const openBiblioteca = () => {
+  // Activar la transición con animación de carpeta
+  isTransitioning.value = true;
+  transitionTarget.value = 'biblioteca';
+  
+  // Mostrar la animación de carga por 3 segundos antes de abrir el enlace
+  setTimeout(() => {
+    // Abrir el enlace de la biblioteca en una nueva pestaña
+    window.open('https://biblioteca.sembrandodatos.com/login', '_blank');
+    
+    // Reiniciar el estado de transición
+    isTransitioning.value = false;
+    transitionTarget.value = '';
+  }, 3000);
+};
+
 // Estado para el carrusel
 const currentSlide = ref(0);
 const totalSlides = 6; // Total de botones
